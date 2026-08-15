@@ -43,18 +43,28 @@ robust structural facts rather than a single threshold:
    rim light, a white sheet or a shadow are never separable and merge; grid,
    staggered, tilted and layered panels stay apart. A body mostly contained in a
    bigger one is kept as an **inset** only if a separator ring frames it.
-4. **Enclosed whites**. `solidWhite` components that do not touch the page
+4. **Frame splitting** (`PanelFrames`). A body that a bleed connected across a
+   drawn keyline is split back apart: within its box the detector looks for a
+   thin, near-continuous separator line (white or thick border) spanning the box,
+   flanked by dense art on both sides, and cuts there. This tolerates the bleed
+   gap (up to ~15 % of the span) yet ignores speech bubbles and bright bands
+   (too thick) and page margins (art only on one side). Bodies without such a
+   line are left whole, so borderless panels are never over-cut. Recursive, so a
+   bordered banner over a full-page splash becomes two stops.
+5. **Enclosed whites**. `solidWhite` components that do not touch the page
    border, with a compact fill, are bubbles/captions/white panel interiors.
    Each is attached to every panel it overlaps by ≥ 20 % of its area (or the
    best-overlapping one), growing that panel's frame so overhanging dialogue is
    framed instead of clipped. Detached large regions become panels themselves.
-5. **Cleanup** (`PanelLayout`). Bodies contained in a grown frame are absorbed
+6. **Cleanup** (`PanelLayout`). Bodies contained in a grown frame are absorbed
    unless framed insets; thin slivers are folded into the panel they touch;
    background bands almost fully covered by the bordered panel on top of them
    are dropped.
-6. **Confidence gate**. If nothing survives, more than 16 panels remain, or the
-   panels cover less than 75 % of the page's art, the page falls back to a
-   single full-page panel. A single detected body is returned as-is, which also
+7. **Confidence gate**. If nothing survives, more than 16 panels remain, or the
+   panels cover less than 75 % of the page's art, the page falls back to
+   horizontal reading bands (`PanelBands`, split on full-width gutter rows), or a
+   single full-page panel when even bands find no gutters — which keeps true
+   splashes as one stop. A single detected body is returned as-is, which also
    auto-crops margins on splashes.
 
 Output: `List<Rect>` in normalized page coordinates (0..1), cached per page in
@@ -72,11 +82,14 @@ shown before its insets.
 
 ### Known limits
 
-- Bleed art that physically connects panels, or SFX lettering spanning gutters,
-  merges those panels into one larger stop (safe: nothing is clipped, text is
-  just smaller).
+- Bleed art that connects panels across a drawn keyline is split back apart
+  (step 4) when the keyline stays a thin, near-continuous line; a bleed that
+  covers more than ~15 % of the line, or panels joined with no keyline at all,
+  still merge into one larger stop (safe: nothing is clipped, text is just
+  smaller).
 - Chained bubbles crossing panels grow both panels' frames.
-- Panels separated only by a black keyline with no gutter are read as one.
+- Steeply tilted panels that overlap are not split by frames (their keylines are
+  not axis-aligned); the reading-band fallback catches the worst of these.
 
 ## Iterating on detection
 

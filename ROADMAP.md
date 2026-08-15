@@ -64,8 +64,10 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
 
 - [x] Automatic panel detection: adaptive gutter/border colours, max-pooled
       hairline gutters, art bodies merged by straight-line separability (grid,
-      tilted, layered and inset layouts), speech bubbles/captions attached to
-      the panels they overhang, coverage-based whole-page fallback
+      tilted, layered and inset layouts), bleed-over-keyline bodies split back
+      apart (bordered panel over a full-page splash), speech bubbles/captions
+      attached to the panels they overhang, horizontal reading-band fallback
+      that keeps true splashes as one stop
 - [x] Reading-order sorting of detected panels (mutual-centre rows, LTR,
       containers before their insets)
 - [x] Guided navigation: tap zones advance panel with animated pan/zoom
