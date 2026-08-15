@@ -17,6 +17,7 @@
     <string name="reader_action_next_page">Página siguiente</string>
     <string name="reader_action_previous_page">Página anterior</string>
     <string name="reader_error_open">No se ha podido abrir este cómic.</string>
+    <string name="reader_thumbnail_go_to_page">Ir a la página %1$d</string>
 
     <string name="posture_folded">Plegado</string>
     <string name="posture_unfolded">Desplegado</string>

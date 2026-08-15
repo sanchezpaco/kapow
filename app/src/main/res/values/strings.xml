@@ -17,6 +17,7 @@
     <string name="reader_action_next_page">Next page</string>
     <string name="reader_action_previous_page">Previous page</string>
     <string name="reader_error_open">This comic could not be opened.</string>
+    <string name="reader_thumbnail_go_to_page">Go to page %1$d</string>
 
     <string name="posture_folded">Folded</string>
     <string name="posture_unfolded">Unfolded</string>

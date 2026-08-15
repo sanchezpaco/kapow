@@ -54,6 +54,14 @@ class ReaderViewModel(
         _state.update { it.copy(chromeVisible = !it.chromeVisible) }
     }
 
+    fun requestJump(pageIndex: Int) {
+        _state.update { it.copy(pendingJump = pageIndex) }
+    }
+
+    fun onJumpApplied() {
+        _state.update { it.copy(pendingJump = null) }
+    }
+
     fun toggleGuided() {
         _state.update { it.copy(guided = !it.guided) }
     }

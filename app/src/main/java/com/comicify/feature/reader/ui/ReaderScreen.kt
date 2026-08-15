@@ -60,6 +60,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.comicify.R
 import com.comicify.core.window.ReadingPosture
 import com.comicify.core.window.rememberReadingPosture
+import com.comicify.feature.reader.data.PageLoader
 
 private val InitialAmbient = Color(0xFF0B0B0F)
 
@@ -102,6 +103,8 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
                     guided = state.guided,
                     guidedFullScreen = state.guidedFullScreen,
                     initialPage = state.position.pageIndex,
+                    pendingJump = state.pendingJump,
+                    onJumpApplied = viewModel::onJumpApplied,
                     onPageChanged = viewModel::onPageChanged,
                     onTap = viewModel::toggleChrome,
                     onAmbient = { ambient = it },
@@ -124,6 +127,8 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
             visible = state.chromeVisible,
             currentPage = state.position.pageIndex,
             pageCount = state.pageCount,
+            scrubberLoader = if (state.guided) null else viewModel.pageLoader,
+            onJumpToPage = viewModel::requestJump,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
@@ -214,6 +219,8 @@ private fun BottomChrome(
     visible: Boolean,
     currentPage: Int,
     pageCount: Int,
+    scrubberLoader: PageLoader?,
+    onJumpToPage: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -228,12 +235,23 @@ private fun BottomChrome(
             enter = fadeIn() + slideInVertically { it },
             exit = fadeOut() + slideOutVertically { it },
         ) {
-            if (pageCount > 0) {
-                PageCounter(
-                    current = currentPage,
-                    total = pageCount,
-                    modifier = Modifier.padding(bottom = 12.dp),
-                )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                if (scrubberLoader != null && pageCount > 0) {
+                    ThumbnailScrubber(
+                        loader = scrubberLoader,
+                        currentPage = currentPage,
+                        pageCount = pageCount,
+                        onSelect = onJumpToPage,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    )
+                }
+                if (pageCount > 0) {
+                    PageCounter(
+                        current = currentPage,
+                        total = pageCount,
+                        modifier = Modifier.padding(bottom = 12.dp),
+                    )
+                }
             }
         }
         if (pageCount > 0) {

@@ -32,7 +32,10 @@ import androidx.compose.ui.unit.dp
 import com.comicify.R
 import com.comicify.core.window.ReadingPosture
 import com.comicify.feature.reader.data.PageLoader
+import com.comicify.feature.reader.domain.ThumbnailStrip
 import kotlinx.coroutines.launch
+
+private const val PAGES_PER_SPREAD = 2
 
 @Composable
 fun ReaderSurface(
@@ -41,6 +44,8 @@ fun ReaderSurface(
     guided: Boolean,
     guidedFullScreen: Boolean,
     initialPage: Int,
+    pendingJump: Int?,
+    onJumpApplied: () -> Unit,
     onPageChanged: (Int) -> Unit,
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
@@ -52,9 +57,12 @@ fun ReaderSurface(
     }
     key(posture) {
         when (posture) {
-            ReadingPosture.UnfoldedSpread -> SpreadReader(loader, initialPage, onPageChanged, onTap, onAmbient)
-            ReadingPosture.Tabletop -> TabletopReader(loader, initialPage, onPageChanged, onTap, onAmbient)
-            else -> SinglePageReader(loader, initialPage, onPageChanged, onTap, onAmbient)
+            ReadingPosture.UnfoldedSpread ->
+                SpreadReader(loader, initialPage, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
+            ReadingPosture.Tabletop ->
+                TabletopReader(loader, initialPage, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
+            else ->
+                SinglePageReader(loader, initialPage, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
         }
     }
 }
@@ -63,6 +71,8 @@ fun ReaderSurface(
 private fun SinglePageReader(
     loader: PageLoader,
     initialPage: Int,
+    pendingJump: Int?,
+    onJumpApplied: () -> Unit,
     onPageChanged: (Int) -> Unit,
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
@@ -71,6 +81,8 @@ private fun SinglePageReader(
         loader.pageCount
     }
     var zoomed by remember { mutableStateOf(false) }
+
+    JumpEffect(pendingJump, onJumpApplied) { pagerState.scrollToPage(it.coerceIn(0, lastPage(loader))) }
 
     LaunchedEffect(pagerState.currentPage) {
         onPageChanged(pagerState.currentPage)
@@ -97,6 +109,8 @@ private fun SinglePageReader(
 private fun SpreadReader(
     loader: PageLoader,
     initialPage: Int,
+    pendingJump: Int?,
+    onJumpApplied: () -> Unit,
     onPageChanged: (Int) -> Unit,
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
@@ -106,6 +120,10 @@ private fun SpreadReader(
         spreadCount
     }
     var zoomed by remember { mutableStateOf(false) }
+
+    JumpEffect(pendingJump, onJumpApplied) {
+        pagerState.scrollToPage(ThumbnailStrip.stepIndexForPage(it, PAGES_PER_SPREAD).coerceIn(0, spreadCount - 1))
+    }
 
     LaunchedEffect(pagerState.currentPage) {
         val leftPage = pagerState.currentPage * 2
@@ -149,6 +167,8 @@ private fun SpreadReader(
 private fun TabletopReader(
     loader: PageLoader,
     initialPage: Int,
+    pendingJump: Int?,
+    onJumpApplied: () -> Unit,
     onPageChanged: (Int) -> Unit,
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
@@ -157,6 +177,8 @@ private fun TabletopReader(
         loader.pageCount
     }
     var zoomed by remember { mutableStateOf(false) }
+
+    JumpEffect(pendingJump, onJumpApplied) { pagerState.scrollToPage(it.coerceIn(0, lastPage(loader))) }
 
     LaunchedEffect(pagerState.currentPage) {
         onPageChanged(pagerState.currentPage)
@@ -223,6 +245,19 @@ private fun TabletopControls(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun JumpEffect(
+    pendingJump: Int?,
+    onJumpApplied: () -> Unit,
+    scroll: suspend (Int) -> Unit,
+) {
+    LaunchedEffect(pendingJump) {
+        val target = pendingJump ?: return@LaunchedEffect
+        scroll(target)
+        onJumpApplied()
     }
 }
 

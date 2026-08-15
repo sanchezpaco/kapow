@@ -3,6 +3,7 @@ package com.comicify.feature.reader.data
 import android.util.LruCache
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.CoroutineScope
@@ -13,15 +14,19 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 private const val TARGET_WIDTH_PX = 2160
+private const val THUMB_WIDTH_PX = 180
 private const val CACHE_SIZE = 8
+private const val THUMB_CACHE_SIZE = 64
 
 class PageLoader(
     private val source: ComicSource,
     private val scope: CoroutineScope,
 ) {
     private val cache = LruCache<Int, PageArt>(CACHE_SIZE)
+    private val thumbCache = LruCache<Int, ImageBitmap>(THUMB_CACHE_SIZE)
     private val panelCache = LruCache<Int, List<Rect>>(CACHE_SIZE)
     private val locks = HashMap<Int, Mutex>()
+    private val thumbLocks = HashMap<Int, Mutex>()
 
     val pageCount: Int get() = source.pageCount
 
@@ -33,11 +38,22 @@ class PageLoader(
         }
     }
 
+    suspend fun loadThumb(index: Int): ImageBitmap {
+        thumbCache[index]?.let { return it }
+        val mutex = synchronized(thumbLocks) { thumbLocks.getOrPut(index) { Mutex() } }
+        return mutex.withLock {
+            thumbCache[index] ?: decodeThumb(index).also { thumbCache.put(index, it) }
+        }
+    }
+
     private suspend fun decode(index: Int): PageArt {
         val bitmap = source.decodePage(index, TARGET_WIDTH_PX)
         val ambient = Color(bitmap.ambientColorInt())
         return PageArt(bitmap.asImageBitmap(), ambient)
     }
+
+    private suspend fun decodeThumb(index: Int): ImageBitmap =
+        source.decodePage(index, THUMB_WIDTH_PX).asImageBitmap()
 
     suspend fun panels(index: Int): List<Rect> {
         panelCache[index]?.let { return it }
