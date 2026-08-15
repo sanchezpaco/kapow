@@ -8,8 +8,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.comicify.feature.reader.data.ComicSource
+import com.comicify.feature.reader.data.ComicSourceException
 import com.comicify.feature.reader.data.ComicSourceFactory
 import com.comicify.feature.reader.data.PageLoader
+import com.comicify.feature.reader.domain.ComicOpenError
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,8 +42,9 @@ class ReaderViewModel(
                     pageLoader = PageLoader(opened, viewModelScope)
                     _state.update { it.copy(loading = false, pageCount = opened.pageCount) }
                 }
-                .onFailure {
-                    _state.update { it.copy(loading = false, error = true) }
+                .onFailure { throwable ->
+                    val error = (throwable as? ComicSourceException)?.error ?: ComicOpenError.ReadFailure
+                    _state.update { it.copy(loading = false, error = error) }
                 }
         }
     }
