@@ -16,20 +16,15 @@ object ComicSourceFactory {
                 cacheFile.outputStream().use { output -> input.copyTo(output) }
             }
             when (detectFormat(cacheFile)) {
-                ArchiveFormat.Rar -> CbrComicSource.fromFile(cacheFile)
-                ArchiveFormat.Zip -> CbzComicSource.fromFile(cacheFile)
+                ComicFileFormat.Pdf -> PdfComicSource.fromFile(cacheFile)
+                ComicFileFormat.Rar -> CbrComicSource.fromFile(cacheFile)
+                ComicFileFormat.Zip -> CbzComicSource.fromFile(cacheFile)
             }
         }
 
-    private fun detectFormat(file: File): ArchiveFormat {
-        val magic = ByteArray(4)
+    private fun detectFormat(file: File): ComicFileFormat {
+        val magic = ByteArray(MAGIC_BYTE_COUNT)
         file.inputStream().use { it.read(magic) }
-        val isRar = magic[0] == 'R'.code.toByte() &&
-            magic[1] == 'a'.code.toByte() &&
-            magic[2] == 'r'.code.toByte() &&
-            magic[3] == '!'.code.toByte()
-        return if (isRar) ArchiveFormat.Rar else ArchiveFormat.Zip
+        return detectComicFileFormat(magic)
     }
 }
-
-private enum class ArchiveFormat { Zip, Rar }

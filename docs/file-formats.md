@@ -32,8 +32,12 @@ Extensions lie: many `.cbr` files are actually ZIP archives. `ComicSourceFactory
 copies the picked document to a cache file, reads the leading magic bytes, and
 routes on content, not extension:
 
-- `PK…` → ZIP → `CbzComicSource`.
 - `Rar!…` → RAR (both RAR4 and RAR5) → `CbrComicSource`.
+- `%PDF…` → PDF → `PdfComicSource`.
+- Anything else → ZIP → `CbzComicSource` (default).
+
+The pure magic-byte matcher (`detectComicFileFormat`) lives in `ComicFileFormat.kt`
+and is unit-tested independently of any file IO.
 
 ## CBR (RAR4 and RAR5)
 
@@ -50,9 +54,16 @@ routes on content, not extension:
 
 ## PDF (Phase 5)
 
-- Rendered with the framework `android.graphics.pdf.PdfRenderer`.
-- Each page is a `PdfRenderer.Page` rasterized to a bitmap at target width.
-- `PdfRenderer` is not thread-safe: serialize access behind a mutex per source.
+- Rendered with the framework `android.graphics.pdf.PdfRenderer` in
+  `PdfComicSource`, behind the same `ComicSource` interface as CBZ/CBR.
+- The cache file is opened as a read-only `ParcelFileDescriptor`; the renderer
+  and descriptor are closed in `close()`, and the cache file is deleted.
+- Each page is a `PdfRenderer.Page` rasterized to an `ARGB_8888` bitmap at the
+  reader's target width, with height derived from the page aspect ratio. The
+  bitmap is pre-filled white before `render` so transparent PDF backgrounds show
+  as paper white. Rendering runs on `Dispatchers.IO`.
+- `PdfRenderer` is not thread-safe: page rendering is serialized behind a
+  `Mutex` per source.
 
 ## Natural sorting
 
