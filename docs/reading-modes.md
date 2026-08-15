@@ -20,6 +20,17 @@ Default on `UnfoldedSingle` and `CompactSingle`.
 - Instead of a flat-black letterbox, the whole reader background is an **ambient
   radial glow** derived from the current page's dominant color (androidx
   Palette), cross-fading when the page changes. See `ambient-backdrop` below.
+- **Page-turn depth transition:** as the pager settles, each page is transformed
+  by a `graphicsLayer` driven by its own scroll-offset fraction
+  (`PagerState.getOffsetFractionForPage`). The outgoing page recedes with a
+  subtle scale-down, fade, parallax translation, and a soft 3D `rotationY` (via a
+  modest `cameraDistance`), so a turn reads with depth rather than a flat slide.
+  The math lives in the pure `PageTurn.transform(pageOffset)` function
+  (`reader/domain`, unit-tested): offset `0` is the identity (the settled page is
+  perfectly flat and centred), and `|offset| → 1` reaches the depth extreme. The
+  effect is scoped to this single-page surface; spread, tabletop and Guided View
+  are unchanged. Because the pager is locked while a page is zoomed, the offset
+  stays `0` there, so the transition never fights pinch-zoom or pan.
 
 ## Ambient backdrop
 

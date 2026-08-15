@@ -27,12 +27,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.comicify.R
 import com.comicify.core.window.ReadingPosture
 import com.comicify.feature.reader.data.PageLoader
+import com.comicify.feature.reader.domain.PageTurn
 import kotlinx.coroutines.launch
+
+private const val PAGE_TURN_CAMERA_DISTANCE_DP = 12f
 
 @Composable
 fun ReaderSurface(
@@ -89,9 +93,22 @@ private fun SinglePageReader(
             index = page,
             onTap = onTap,
             onZoomedChange = { if (page == pagerState.currentPage) zoomed = it },
+            modifier = Modifier.pageTurnDepth(pagerState, page),
         )
     }
 }
+
+private fun Modifier.pageTurnDepth(pagerState: PagerState, page: Int): Modifier =
+    graphicsLayer {
+        val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+        val transform = PageTurn.transform(pageOffset)
+        cameraDistance = PAGE_TURN_CAMERA_DISTANCE_DP * density
+        rotationY = transform.rotationY
+        scaleX = transform.scale
+        scaleY = transform.scale
+        alpha = transform.alpha
+        translationX = transform.translationFraction * size.width
+    }
 
 @Composable
 private fun SpreadReader(
