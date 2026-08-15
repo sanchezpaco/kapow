@@ -71,3 +71,12 @@ Available on `CompactSingle`, and on demand elsewhere. Full detail in
 Regardless of surface, the reader preloads the next `N` page bitmaps (and, in
 spread mode, the next pair) through Coil so page turns have no decode latency. `N`
 scales down under memory pressure.
+
+## Night tint
+
+An optional warm amber scrim for comfortable low-light reading, toggled from the
+HUD. It is drawn as a translucent layer above the page content and ambient
+backdrop but below the top/bottom chrome, so it never dims the controls
+themselves. The preference is persisted with DataStore
+(`ReaderPreferencesRepository`) and restored on the next session; it only
+affects the reader, never the library.

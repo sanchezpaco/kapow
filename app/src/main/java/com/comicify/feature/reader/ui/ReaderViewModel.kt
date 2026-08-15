@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.comicify.feature.reader.data.ComicSource
 import com.comicify.feature.reader.data.ComicSourceFactory
 import com.comicify.feature.reader.data.PageLoader
+import com.comicify.feature.reader.data.ReaderPreferencesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,12 +25,15 @@ class ReaderViewModel(
     private val _state = MutableStateFlow(ReaderUiState())
     val state: StateFlow<ReaderUiState> = _state.asStateFlow()
 
+    private val preferencesRepository = ReaderPreferencesRepository(application)
+
     private var source: ComicSource? = null
     var pageLoader: PageLoader? = null
         private set
 
     init {
         openComic()
+        observeNightTint()
     }
 
     private fun openComic() {
@@ -60,6 +64,20 @@ class ReaderViewModel(
 
     fun toggleGuidedFullScreen() {
         _state.update { it.copy(guidedFullScreen = !it.guidedFullScreen) }
+    }
+
+    fun toggleNightTint() {
+        viewModelScope.launch {
+            preferencesRepository.setNightTintEnabled(!_state.value.nightTintEnabled)
+        }
+    }
+
+    private fun observeNightTint() {
+        viewModelScope.launch {
+            preferencesRepository.nightTintEnabled.collect { enabled ->
+                _state.update { it.copy(nightTintEnabled = enabled) }
+            }
+        }
     }
 
     override fun onCleared() {
