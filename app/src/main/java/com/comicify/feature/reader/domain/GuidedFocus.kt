@@ -20,6 +20,28 @@ object GuidedFocus {
 
     fun panned(view: Rect, delta: Offset): Rect = clamp(view.translate(delta))
 
+    fun pinch(
+        view: Rect,
+        drawn: Rect,
+        focus: Offset,
+        zoom: Float,
+        pan: Offset,
+        minWidth: Float,
+        maxWidth: Float,
+        minHeight: Float,
+        maxHeight: Float,
+    ): Rect {
+        val focusX = ((focus.x - drawn.left) / drawn.width).coerceIn(0f, 1f)
+        val focusY = ((focus.y - drawn.top) / drawn.height).coerceIn(0f, 1f)
+        val width = (view.width / zoom).coerceIn(minWidth, maxWidth)
+        val height = (view.height / zoom).coerceIn(minHeight, maxHeight)
+        val anchor = Offset(view.left + focusX * view.width, view.top + focusY * view.height)
+        val shift = toPageDelta(view, drawn, pan)
+        val left = anchor.x - focusX * width + shift.x
+        val top = anchor.y - focusY * height + shift.y
+        return clamp(Rect(left, top, left + width, top + height))
+    }
+
     fun fit(view: Rect, image: Size, canvas: Size): Rect {
         val viewAspect = (view.width * image.width) / (view.height * image.height)
         val canvasAspect = canvas.width / canvas.height
