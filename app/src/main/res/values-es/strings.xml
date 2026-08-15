@@ -14,6 +14,7 @@
     <string name="reader_action_guided">Vista guiada</string>
     <string name="reader_action_guided_full_screen">Viñeta a pantalla completa</string>
     <string name="reader_action_guided_keep_spread">Viñeta dentro de la doble página</string>
+    <string name="reader_action_night_tint">Filtro nocturno</string>
     <string name="reader_action_next_page">Página siguiente</string>
     <string name="reader_action_previous_page">Página anterior</string>
     <string name="reader_error_unsupported_format">Este formato de archivo no es compatible. Comicify lee archivos CBZ y CBR.</string>

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -66,6 +67,7 @@ import com.comicify.feature.reader.domain.ComicOpenError
 import kotlinx.coroutines.flow.MutableSharedFlow
 
 private val InitialAmbient = Color(0xFF0B0B0F)
+private val NightTintColor = Color(0xFFFF8F00).copy(alpha = 0.16f)
 
 @Composable
 fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
@@ -122,13 +124,19 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
             }
         }
 
+        if (state.nightTintEnabled) {
+            Box(modifier = Modifier.fillMaxSize().background(NightTintColor))
+        }
+
         TopChrome(
             visible = state.chromeVisible,
             posture = posture,
             guided = state.guided,
             guidedFullScreen = state.guidedFullScreen,
+            nightTintEnabled = state.nightTintEnabled,
             onToggleGuided = viewModel::toggleGuided,
             onToggleGuidedFullScreen = viewModel::toggleGuidedFullScreen,
+            onToggleNightTint = viewModel::toggleNightTint,
             onClose = onClose,
             modifier = Modifier.align(Alignment.TopCenter),
         )
@@ -148,8 +156,10 @@ private fun TopChrome(
     posture: ReadingPosture,
     guided: Boolean,
     guidedFullScreen: Boolean,
+    nightTintEnabled: Boolean,
     onToggleGuided: () -> Unit,
     onToggleGuidedFullScreen: () -> Unit,
+    onToggleNightTint: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -185,6 +195,8 @@ private fun TopChrome(
                 }
                 GuidedToggle(guided = guided, onToggle = onToggleGuided)
                 Spacer(modifier = Modifier.width(10.dp))
+                NightTintToggle(enabled = nightTintEnabled, onToggle = onToggleNightTint)
+                Spacer(modifier = Modifier.width(10.dp))
                 PostureChip(posture)
             }
         }
@@ -201,6 +213,21 @@ private fun GuidedToggle(guided: Boolean, onToggle: () -> Unit) {
         Icon(
             imageVector = Icons.Filled.ViewCarousel,
             contentDescription = stringResource(R.string.reader_action_guided),
+            tint = Color.White,
+        )
+    }
+}
+
+@Composable
+private fun NightTintToggle(enabled: Boolean, onToggle: () -> Unit) {
+    val background = if (enabled) MaterialTheme.colorScheme.secondary else Color.White.copy(alpha = 0.12f)
+    IconButton(
+        onClick = onToggle,
+        modifier = Modifier.background(background, CircleShape),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.NightsStay,
+            contentDescription = stringResource(R.string.reader_action_night_tint),
             tint = Color.White,
         )
     }

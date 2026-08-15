@@ -12,4 +12,5 @@ data class ReaderUiState(
     val guided: Boolean = false,
     val guidedFullScreen: Boolean = false,
     val volumeKeyPagingEnabled: Boolean = true,
+    val nightTintEnabled: Boolean = false,
 )

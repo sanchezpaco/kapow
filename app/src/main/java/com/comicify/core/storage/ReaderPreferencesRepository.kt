@@ -18,7 +18,15 @@ class ReaderPreferencesRepository(private val context: Context) {
         context.readerPreferencesDataStore.edit { it[VOLUME_KEY_PAGE_TURN_ENABLED] = enabled }
     }
 
+    val nightTintEnabled: Flow<Boolean> =
+        context.readerPreferencesDataStore.data.map { it[NIGHT_TINT_ENABLED] ?: false }
+
+    suspend fun setNightTintEnabled(enabled: Boolean) {
+        context.readerPreferencesDataStore.edit { it[NIGHT_TINT_ENABLED] = enabled }
+    }
+
     private companion object {
         val VOLUME_KEY_PAGE_TURN_ENABLED = booleanPreferencesKey("volume_key_page_turn_enabled")
+        val NIGHT_TINT_ENABLED = booleanPreferencesKey("night_tint_enabled")
     }
 }

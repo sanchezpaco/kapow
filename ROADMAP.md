@@ -84,7 +84,7 @@ Goal: the details that make it feel premium.
 - [~] More formats: format is detected by content (magic bytes), not extension.
       ZIP (CBZ, and `.cbr` files that are really ZIP) and RAR4/RAR5 (via
       7-Zip-JBinding) all work. PDF (`PdfRenderer`) still pending.
-- [ ] Night tint (amber) toggle
+- [x] Night tint (amber) toggle
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails, per-comic settings

@@ -35,6 +35,7 @@ class ReaderViewModel(
     init {
         openComic()
         observeVolumeKeyPaging()
+        observeNightTint()
     }
 
     private fun openComic() {
@@ -76,6 +77,20 @@ class ReaderViewModel(
         viewModelScope.launch {
             preferencesRepository.volumeKeyPageTurnEnabled.collect { enabled ->
                 _state.update { it.copy(volumeKeyPagingEnabled = enabled) }
+            }
+        }
+    }
+
+    fun toggleNightTint() {
+        viewModelScope.launch {
+            preferencesRepository.setNightTintEnabled(!_state.value.nightTintEnabled)
+        }
+    }
+
+    private fun observeNightTint() {
+        viewModelScope.launch {
+            preferencesRepository.nightTintEnabled.collect { enabled ->
+                _state.update { it.copy(nightTintEnabled = enabled) }
             }
         }
     }
