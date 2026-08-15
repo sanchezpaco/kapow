@@ -38,9 +38,11 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.positionChanged
@@ -74,6 +76,15 @@ private const val OVERSCROLL_RESISTANCE = 0.32f
 private const val MAX_OVERSCROLL_PX = 220f
 private const val BOUNCE_VELOCITY_FRACTION = 0.3f
 private const val MAX_BOUNCE_VELOCITY_PX = 2400f
+private const val SPOTLIGHT_DIM = 0.72f
+private const val SPOTLIGHT_FEATHER_FRACTION = 0.1f
+// TODO(guided): auto-pan is disabled (no HUD toggle) until it is content-gated
+//  so it only tours detail-dense stops and never zooms into near-empty panels.
+private const val AUTO_PAN_ENABLED = false
+private const val AUTO_PAN_ZOOM = 1.2f
+private const val AUTO_PAN_MILLIS = 6000
+private const val AUTO_PAN_MIN_AREA = 0.4f
+private const val AUTO_PAN_MIN_SIDE = 0.45f
 
 @Composable
 fun GuidedReader(
@@ -83,6 +94,7 @@ fun GuidedReader(
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
     onPageChanged: (Int) -> Unit,
+    onGuidedStop: (Int, Int) -> Unit,
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
@@ -97,8 +109,9 @@ fun GuidedReader(
         val loaded = runCatching { loader.load(page) }.getOrNull()
         loaded?.let { arts = arts + (page to it); onAmbient(it.ambient) }
         val detected = runCatching { loader.panels(page) }.getOrDefault(listOf(FullPagePanel))
-        panels = detected
-        panelIndex = if (panelIndex == LAST_PANEL) detected.lastIndex else panelIndex.coerceIn(0, detected.lastIndex)
+        val stops = if (detected.size > 1) listOf(FullPagePanel) + detected else detected
+        panels = stops
+        panelIndex = if (panelIndex == LAST_PANEL) stops.lastIndex else panelIndex.coerceIn(0, stops.lastIndex)
         loader.preload((page - 1)..(page + 2))
         if (spread) {
             val sibling = spreadStart(page) + 1 - page % 2
@@ -133,11 +146,16 @@ fun GuidedReader(
         }
     }
 
-    val panelView = GuidedFocus.frame(panels.getOrElse(panelIndex) { FullPagePanel }, PANEL_PADDING)
+    LaunchedEffect(panelIndex, panels.size) { onGuidedStop(panelIndex, panels.size) }
+
+    val currentStop = panels.getOrElse(panelIndex) { FullPagePanel }
+    val isOverview = panels.size > 1 && panelIndex == 0
+    val autoPan = AUTO_PAN_ENABLED && !isOverview && isLargeStop(currentStop)
+    val panelView = GuidedFocus.frame(currentStop, PANEL_PADDING)
     val resetKey = page to panelIndex
 
     if (!spread) {
-        GuidedPanel(arts[page], panelView, resetKey, direction, ::goPrevious, ::goNext, onTap, Modifier.fillMaxSize())
+        GuidedPanel(arts[page], panelView, autoPan, resetKey, direction, ::goPrevious, ::goNext, onTap, Modifier.fillMaxSize())
         return
     }
     val firstPage = spreadStart(page)
@@ -145,12 +163,23 @@ fun GuidedReader(
     val screenLeftPage = PageOrder.leftPage(direction, firstPage, secondPage)
     val screenRightPage = PageOrder.rightPage(direction, firstPage, secondPage)
     Row(modifier = Modifier.fillMaxSize()) {
-        SpreadHalf(screenLeftPage, page, arts[screenLeftPage], panelView, resetKey, direction, ::goPrevious, ::goNext, onTap)
-        SpreadHalf(screenRightPage, page, arts[screenRightPage], panelView, resetKey, direction, ::goPrevious, ::goNext, onTap)
+        SpreadHalf(screenLeftPage, page, arts[screenLeftPage], panelView, autoPan, resetKey, direction, ::goPrevious, ::goNext, onTap)
+        SpreadHalf(screenRightPage, page, arts[screenRightPage], panelView, autoPan, resetKey, direction, ::goPrevious, ::goNext, onTap)
     }
 }
 
 private fun spreadStart(page: Int) = page - page % 2
+
+private fun isLargeStop(stop: Rect) =
+    stop.width * stop.height >= AUTO_PAN_MIN_AREA && minOf(stop.width, stop.height) >= AUTO_PAN_MIN_SIDE
+
+private fun panCrop(stop: Rect, atTop: Boolean): Rect {
+    val width = stop.width / AUTO_PAN_ZOOM
+    val height = stop.height / AUTO_PAN_ZOOM
+    val left = stop.left + (stop.width - width) / 2f
+    val top = if (atTop) stop.top else stop.bottom - height
+    return Rect(left, top, left + width, top + height)
+}
 
 @Composable
 private fun RowScope.SpreadHalf(
@@ -158,6 +187,7 @@ private fun RowScope.SpreadHalf(
     activePage: Int,
     art: PageArt?,
     panelView: Rect,
+    autoPan: Boolean,
     resetKey: Any,
     direction: ReadingDirection,
     onPrevious: () -> Unit,
@@ -166,7 +196,7 @@ private fun RowScope.SpreadHalf(
 ) {
     val modifier = Modifier.weight(1f).fillMaxSize()
     if (index == activePage) {
-        GuidedPanel(art, panelView, resetKey, direction, onPrevious, onNext, onTap, modifier)
+        GuidedPanel(art, panelView, autoPan, resetKey, direction, onPrevious, onNext, onTap, modifier)
         return
     }
     val image = art?.image
@@ -184,6 +214,7 @@ private fun RowScope.SpreadHalf(
 private fun GuidedPanel(
     art: PageArt?,
     panelView: Rect,
+    autoPan: Boolean,
     resetKey: Any,
     direction: ReadingDirection,
     onPrevious: () -> Unit,
@@ -203,6 +234,7 @@ private fun GuidedPanel(
     val currentPanelView by rememberUpdatedState(panelView)
     val currentArt by rememberUpdatedState(art)
     val currentDirection by rememberUpdatedState(direction)
+    val currentAutoPan by rememberUpdatedState(autoPan)
 
     LaunchedEffect(resetKey) {
         zoomed = false
@@ -210,7 +242,12 @@ private fun GuidedPanel(
         dragView = null
         view.updateBounds(null, null)
         overscroll.snapTo(Offset.Zero)
-        view.animateTo(currentPanelView, tween(FOCUS_ANIMATION_MILLIS, easing = FastOutSlowInEasing))
+        if (currentAutoPan) {
+            view.animateTo(panCrop(currentPanelView, atTop = true), tween(FOCUS_ANIMATION_MILLIS, easing = FastOutSlowInEasing))
+            view.animateTo(panCrop(currentPanelView, atTop = false), tween(AUTO_PAN_MILLIS, easing = FastOutSlowInEasing))
+        } else {
+            view.animateTo(currentPanelView, tween(FOCUS_ANIMATION_MILLIS, easing = FastOutSlowInEasing))
+        }
     }
 
     Box(
@@ -403,14 +440,51 @@ private fun IntSize.toSize() = Size(width.toFloat(), height.toFloat())
 @Composable
 private fun GuidedPage(image: ImageBitmap, view: Rect, overscroll: Offset) {
     Canvas(modifier = Modifier.fillMaxSize()) {
-        val drawn = GuidedFocus.fit(view, image.size(), size)
+        val source = view
+        val drawn = GuidedFocus.fit(source, image.size(), size).translate(overscroll.x, overscroll.y)
+        val scale = drawn.width / (source.width * image.width)
         drawImage(
             image = image,
-            srcOffset = IntOffset((view.left * image.width).roundToInt(), (view.top * image.height).roundToInt()),
-            srcSize = IntSize((view.width * image.width).roundToInt(), (view.height * image.height).roundToInt()),
-            dstOffset = IntOffset((drawn.left + overscroll.x).roundToInt(), (drawn.top + overscroll.y).roundToInt()),
+            srcOffset = IntOffset.Zero,
+            srcSize = IntSize(image.width, image.height),
+            dstOffset = IntOffset(
+                (drawn.left - source.left * image.width * scale).roundToInt(),
+                (drawn.top - source.top * image.height * scale).roundToInt(),
+            ),
+            dstSize = IntSize((image.width * scale).roundToInt(), (image.height * scale).roundToInt()),
+            filterQuality = FilterQuality.Low,
+        )
+        drawRect(color = Color.Black, alpha = SPOTLIGHT_DIM)
+        drawImage(
+            image = image,
+            srcOffset = IntOffset((source.left * image.width).roundToInt(), (source.top * image.height).roundToInt()),
+            srcSize = IntSize((source.width * image.width).roundToInt(), (source.height * image.height).roundToInt()),
+            dstOffset = IntOffset(drawn.left.roundToInt(), drawn.top.roundToInt()),
             dstSize = IntSize(drawn.width.roundToInt(), drawn.height.roundToInt()),
             filterQuality = FilterQuality.High,
         )
+        featherFocus(drawn)
     }
+}
+
+private fun DrawScope.featherFocus(focus: Rect) {
+    val feather = minOf(focus.width, focus.height) * SPOTLIGHT_FEATHER_FRACTION
+    if (feather <= 0f) return
+    val edge = Color.Black.copy(alpha = SPOTLIGHT_DIM)
+    drawRect(
+        Brush.verticalGradient(listOf(edge, Color.Transparent), startY = focus.top, endY = focus.top + feather),
+        topLeft = Offset(focus.left, focus.top), size = Size(focus.width, feather),
+    )
+    drawRect(
+        Brush.verticalGradient(listOf(Color.Transparent, edge), startY = focus.bottom - feather, endY = focus.bottom),
+        topLeft = Offset(focus.left, focus.bottom - feather), size = Size(focus.width, feather),
+    )
+    drawRect(
+        Brush.horizontalGradient(listOf(edge, Color.Transparent), startX = focus.left, endX = focus.left + feather),
+        topLeft = Offset(focus.left, focus.top), size = Size(feather, focus.height),
+    )
+    drawRect(
+        Brush.horizontalGradient(listOf(Color.Transparent, edge), startX = focus.right - feather, endX = focus.right),
+        topLeft = Offset(focus.right - feather, focus.top), size = Size(feather, focus.height),
+    )
 }

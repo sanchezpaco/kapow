@@ -45,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -99,6 +100,8 @@ fun ReaderScreen(
     }
 
     var ambient by remember { mutableStateOf(InitialAmbient) }
+    var guidedIndex by remember { mutableIntStateOf(0) }
+    var guidedCount by remember { mutableIntStateOf(1) }
     val glow by animateColorAsState(
         targetValue = lerp(Color.Black, ambient, 0.5f),
         animationSpec = tween(700),
@@ -138,6 +141,7 @@ fun ReaderScreen(
                     pendingJump = state.pendingJump,
                     onJumpApplied = viewModel::onJumpApplied,
                     onPageChanged = viewModel::onPageChanged,
+                    onGuidedStop = { index, count -> guidedIndex = index; guidedCount = count },
                     onTap = viewModel::toggleChrome,
                     onAmbient = { ambient = it },
                 )
@@ -169,6 +173,9 @@ fun ReaderScreen(
             pageCount = state.pageCount,
             scrubberLoader = if (state.guided) null else viewModel.pageLoader,
             onJumpToPage = viewModel::requestJump,
+            guided = state.guided,
+            guidedStop = guidedIndex,
+            guidedStopCount = guidedCount,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
@@ -314,6 +321,9 @@ private fun BottomChrome(
     pageCount: Int,
     scrubberLoader: PageLoader?,
     onJumpToPage: (Int) -> Unit,
+    guided: Boolean,
+    guidedStop: Int,
+    guidedStopCount: Int,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -346,6 +356,13 @@ private fun BottomChrome(
                     )
                 }
             }
+        }
+        if (guided && guidedStopCount > 1) {
+            GuidedStops(
+                current = guidedStop,
+                count = guidedStopCount,
+                modifier = Modifier.padding(bottom = 12.dp),
+            )
         }
         if (pageCount > 0) {
             ProgressBar(progress = readingProgress(currentPage, pageCount))

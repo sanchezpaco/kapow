@@ -29,10 +29,13 @@ object PanelDetection {
         val height = classes.height
         val enclosed = enclosedWhites(classes)
         val panels = segment(classes, enclosed)
-        if (panels.isEmpty() || panels.size > MAX_PANELS) return listOf(FullPagePanel)
-        if (PanelLayout.coverage(panels, classes.art, width) < MIN_COVERAGE) return listOf(FullPagePanel)
+        if (panels.isEmpty() || panels.size > MAX_PANELS) return fallback(classes)
+        if (PanelLayout.coverage(panels, classes.art, width) < MIN_COVERAGE) return fallback(classes)
         return PanelLayout.readingOrder(panels).map { it.toRect(width, height) }
     }
+
+    private fun fallback(classes: PixelClasses) =
+        PanelBands.bands(classes).map { it.toRect(classes.width, classes.height) }
 
     private fun segment(classes: PixelClasses, enclosed: List<Box>): List<Box> {
         val width = classes.width
@@ -40,11 +43,13 @@ object PanelDetection {
         val pageArea = width * height
         val minPanelArea = (pageArea * MIN_PANEL_AREA_FRACTION).toInt()
         val art = classes.art
+        val separator = BooleanArray(art.size) { classes.white[it] || classes.border[it] }
         val segmentation = art.opened(width, height, OPENING_RADIUS).segment(width, height, minPanelArea)
         val isPanelWorthy = { box: Box -> box.area >= minPanelArea && aspect(box) <= MAX_PANEL_ASPECT }
         val isFramed = { box: Box -> framedShare(box, art, width, height) >= MIN_FRAMED_RING }
         val isSliver = { box: Box -> min(box.width, box.height) < SLIVER_SIDE_FRACTION * min(width, height) && aspect(box) > SLIVER_ASPECT }
         return PanelBodies(segmentation, width, height, isFramed).merged()
+            .flatMap { PanelFrames.split(it, separator, art, width) }
             .map { Panel(it, it) }
             .let { PanelLayout.attach(it, enclosed, isPanelWorthy) }
             .let { PanelLayout.absorbContained(it, isFramed) }
