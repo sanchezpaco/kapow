@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 
 private const val TARGET_WIDTH_PX = 2160
 private const val CACHE_SIZE = 8
+private const val CROP_MARGINS = true
 
 class PageLoader(
     private val source: ComicSource,
@@ -34,9 +35,11 @@ class PageLoader(
     }
 
     private suspend fun decode(index: Int): PageArt {
-        val bitmap = source.decodePage(index, TARGET_WIDTH_PX)
-        val ambient = Color(bitmap.ambientColorInt())
-        return PageArt(bitmap.asImageBitmap(), ambient)
+        val decoded = source.decodePage(index, TARGET_WIDTH_PX)
+        return withContext(Dispatchers.Default) {
+            val bitmap = if (CROP_MARGINS) decoded.contentCropped() else decoded
+            PageArt(bitmap.asImageBitmap(), Color(bitmap.ambientColorInt()))
+        }
     }
 
     suspend fun panels(index: Int): List<Rect> {

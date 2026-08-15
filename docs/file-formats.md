@@ -97,6 +97,19 @@ Archive entry order is not guaranteed. Sort filenames with a natural comparator
 so numeric runs order numerically (`p1, p2, … p10`, not `p1, p10, p2`). This
 lives in `core` and is unit-tested.
 
+## Margin auto-crop
+
+Some pages carry a wide solid border (near-white or near-black) that shrinks the
+art. After decoding, `MarginCrop` inspects the page: if the four corners agree on
+a uniform colour, it scans inward from each edge for full lines of that colour and
+returns the tight content rectangle as a normalized `Rect`. Guards keep it safe —
+a page with no meaningful border, disagreeing corners, or a crop that would remove
+more than half of either axis is left whole. The crop is computed once per page in
+the data layer (`PageLoader.decode`, behind a default-on flag) and the page is
+cropped there, so ambient colour, panel detection and display all operate on the
+same content. Validated offline against real pages with a `BufferedImage` harness
+and unit-tested on synthetic bordered pages.
+
 ## Dominant color
 
 For letterbox fill (`reading-modes.md`), the decoder also samples the page's edge
