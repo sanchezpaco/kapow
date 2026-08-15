@@ -60,6 +60,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.comicify.R
 import com.comicify.core.window.ReadingPosture
 import com.comicify.core.window.rememberReadingPosture
+import com.comicify.feature.reader.domain.ComicOpenError
 
 private val InitialAmbient = Color(0xFF0B0B0F)
 
@@ -92,9 +93,10 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
                 )
             },
     ) {
+        val openError = state.error
         when {
             state.loading -> CenteredMessage(stringResource(R.string.reader_loading), showSpinner = true)
-            state.error -> CenteredMessage(stringResource(R.string.reader_error_open))
+            openError != null -> CenteredMessage(stringResource(openError.messageRes()))
             else -> viewModel.pageLoader?.let { loader ->
                 ReaderSurface(
                     loader = loader,
@@ -294,4 +296,10 @@ private fun ReadingPosture.labelRes(): Int = when (this) {
     ReadingPosture.UnfoldedSingle -> R.string.posture_unfolded
     ReadingPosture.UnfoldedSpread -> R.string.posture_spread
     ReadingPosture.Tabletop -> R.string.posture_tabletop
+}
+
+private fun ComicOpenError.messageRes(): Int = when (this) {
+    ComicOpenError.UnsupportedFormat -> R.string.reader_error_unsupported_format
+    ComicOpenError.EmptyArchive -> R.string.reader_error_empty_archive
+    ComicOpenError.ReadFailure -> R.string.reader_error_read_failure
 }

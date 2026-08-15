@@ -76,6 +76,21 @@ and is unit-tested independently of any file IO.
 - `PdfRenderer` is not thread-safe: page rendering is serialized behind a
   `Mutex` per source.
 
+## Open failures
+
+`ComicSourceFactory.open` never leaks raw exceptions to the UI. Failures are
+classified into a sealed `ComicOpenError` (`feature/reader/domain`) with three
+cases, each carried to the reader as a distinct localized message:
+
+- `UnsupportedFormat` — the magic bytes are not ZIP or RAR (PDF included, since
+  `PdfComicSource` does not exist yet).
+- `EmptyArchive` — the archive opened but contains zero readable image pages.
+- `ReadFailure` — the stream could not be read, or the archive is corrupted.
+
+`ComicSourceFactory` throws a matching `ComicSourceException` (`feature/reader/data`)
+that wraps the `ComicOpenError`; `ReaderViewModel` catches it and stores the
+error case in `ReaderUiState` for `ReaderScreen` to render.
+
 ## Natural sorting
 
 Archive entry order is not guaranteed. Sort filenames with a natural comparator
