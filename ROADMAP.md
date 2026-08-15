@@ -70,7 +70,9 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       that keeps true splashes as one stop
 - [x] Reading-order sorting of detected panels (mutual-centre rows, LTR,
       containers before their insets)
-- [x] Guided navigation: tap zones advance panel with animated pan/zoom
+- [x] Guided navigation: tap zones advance panel with animated pan/zoom, a
+      whole-page overview stop on entering each multi-panel page, and a HUD
+      stops indicator with an end-of-page cue
 - [x] Spread posture: guided within the two-page spread (active half focuses,
       other page as context) or full screen, toggle in the HUD
 - [x] Robust base: double-tap zoom around the tapped point + one-finger pan in
