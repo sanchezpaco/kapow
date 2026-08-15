@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.comicify.core.storage.ReaderPreferencesRepository
 import com.comicify.feature.reader.data.ComicSource
 import com.comicify.feature.reader.data.ComicSourceFactory
 import com.comicify.feature.reader.data.PageLoader
@@ -19,6 +20,7 @@ import kotlinx.coroutines.launch
 class ReaderViewModel(
     application: Application,
     private val uri: Uri,
+    private val preferencesRepository: ReaderPreferencesRepository = ReaderPreferencesRepository(application),
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(ReaderUiState())
@@ -30,6 +32,7 @@ class ReaderViewModel(
 
     init {
         openComic()
+        observeVolumeKeyPaging()
     }
 
     private fun openComic() {
@@ -60,6 +63,18 @@ class ReaderViewModel(
 
     fun toggleGuidedFullScreen() {
         _state.update { it.copy(guidedFullScreen = !it.guidedFullScreen) }
+    }
+
+    fun setVolumeKeyPaging(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setVolumeKeyPageTurnEnabled(enabled) }
+    }
+
+    private fun observeVolumeKeyPaging() {
+        viewModelScope.launch {
+            preferencesRepository.volumeKeyPageTurnEnabled.collect { enabled ->
+                _state.update { it.copy(volumeKeyPagingEnabled = enabled) }
+            }
+        }
     }
 
     override fun onCleared() {

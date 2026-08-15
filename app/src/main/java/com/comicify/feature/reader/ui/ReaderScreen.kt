@@ -58,8 +58,11 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.comicify.R
+import com.comicify.core.input.PageTurnDirection
+import com.comicify.core.input.RegisterVolumeKeyPageTurns
 import com.comicify.core.window.ReadingPosture
 import com.comicify.core.window.rememberReadingPosture
+import kotlinx.coroutines.flow.MutableSharedFlow
 
 private val InitialAmbient = Color(0xFF0B0B0F)
 
@@ -68,6 +71,11 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
     val viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.factory(uri))
     val state by viewModel.state.collectAsStateWithLifecycle()
     val posture = rememberReadingPosture()
+    val pageTurnRequests = remember { MutableSharedFlow<PageTurnDirection>(extraBufferCapacity = 1) }
+
+    RegisterVolumeKeyPageTurns(enabled = state.volumeKeyPagingEnabled) { direction ->
+        pageTurnRequests.tryEmit(direction)
+    }
 
     var ambient by remember { mutableStateOf(InitialAmbient) }
     val glow by animateColorAsState(
@@ -102,6 +110,7 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
                     guided = state.guided,
                     guidedFullScreen = state.guidedFullScreen,
                     initialPage = state.position.pageIndex,
+                    pageTurnRequests = pageTurnRequests,
                     onPageChanged = viewModel::onPageChanged,
                     onTap = viewModel::toggleChrome,
                     onAmbient = { ambient = it },

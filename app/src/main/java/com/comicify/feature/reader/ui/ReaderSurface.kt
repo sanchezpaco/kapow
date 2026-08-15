@@ -30,8 +30,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.comicify.R
+import com.comicify.core.input.PageTurnDirection
 import com.comicify.core.window.ReadingPosture
 import com.comicify.feature.reader.data.PageLoader
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 @Composable
@@ -41,28 +43,37 @@ fun ReaderSurface(
     guided: Boolean,
     guidedFullScreen: Boolean,
     initialPage: Int,
+    pageTurnRequests: Flow<PageTurnDirection>,
     onPageChanged: (Int) -> Unit,
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
     if (guided) {
         val spread = posture == ReadingPosture.UnfoldedSpread && !guidedFullScreen
-        key(spread) { GuidedReader(loader, spread, initialPage, onPageChanged, onTap, onAmbient) }
+        key(spread) { GuidedReader(loader, spread, initialPage, pageTurnRequests, onPageChanged, onTap, onAmbient) }
         return
     }
     key(posture) {
         when (posture) {
-            ReadingPosture.UnfoldedSpread -> SpreadReader(loader, initialPage, onPageChanged, onTap, onAmbient)
-            ReadingPosture.Tabletop -> TabletopReader(loader, initialPage, onPageChanged, onTap, onAmbient)
-            else -> SinglePageReader(loader, initialPage, onPageChanged, onTap, onAmbient)
+            ReadingPosture.UnfoldedSpread ->
+                SpreadReader(loader, initialPage, pageTurnRequests, onPageChanged, onTap, onAmbient)
+            ReadingPosture.Tabletop ->
+                TabletopReader(loader, initialPage, pageTurnRequests, onPageChanged, onTap, onAmbient)
+            else -> SinglePageReader(loader, initialPage, pageTurnRequests, onPageChanged, onTap, onAmbient)
         }
     }
+}
+
+private fun targetPage(current: Int, lastIndex: Int, direction: PageTurnDirection): Int = when (direction) {
+    PageTurnDirection.Next -> (current + 1).coerceAtMost(lastIndex)
+    PageTurnDirection.Previous -> (current - 1).coerceAtLeast(0)
 }
 
 @Composable
 private fun SinglePageReader(
     loader: PageLoader,
     initialPage: Int,
+    pageTurnRequests: Flow<PageTurnDirection>,
     onPageChanged: (Int) -> Unit,
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
@@ -76,6 +87,12 @@ private fun SinglePageReader(
         onPageChanged(pagerState.currentPage)
         loader.preload((pagerState.currentPage - 1)..(pagerState.currentPage + 2))
         runCatching { loader.load(pagerState.currentPage) }.getOrNull()?.let { onAmbient(it.ambient) }
+    }
+
+    LaunchedEffect(pagerState) {
+        pageTurnRequests.collect { direction ->
+            pagerState.animateScrollToPage(targetPage(pagerState.currentPage, lastPage(loader), direction))
+        }
     }
 
     HorizontalPager(
@@ -97,6 +114,7 @@ private fun SinglePageReader(
 private fun SpreadReader(
     loader: PageLoader,
     initialPage: Int,
+    pageTurnRequests: Flow<PageTurnDirection>,
     onPageChanged: (Int) -> Unit,
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
@@ -112,6 +130,12 @@ private fun SpreadReader(
         onPageChanged(leftPage)
         loader.preload((leftPage - 1)..(leftPage + 3))
         runCatching { loader.load(leftPage) }.getOrNull()?.let { onAmbient(it.ambient) }
+    }
+
+    LaunchedEffect(pagerState) {
+        pageTurnRequests.collect { direction ->
+            pagerState.animateScrollToPage(targetPage(pagerState.currentPage, spreadCount - 1, direction))
+        }
     }
 
     HorizontalPager(
@@ -149,6 +173,7 @@ private fun SpreadReader(
 private fun TabletopReader(
     loader: PageLoader,
     initialPage: Int,
+    pageTurnRequests: Flow<PageTurnDirection>,
     onPageChanged: (Int) -> Unit,
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
@@ -162,6 +187,12 @@ private fun TabletopReader(
         onPageChanged(pagerState.currentPage)
         loader.preload((pagerState.currentPage - 1)..(pagerState.currentPage + 2))
         runCatching { loader.load(pagerState.currentPage) }.getOrNull()?.let { onAmbient(it.ambient) }
+    }
+
+    LaunchedEffect(pagerState) {
+        pageTurnRequests.collect { direction ->
+            pagerState.animateScrollToPage(targetPage(pagerState.currentPage, lastPage(loader), direction))
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
