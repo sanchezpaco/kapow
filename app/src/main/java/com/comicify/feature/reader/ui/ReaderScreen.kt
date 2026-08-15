@@ -37,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,8 +74,13 @@ private val InitialAmbient = Color(0xFF0B0B0F)
 private val NightTintColor = Color(0xFFFF8F00).copy(alpha = 0.16f)
 
 @Composable
-fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
-    val viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.factory(uri))
+fun ReaderScreen(
+    uri: Uri,
+    onClose: () -> Unit,
+    initialPage: Int = 0,
+    onPageChanged: (pageIndex: Int, pageCount: Int) -> Unit = { _, _ -> },
+) {
+    val viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.factory(uri, initialPage))
     val state by viewModel.state.collectAsStateWithLifecycle()
     val windowState = rememberReadingWindowState()
     val posture = windowState.posture
@@ -82,6 +88,10 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
 
     RegisterVolumeKeyPageTurns(enabled = state.volumeKeyPagingEnabled) { direction ->
         pageTurnRequests.tryEmit(direction)
+    }
+
+    LaunchedEffect(state.position.pageIndex, state.pageCount) {
+        if (state.pageCount > 0) onPageChanged(state.position.pageIndex, state.pageCount)
     }
 
     var ambient by remember { mutableStateOf(InitialAmbient) }

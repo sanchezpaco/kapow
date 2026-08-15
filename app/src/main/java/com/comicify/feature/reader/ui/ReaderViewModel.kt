@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.comicify.core.storage.ReaderPreferencesRepository
 import com.comicify.domain.model.ReadingDirection
+import com.comicify.domain.model.ReadingPosition
 import com.comicify.feature.reader.data.ComicSource
 import com.comicify.feature.reader.data.ComicSourceException
 import com.comicify.feature.reader.data.ComicSourceFactory
@@ -23,10 +24,11 @@ import kotlinx.coroutines.launch
 class ReaderViewModel(
     application: Application,
     private val uri: Uri,
+    initialPage: Int,
     private val preferencesRepository: ReaderPreferencesRepository = ReaderPreferencesRepository(application),
 ) : AndroidViewModel(application) {
 
-    private val _state = MutableStateFlow(ReaderUiState())
+    private val _state = MutableStateFlow(ReaderUiState(position = ReadingPosition(pageIndex = initialPage)))
     val state: StateFlow<ReaderUiState> = _state.asStateFlow()
 
     private var source: ComicSource? = null
@@ -126,10 +128,10 @@ class ReaderViewModel(
     }
 
     companion object {
-        fun factory(uri: Uri): ViewModelProvider.Factory = viewModelFactory {
+        fun factory(uri: Uri, initialPage: Int): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val application = this[APPLICATION_KEY] as Application
-                ReaderViewModel(application, uri)
+                ReaderViewModel(application, uri, initialPage)
             }
         }
 

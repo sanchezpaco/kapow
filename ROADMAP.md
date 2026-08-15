@@ -50,10 +50,12 @@ survives fold/unfold. This is the heart of the product. See `docs/foldable.md`.
 Goal: a beautiful home for a collection, not just a file opener.
 See `docs/library.md`.
 
-- [ ] Import comics from device storage (SAF) into an internal library
-- [ ] Cover grid with reading progress and "continue reading"
-- [ ] Room-backed library + per-comic reading position persistence
-- [ ] Filename parsing for series / issue number / year
+- [x] Pick a comics folder (SAF `OPEN_DOCUMENT_TREE`, persistable permission,
+      folder Uri stored in DataStore) and scan it recursively for `.cbz/.cbr/.pdf`
+- [x] Cover grid (adaptive columns) with reading progress and "continue reading"
+- [x] Room-backed library + per-comic reading position persistence
+- [x] Filename parsing for series / issue number / year (tolerant, unit-tested)
+- [x] Lazy per-comic cover thumbnails cached to internal storage
 - [ ] Optional metadata enrichment (ComicVine API) — deferred if noisy
 
 ## Phase 4 — Guided View (panel by panel)
