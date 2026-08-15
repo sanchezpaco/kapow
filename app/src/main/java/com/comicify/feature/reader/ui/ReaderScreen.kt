@@ -59,7 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.comicify.R
 import com.comicify.core.window.ReadingPosture
-import com.comicify.core.window.rememberReadingPosture
+import com.comicify.core.window.rememberReadingWindowState
 
 private val InitialAmbient = Color(0xFF0B0B0F)
 
@@ -67,7 +67,8 @@ private val InitialAmbient = Color(0xFF0B0B0F)
 fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
     val viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.factory(uri))
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val posture = rememberReadingPosture()
+    val windowState = rememberReadingWindowState()
+    val posture = windowState.posture
 
     var ambient by remember { mutableStateOf(InitialAmbient) }
     val glow by animateColorAsState(
@@ -99,6 +100,7 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
                 ReaderSurface(
                     loader = loader,
                     posture = posture,
+                    hinge = windowState.hinge,
                     guided = state.guided,
                     guidedFullScreen = state.guidedFullScreen,
                     initialPage = state.position.pageIndex,

@@ -2,11 +2,13 @@ package com.comicify.feature.reader.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -30,7 +32,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.comicify.R
+import com.comicify.core.window.HingeOcclusion
 import com.comicify.core.window.ReadingPosture
+import com.comicify.core.window.splitAtHinge
 import com.comicify.feature.reader.data.PageLoader
 import kotlinx.coroutines.launch
 
@@ -38,6 +42,7 @@ import kotlinx.coroutines.launch
 fun ReaderSurface(
     loader: PageLoader,
     posture: ReadingPosture,
+    hinge: HingeOcclusion?,
     guided: Boolean,
     guidedFullScreen: Boolean,
     initialPage: Int,
@@ -53,7 +58,7 @@ fun ReaderSurface(
     key(posture) {
         when (posture) {
             ReadingPosture.UnfoldedSpread -> SpreadReader(loader, initialPage, onPageChanged, onTap, onAmbient)
-            ReadingPosture.Tabletop -> TabletopReader(loader, initialPage, onPageChanged, onTap, onAmbient)
+            ReadingPosture.Tabletop -> TabletopReader(loader, hinge, initialPage, onPageChanged, onTap, onAmbient)
             else -> SinglePageReader(loader, initialPage, onPageChanged, onTap, onAmbient)
         }
     }
@@ -148,6 +153,7 @@ private fun SpreadReader(
 @Composable
 private fun TabletopReader(
     loader: PageLoader,
+    hinge: HingeOcclusion?,
     initialPage: Int,
     onPageChanged: (Int) -> Unit,
     onTap: () -> Unit,
@@ -164,25 +170,31 @@ private fun TabletopReader(
         runCatching { loader.load(pagerState.currentPage) }.getOrNull()?.let { onAmbient(it.ambient) }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        HorizontalPager(
-            state = pagerState,
-            userScrollEnabled = !zoomed,
-            beyondViewportPageCount = 1,
-            modifier = Modifier.weight(0.62f).fillMaxWidth(),
-        ) { page ->
-            ZoomablePage(
-                loader = loader,
-                index = page,
-                onTap = onTap,
-                onZoomedChange = { if (page == pagerState.currentPage) zoomed = it },
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val split = splitAtHinge(containerHeight = maxHeight, hinge = hinge)
+        Column(modifier = Modifier.fillMaxSize()) {
+            HorizontalPager(
+                state = pagerState,
+                userScrollEnabled = !zoomed,
+                beyondViewportPageCount = 1,
+                modifier = Modifier.height(split.pageHeight).fillMaxWidth(),
+            ) { page ->
+                ZoomablePage(
+                    loader = loader,
+                    index = page,
+                    onTap = onTap,
+                    onZoomedChange = { if (page == pagerState.currentPage) zoomed = it },
+                )
+            }
+            if (split.hingeHeight > 0.dp) {
+                Spacer(modifier = Modifier.height(split.hingeHeight).fillMaxWidth())
+            }
+            TabletopControls(
+                pagerState = pagerState,
+                pageCount = loader.pageCount,
+                modifier = Modifier.height(split.controlsHeight).fillMaxWidth(),
             )
         }
-        TabletopControls(
-            pagerState = pagerState,
-            pageCount = loader.pageCount,
-            modifier = Modifier.weight(0.38f).fillMaxWidth(),
-        )
     }
 }
 
