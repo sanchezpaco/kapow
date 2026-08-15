@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Comicify</string>
+
+    <string name="library_title">Library</string>
+    <string name="library_empty_title">Your library is empty</string>
+    <string name="library_empty_subtitle">Open a comic file to start reading.</string>
+    <string name="library_open_comic">Open comic</string>
+    <string name="library_continue_reading">Continue reading</string>
+
+    <string name="reader_loading">Loading comic…</string>
+    <string name="reader_page_of">Page %1$d of %2$d</string>
+    <string name="reader_action_close">Close</string>
+    <string name="reader_action_guided">Guided view</string>
+    <string name="reader_action_guided_full_screen">Panel on full screen</string>
+    <string name="reader_action_guided_keep_spread">Panel within the spread</string>
+    <string name="reader_action_next_page">Next page</string>
+    <string name="reader_action_previous_page">Previous page</string>
+    <string name="reader_error_open">This comic could not be opened.</string>
+
+    <string name="posture_folded">Folded</string>
+    <string name="posture_unfolded">Unfolded</string>
+    <string name="posture_spread">Two-page spread</string>
+    <string name="posture_tabletop">Tabletop</string>
+</resources>
