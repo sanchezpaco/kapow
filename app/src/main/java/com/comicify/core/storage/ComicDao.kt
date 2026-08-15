@@ -1,0 +1,29 @@
+package com.comicify.core.storage
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface ComicDao {
+
+    @Query("SELECT * FROM comics")
+    fun observeAll(): Flow<List<ComicEntity>>
+
+    @Query("SELECT * FROM comics WHERE id = :id")
+    suspend fun findById(id: Long): ComicEntity?
+
+    @Query("SELECT * FROM comics WHERE documentUri = :documentUri")
+    suspend fun findByDocumentUri(documentUri: String): ComicEntity?
+
+    @Query("SELECT * FROM comics WHERE coverPath IS NULL")
+    suspend fun withoutCover(): List<ComicEntity>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(comic: ComicEntity): Long
+
+    @Query("UPDATE comics SET pageCount = :pageCount, coverPath = :coverPath WHERE id = :id")
+    suspend fun updateCover(id: Long, pageCount: Int?, coverPath: String?)
+}

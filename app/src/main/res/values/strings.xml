@@ -7,6 +7,14 @@
     <string name="library_empty_subtitle">Open a comic file to start reading.</string>
     <string name="library_open_comic">Open comic</string>
     <string name="library_continue_reading">Continue reading</string>
+    <string name="library_all_comics">All comics</string>
+    <string name="library_pick_folder">Choose folder</string>
+    <string name="library_refresh">Refresh</string>
+    <string name="library_action_open_file">Open file</string>
+    <string name="library_scanning">Scanning folder…</string>
+    <string name="library_completed">Completed</string>
+    <string name="library_progress">%1$d / %2$d</string>
+    <string name="library_empty_folder_subtitle">Choose a comics folder to build your bookshelf, or open a single file.</string>
 
     <string name="reader_loading">Loading comic…</string>
     <string name="reader_page_of">Page %1$d of %2$d</string>
