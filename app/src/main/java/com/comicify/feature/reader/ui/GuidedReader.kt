@@ -26,9 +26,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -44,6 +46,8 @@ private const val PREVIOUS_ZONE = 0.28f
 private const val NEXT_ZONE = 0.72f
 private const val DOUBLE_TAP_ZOOM = 2f
 private const val FOCUS_ANIMATION_MILLIS = 520
+private const val SPOTLIGHT_DIM = 0.72f
+private const val SPOTLIGHT_FEATHER_FRACTION = 0.1f
 
 private data class FocusTarget(val view: Rect, val animated: Boolean)
 
@@ -221,6 +225,19 @@ private fun GuidedPage(image: ImageBitmap, target: FocusTarget) {
     Canvas(modifier = Modifier.fillMaxSize()) {
         val source = view.value
         val drawn = GuidedFocus.fit(source, image.size(), size)
+        val scale = drawn.width / (source.width * image.width)
+        drawImage(
+            image = image,
+            srcOffset = IntOffset.Zero,
+            srcSize = IntSize(image.width, image.height),
+            dstOffset = IntOffset(
+                (drawn.left - source.left * image.width * scale).roundToInt(),
+                (drawn.top - source.top * image.height * scale).roundToInt(),
+            ),
+            dstSize = IntSize((image.width * scale).roundToInt(), (image.height * scale).roundToInt()),
+            filterQuality = FilterQuality.Low,
+        )
+        drawRect(color = Color.Black, alpha = SPOTLIGHT_DIM)
         drawImage(
             image = image,
             srcOffset = IntOffset((source.left * image.width).roundToInt(), (source.top * image.height).roundToInt()),
@@ -229,5 +246,28 @@ private fun GuidedPage(image: ImageBitmap, target: FocusTarget) {
             dstSize = IntSize(drawn.width.roundToInt(), drawn.height.roundToInt()),
             filterQuality = FilterQuality.High,
         )
+        featherFocus(drawn)
     }
+}
+
+private fun DrawScope.featherFocus(focus: Rect) {
+    val feather = minOf(focus.width, focus.height) * SPOTLIGHT_FEATHER_FRACTION
+    if (feather <= 0f) return
+    val edge = Color.Black.copy(alpha = SPOTLIGHT_DIM)
+    drawRect(
+        Brush.verticalGradient(listOf(edge, Color.Transparent), startY = focus.top, endY = focus.top + feather),
+        topLeft = Offset(focus.left, focus.top), size = Size(focus.width, feather),
+    )
+    drawRect(
+        Brush.verticalGradient(listOf(Color.Transparent, edge), startY = focus.bottom - feather, endY = focus.bottom),
+        topLeft = Offset(focus.left, focus.bottom - feather), size = Size(focus.width, feather),
+    )
+    drawRect(
+        Brush.horizontalGradient(listOf(edge, Color.Transparent), startX = focus.left, endX = focus.left + feather),
+        topLeft = Offset(focus.left, focus.top), size = Size(feather, focus.height),
+    )
+    drawRect(
+        Brush.horizontalGradient(listOf(Color.Transparent, edge), startX = focus.right - feather, endX = focus.right),
+        topLeft = Offset(focus.right - feather, focus.top), size = Size(feather, focus.height),
+    )
 }

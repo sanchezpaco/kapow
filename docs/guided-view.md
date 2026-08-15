@@ -116,7 +116,9 @@ Annotated PNGs land in `<dir>/out`. Iterate there, then trust the unit tests.
   next tap turns the page.
 - `GuidedFocus.frame` pads the panel rect by 2 % of the page and clamps it to
   the page. `GuidedPage` animates an `Animatable<Rect>` (520 ms, FastOutSlowIn)
-  and draws the source rect letterboxed on the ambient backdrop.
+  and draws the focused panel bright over the rest of the page dimmed — a
+  **spotlight** with soft, feathered edges, so the surrounding art stays visible
+  for context instead of a hard letterbox.
 - **Robust base**: double-tap zooms 2× around the tapped point, refitting the
   view to fill the viewport (`GuidedFocus.zoomed`); one finger pans while
   zoomed, clamped to the page; double-tap again, or advancing, returns to the
