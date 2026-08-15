@@ -62,10 +62,6 @@ class ReaderViewModel(
         _state.update { it.copy(guidedFullScreen = !it.guidedFullScreen) }
     }
 
-    fun toggleGuidedAutoPan() {
-        _state.update { it.copy(guidedAutoPan = !it.guidedAutoPan) }
-    }
-
     override fun onCleared() {
         source?.close()
     }

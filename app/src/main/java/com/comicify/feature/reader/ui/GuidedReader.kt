@@ -48,6 +48,9 @@ private const val DOUBLE_TAP_ZOOM = 2f
 private const val FOCUS_ANIMATION_MILLIS = 520
 private const val SPOTLIGHT_DIM = 0.72f
 private const val SPOTLIGHT_FEATHER_FRACTION = 0.1f
+// TODO(guided): auto-pan is disabled (no HUD toggle) until it is content-gated
+//  so it only tours detail-dense stops and never zooms into near-empty panels.
+private const val AUTO_PAN_ENABLED = false
 private const val AUTO_PAN_ZOOM = 1.2f
 private const val AUTO_PAN_MILLIS = 6000
 private const val AUTO_PAN_MIN_AREA = 0.4f
@@ -59,7 +62,6 @@ private data class FocusTarget(val view: Rect, val animated: Boolean, val autoPa
 fun GuidedReader(
     loader: PageLoader,
     spread: Boolean,
-    autoPanEnabled: Boolean,
     initialPage: Int,
     onPageChanged: (Int) -> Unit,
     onGuidedStop: (Int, Int) -> Unit,
@@ -109,7 +111,7 @@ fun GuidedReader(
 
     val currentStop = panels.getOrElse(panelIndex) { FullPagePanel }
     val isOverview = panels.size > 1 && panelIndex == 0
-    val autoPan = autoPanEnabled && !isOverview && isLargeStop(currentStop)
+    val autoPan = AUTO_PAN_ENABLED && !isOverview && isLargeStop(currentStop)
     val panelView = GuidedFocus.frame(currentStop, PANEL_PADDING)
     val resetKey = page to panelIndex
 

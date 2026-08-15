@@ -119,11 +119,12 @@ Annotated PNGs land in `<dir>/out`. Iterate there, then trust the unit tests.
   and draws the focused panel bright over the rest of the page dimmed — a
   **spotlight** with soft, feathered edges, so the surrounding art stays visible
   for context instead of a hard letterbox.
-- **Auto-pan** (optional, off by default, toggled by a HUD button in Guided
-  View — `ReaderUiState.guidedAutoPan`): a large stop (a splash or big panel,
+- **Auto-pan** (implemented but currently **disabled** — `AUTO_PAN_ENABLED`
+  in `GuidedReader`, no HUD toggle): a large stop (a splash or big panel,
   ≥ 40 % of the page) gently zooms in (~1.2×) and makes a single slow
-  top-to-bottom pass, then rests, so its text enlarges without extra taps. The
-  spotlight follows the pan; the whole-page overview stop never auto-pans.
+  top-to-bottom pass, then rests, so its text enlarges without extra taps. It is
+  off until it is content-gated to skip near-empty establishing panels (a large
+  but blank corridor/wall would otherwise be toured as dead space).
 - **Robust base**: double-tap zooms 2× around the tapped point, refitting the
   view to fill the viewport (`GuidedFocus.zoomed`); one finger pans while
   zoomed, clamped to the page; double-tap again, or advancing, returns to the

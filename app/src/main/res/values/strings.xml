@@ -14,7 +14,6 @@
     <string name="reader_action_guided">Guided view</string>
     <string name="reader_action_guided_full_screen">Panel on full screen</string>
     <string name="reader_action_guided_keep_spread">Panel within the spread</string>
-    <string name="reader_action_guided_autopan">Auto-pan large panels</string>
     <string name="reader_action_next_page">Next page</string>
     <string name="reader_action_previous_page">Previous page</string>
     <string name="reader_error_open">This comic could not be opened.</string>
