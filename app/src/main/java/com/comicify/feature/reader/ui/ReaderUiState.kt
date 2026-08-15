@@ -11,4 +11,5 @@ data class ReaderUiState(
     val chromeVisible: Boolean = false,
     val guided: Boolean = false,
     val guidedFullScreen: Boolean = false,
+    val volumeKeyPagingEnabled: Boolean = true,
 )

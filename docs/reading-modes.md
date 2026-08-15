@@ -64,6 +64,11 @@ Available on `CompactSingle`, and on demand elsewhere. Full detail in
 - Immersive by default: system bars hidden, edge-to-edge, pure-black background.
 - Center tap toggles a minimal overlay: progress, page number, quick settings.
 - Left/right tap zones page back/forward (mirrored correctly for the surface).
+- Volume-down/volume-up turn the page forward/back (panel-by-panel in Guided
+  View) and consume the key so system volume is unaffected. Only active while
+  a comic is open. A DataStore-backed preference (`ReaderPreferencesRepository`,
+  default enabled) controls this; toggling it is not yet exposed in a settings
+  screen.
 - All transitions are spring/physics based, never linear.
 
 ## Preloading

@@ -32,11 +32,13 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import com.comicify.core.input.PageTurnDirection
 import com.comicify.feature.reader.data.PageArt
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.domain.FullPagePanel
 import com.comicify.feature.reader.domain.GuidedFocus
 import kotlin.math.roundToInt
+import kotlinx.coroutines.flow.Flow
 
 private const val LAST_PANEL = Int.MAX_VALUE / 2
 private const val PANEL_PADDING = 0.02f
@@ -52,6 +54,7 @@ fun GuidedReader(
     loader: PageLoader,
     spread: Boolean,
     initialPage: Int,
+    pageTurnRequests: Flow<PageTurnDirection>,
     onPageChanged: (Int) -> Unit,
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
@@ -91,6 +94,15 @@ fun GuidedReader(
         } else if (page > 0) {
             panelIndex = LAST_PANEL
             page--
+        }
+    }
+
+    LaunchedEffect(pageTurnRequests) {
+        pageTurnRequests.collect { direction ->
+            when (direction) {
+                PageTurnDirection.Next -> goNext()
+                PageTurnDirection.Previous -> goPrevious()
+            }
         }
     }
 
