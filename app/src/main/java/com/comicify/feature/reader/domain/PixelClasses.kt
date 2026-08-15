@@ -2,7 +2,7 @@ package com.comicify.feature.reader.domain
 
 import kotlin.math.abs
 
-private const val WHITE_LUMINANCE = 215
+private const val WHITE_LUMINANCE = 228
 private const val WHITE_CHROMA = 22
 private const val BORDER_RING_FRACTION = 0.015f
 private const val BORDER_BIN_SHIFT = 5
