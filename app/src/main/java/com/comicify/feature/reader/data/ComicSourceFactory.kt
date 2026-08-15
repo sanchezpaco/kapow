@@ -21,6 +21,9 @@ object ComicSourceFactory {
             }
         }
 
+    suspend fun openFolder(context: Context, treeUri: Uri): ComicSource =
+        FolderComicSource.fromTree(context, treeUri)
+
     private fun detectFormat(file: File): ArchiveFormat {
         val magic = ByteArray(4)
         file.inputStream().use { it.read(magic) }
