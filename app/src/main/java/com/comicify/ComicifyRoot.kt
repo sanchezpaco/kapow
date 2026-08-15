@@ -1,5 +1,6 @@
 package com.comicify
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -15,8 +16,8 @@ import com.comicify.feature.library.ui.LibraryScreen
 import com.comicify.feature.reader.ui.ReaderScreen
 
 @Composable
-fun ComicifyRoot() {
-    var openedUri by rememberSaveable { mutableStateOf<String?>(null) }
+fun ComicifyRoot(initialUri: Uri? = null) {
+    var openedUri by rememberSaveable { mutableStateOf(initialUri?.toString()) }
 
     Surface(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
