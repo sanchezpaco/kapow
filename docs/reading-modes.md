@@ -74,6 +74,36 @@ Available on `CompactSingle`, and on demand elsewhere. Full detail in
 - Double-tap zooms around the tapped point and one finger pans, so any page
   (including whole-page fallbacks and wide panels) stays readable.
 
+## Reading direction
+
+The reader has a `ReadingDirection` setting — `LeftToRight` (default) or
+`RightToLeft` (for manga and other right-bound comics) — persisted with
+DataStore (`ReaderPreferences`, key `reading_direction_rtl`) and exposed as
+`ReaderUiState.direction`, toggled from the ViewModel
+(`ReaderViewModel.toggleReadingDirection`) and from a HUD button next to the
+guided-view toggle.
+
+When `RightToLeft` is active:
+
+- The single-page, two-page spread, and tabletop pagers scroll in reversed
+  physical order, so swiping in the natural direction still advances the
+  story forward.
+- In the two-page spread (both the plain spread surface and Guided View's
+  spread layout), the pages swap sides: the earlier page renders on the
+  right and the later page on the left.
+- Tap zones and next/previous semantics mirror: in Guided View, the
+  left/right tap zones swap which one advances vs. goes back; the tabletop
+  chevrons keep their on-screen position (left arrow always means "earlier
+  in the story", right arrow "later") but drive the pager in the opposite
+  physical direction.
+
+All of this is driven by a single pure helper, `PageOrder`
+(`feature/reader/domain/PageOrder.kt`), which maps a logical (reading-order)
+page or spread index to its physical pager index and back, decides which
+logical page renders on the left/right of a spread, and mirrors a tap's
+zone (previous/center/next). It has no Compose or Android dependency, so it
+is unit-tested directly (`PageOrderTest`).
+
 ## Shared reader chrome
 
 - Immersive by default: system bars hidden, edge-to-edge, pure-black background.

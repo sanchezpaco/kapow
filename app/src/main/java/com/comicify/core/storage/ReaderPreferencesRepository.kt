@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
+import com.comicify.domain.model.ReadingDirection
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -25,8 +26,20 @@ class ReaderPreferencesRepository(private val context: Context) {
         context.readerPreferencesDataStore.edit { it[NIGHT_TINT_ENABLED] = enabled }
     }
 
+    val readingDirection: Flow<ReadingDirection> =
+        context.readerPreferencesDataStore.data.map {
+            if (it[READING_DIRECTION_RTL] == true) ReadingDirection.RightToLeft else ReadingDirection.LeftToRight
+        }
+
+    suspend fun setReadingDirection(direction: ReadingDirection) {
+        context.readerPreferencesDataStore.edit {
+            it[READING_DIRECTION_RTL] = direction == ReadingDirection.RightToLeft
+        }
+    }
+
     private companion object {
         val VOLUME_KEY_PAGE_TURN_ENABLED = booleanPreferencesKey("volume_key_page_turn_enabled")
         val NIGHT_TINT_ENABLED = booleanPreferencesKey("night_tint_enabled")
+        val READING_DIRECTION_RTL = booleanPreferencesKey("reading_direction_rtl")
     }
 }

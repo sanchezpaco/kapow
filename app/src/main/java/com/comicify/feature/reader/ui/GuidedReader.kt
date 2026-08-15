@@ -49,10 +49,13 @@ import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.comicify.core.input.PageTurnDirection
+import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageArt
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.domain.FullPagePanel
 import com.comicify.feature.reader.domain.GuidedFocus
+import com.comicify.feature.reader.domain.PageOrder
+import com.comicify.feature.reader.domain.TapZone
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -76,6 +79,7 @@ private const val MAX_BOUNCE_VELOCITY_PX = 2400f
 fun GuidedReader(
     loader: PageLoader,
     spread: Boolean,
+    direction: ReadingDirection,
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
     onPageChanged: (Int) -> Unit,
@@ -133,13 +137,16 @@ fun GuidedReader(
     val resetKey = page to panelIndex
 
     if (!spread) {
-        GuidedPanel(arts[page], panelView, resetKey, ::goPrevious, ::goNext, onTap, Modifier.fillMaxSize())
+        GuidedPanel(arts[page], panelView, resetKey, direction, ::goPrevious, ::goNext, onTap, Modifier.fillMaxSize())
         return
     }
-    val leftPage = spreadStart(page)
+    val firstPage = spreadStart(page)
+    val secondPage = firstPage + 1
+    val screenLeftPage = PageOrder.leftPage(direction, firstPage, secondPage)
+    val screenRightPage = PageOrder.rightPage(direction, firstPage, secondPage)
     Row(modifier = Modifier.fillMaxSize()) {
-        SpreadHalf(leftPage, page, arts[leftPage], panelView, resetKey, ::goPrevious, ::goNext, onTap)
-        SpreadHalf(leftPage + 1, page, arts[leftPage + 1], panelView, resetKey, ::goPrevious, ::goNext, onTap)
+        SpreadHalf(screenLeftPage, page, arts[screenLeftPage], panelView, resetKey, direction, ::goPrevious, ::goNext, onTap)
+        SpreadHalf(screenRightPage, page, arts[screenRightPage], panelView, resetKey, direction, ::goPrevious, ::goNext, onTap)
     }
 }
 
@@ -152,13 +159,14 @@ private fun RowScope.SpreadHalf(
     art: PageArt?,
     panelView: Rect,
     resetKey: Any,
+    direction: ReadingDirection,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onTap: () -> Unit,
 ) {
     val modifier = Modifier.weight(1f).fillMaxSize()
     if (index == activePage) {
-        GuidedPanel(art, panelView, resetKey, onPrevious, onNext, onTap, modifier)
+        GuidedPanel(art, panelView, resetKey, direction, onPrevious, onNext, onTap, modifier)
         return
     }
     val image = art?.image
@@ -177,6 +185,7 @@ private fun GuidedPanel(
     art: PageArt?,
     panelView: Rect,
     resetKey: Any,
+    direction: ReadingDirection,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onTap: () -> Unit,
@@ -191,6 +200,7 @@ private fun GuidedPanel(
     var flingJob by remember { mutableStateOf<Job?>(null) }
     val currentPanelView by rememberUpdatedState(panelView)
     val currentArt by rememberUpdatedState(art)
+    val currentDirection by rememberUpdatedState(direction)
 
     LaunchedEffect(resetKey) {
         zoomed = false
@@ -208,9 +218,11 @@ private fun GuidedPanel(
                     onTap = { offset ->
                         when {
                             zoomed -> onTap()
-                            offset.x < size.width * PREVIOUS_ZONE -> onPrevious()
-                            offset.x > size.width * NEXT_ZONE -> onNext()
-                            else -> onTap()
+                            else -> when (PageOrder.tapZone(currentDirection, offset.x / size.width, PREVIOUS_ZONE, NEXT_ZONE)) {
+                                TapZone.Previous -> onPrevious()
+                                TapZone.Next -> onNext()
+                                TapZone.Center -> onTap()
+                            }
                         }
                     },
                     onDoubleTap = { offset ->

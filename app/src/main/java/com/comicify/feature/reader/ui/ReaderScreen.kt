@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -63,6 +64,7 @@ import com.comicify.core.input.PageTurnDirection
 import com.comicify.core.input.RegisterVolumeKeyPageTurns
 import com.comicify.core.window.ReadingPosture
 import com.comicify.core.window.rememberReadingWindowState
+import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.domain.ComicOpenError
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -116,6 +118,7 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
                     hinge = windowState.hinge,
                     guided = state.guided,
                     guidedFullScreen = state.guidedFullScreen,
+                    direction = state.direction,
                     initialPage = state.position.pageIndex,
                     pageTurnRequests = pageTurnRequests,
                     pendingJump = state.pendingJump,
@@ -137,9 +140,11 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
             guided = state.guided,
             guidedFullScreen = state.guidedFullScreen,
             nightTintEnabled = state.nightTintEnabled,
+            direction = state.direction,
             onToggleGuided = viewModel::toggleGuided,
             onToggleGuidedFullScreen = viewModel::toggleGuidedFullScreen,
             onToggleNightTint = viewModel::toggleNightTint,
+            onToggleDirection = viewModel::toggleReadingDirection,
             onClose = onClose,
             modifier = Modifier.align(Alignment.TopCenter),
         )
@@ -162,9 +167,11 @@ private fun TopChrome(
     guided: Boolean,
     guidedFullScreen: Boolean,
     nightTintEnabled: Boolean,
+    direction: ReadingDirection,
     onToggleGuided: () -> Unit,
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
+    onToggleDirection: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -202,6 +209,8 @@ private fun TopChrome(
                 Spacer(modifier = Modifier.width(10.dp))
                 NightTintToggle(enabled = nightTintEnabled, onToggle = onToggleNightTint)
                 Spacer(modifier = Modifier.width(10.dp))
+                DirectionToggle(direction = direction, onToggle = onToggleDirection)
+                Spacer(modifier = Modifier.width(10.dp))
                 PostureChip(posture)
             }
         }
@@ -233,6 +242,26 @@ private fun NightTintToggle(enabled: Boolean, onToggle: () -> Unit) {
         Icon(
             imageVector = Icons.Filled.NightsStay,
             contentDescription = stringResource(R.string.reader_action_night_tint),
+            tint = Color.White,
+        )
+    }
+}
+
+@Composable
+private fun DirectionToggle(direction: ReadingDirection, onToggle: () -> Unit) {
+    val isRightToLeft = direction == ReadingDirection.RightToLeft
+    IconButton(
+        onClick = onToggle,
+        modifier = Modifier.background(
+            if (isRightToLeft) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.12f),
+            CircleShape,
+        ),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.SwapHoriz,
+            contentDescription = stringResource(
+                if (isRightToLeft) R.string.reader_action_direction_rtl else R.string.reader_action_direction_ltr,
+            ),
             tint = Color.White,
         )
     }

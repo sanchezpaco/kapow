@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.comicify.core.storage.ReaderPreferencesRepository
+import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.ComicSource
 import com.comicify.feature.reader.data.ComicSourceException
 import com.comicify.feature.reader.data.ComicSourceFactory
@@ -36,6 +37,7 @@ class ReaderViewModel(
         openComic()
         observeVolumeKeyPaging()
         observeNightTint()
+        observeReadingDirection()
     }
 
     private fun openComic() {
@@ -99,6 +101,22 @@ class ReaderViewModel(
         viewModelScope.launch {
             preferencesRepository.nightTintEnabled.collect { enabled ->
                 _state.update { it.copy(nightTintEnabled = enabled) }
+            }
+        }
+    }
+
+    fun toggleReadingDirection() {
+        val next = when (_state.value.direction) {
+            ReadingDirection.LeftToRight -> ReadingDirection.RightToLeft
+            ReadingDirection.RightToLeft -> ReadingDirection.LeftToRight
+        }
+        viewModelScope.launch { preferencesRepository.setReadingDirection(next) }
+    }
+
+    private fun observeReadingDirection() {
+        viewModelScope.launch {
+            preferencesRepository.readingDirection.collect { direction ->
+                _state.update { it.copy(direction = direction) }
             }
         }
     }

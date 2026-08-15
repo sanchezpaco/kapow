@@ -37,7 +37,9 @@ import com.comicify.core.input.PageTurnDirection
 import com.comicify.core.window.HingeOcclusion
 import com.comicify.core.window.ReadingPosture
 import com.comicify.core.window.splitAtHinge
+import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
+import com.comicify.feature.reader.domain.PageOrder
 import com.comicify.feature.reader.domain.PageTurn
 import com.comicify.feature.reader.domain.ThumbnailStrip
 import kotlinx.coroutines.flow.Flow
@@ -53,6 +55,7 @@ fun ReaderSurface(
     hinge: HingeOcclusion?,
     guided: Boolean,
     guidedFullScreen: Boolean,
+    direction: ReadingDirection,
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
     pendingJump: Int?,
@@ -63,17 +66,17 @@ fun ReaderSurface(
 ) {
     if (guided) {
         val spread = posture == ReadingPosture.UnfoldedSpread && !guidedFullScreen
-        key(spread) { GuidedReader(loader, spread, initialPage, pageTurnRequests, onPageChanged, onTap, onAmbient) }
+        key(spread) { GuidedReader(loader, spread, direction, initialPage, pageTurnRequests, onPageChanged, onTap, onAmbient) }
         return
     }
-    key(posture) {
+    key(posture, direction) {
         when (posture) {
             ReadingPosture.UnfoldedSpread ->
-                SpreadReader(loader, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
+                SpreadReader(loader, direction, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
             ReadingPosture.Tabletop ->
-                TabletopReader(loader, hinge, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
+                TabletopReader(loader, direction, hinge, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
             else ->
-                SinglePageReader(loader, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
+                SinglePageReader(loader, direction, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
         }
     }
 }
@@ -86,6 +89,7 @@ private fun targetPage(current: Int, lastIndex: Int, direction: PageTurnDirectio
 @Composable
 private fun SinglePageReader(
     loader: PageLoader,
+    direction: ReadingDirection,
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
     pendingJump: Int?,
@@ -94,17 +98,21 @@ private fun SinglePageReader(
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
-    val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, lastPage(loader))) {
-        loader.pageCount
+    val pageCount = loader.pageCount
+    val pagerState = rememberPagerState(
+        initialPage = PageOrder.pagerIndex(direction, initialPage.coerceIn(0, lastPage(loader)), pageCount),
+    ) {
+        pageCount
     }
     var zoomed by remember { mutableStateOf(false) }
 
     JumpEffect(pendingJump, onJumpApplied) { pagerState.scrollToPage(it.coerceIn(0, lastPage(loader))) }
 
     LaunchedEffect(pagerState.currentPage) {
-        onPageChanged(pagerState.currentPage)
-        loader.preload((pagerState.currentPage - 1)..(pagerState.currentPage + 2))
-        runCatching { loader.load(pagerState.currentPage) }.getOrNull()?.let { onAmbient(it.ambient) }
+        val logicalPage = PageOrder.logicalIndex(direction, pagerState.currentPage, pageCount)
+        onPageChanged(logicalPage)
+        loader.preload((logicalPage - 1)..(logicalPage + 2))
+        runCatching { loader.load(logicalPage) }.getOrNull()?.let { onAmbient(it.ambient) }
     }
 
     LaunchedEffect(pagerState) {
@@ -118,13 +126,13 @@ private fun SinglePageReader(
         userScrollEnabled = !zoomed,
         beyondViewportPageCount = 1,
         modifier = Modifier.fillMaxSize(),
-    ) { page ->
+    ) { physicalPage ->
         ZoomablePage(
             loader = loader,
-            index = page,
+            index = PageOrder.logicalIndex(direction, physicalPage, pageCount),
             onTap = onTap,
-            onZoomedChange = { if (page == pagerState.currentPage) zoomed = it },
-            modifier = Modifier.pageTurnDepth(pagerState, page),
+            onZoomedChange = { if (physicalPage == pagerState.currentPage) zoomed = it },
+            modifier = Modifier.pageTurnDepth(pagerState, physicalPage),
         )
     }
 }
@@ -144,6 +152,7 @@ private fun Modifier.pageTurnDepth(pagerState: PagerState, page: Int): Modifier 
 @Composable
 private fun SpreadReader(
     loader: PageLoader,
+    direction: ReadingDirection,
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
     pendingJump: Int?,
@@ -153,7 +162,10 @@ private fun SpreadReader(
     onAmbient: (Color) -> Unit,
 ) {
     val spreadCount = (loader.pageCount + 1) / 2
-    val pagerState = rememberPagerState(initialPage = (initialPage / 2).coerceIn(0, spreadCount - 1)) {
+    val initialSpread = (initialPage / 2).coerceIn(0, spreadCount - 1)
+    val pagerState = rememberPagerState(
+        initialPage = PageOrder.pagerIndex(direction, initialSpread, spreadCount),
+    ) {
         spreadCount
     }
     var zoomed by remember { mutableStateOf(false) }
@@ -163,10 +175,10 @@ private fun SpreadReader(
     }
 
     LaunchedEffect(pagerState.currentPage) {
-        val leftPage = pagerState.currentPage * 2
-        onPageChanged(leftPage)
-        loader.preload((leftPage - 1)..(leftPage + 3))
-        runCatching { loader.load(leftPage) }.getOrNull()?.let { onAmbient(it.ambient) }
+        val firstPage = PageOrder.logicalIndex(direction, pagerState.currentPage, spreadCount) * 2
+        onPageChanged(firstPage)
+        loader.preload((firstPage - 1)..(firstPage + 3))
+        runCatching { loader.load(firstPage) }.getOrNull()?.let { onAmbient(it.ambient) }
     }
 
     LaunchedEffect(pagerState) {
@@ -181,20 +193,26 @@ private fun SpreadReader(
         beyondViewportPageCount = 1,
         modifier = Modifier.fillMaxSize(),
     ) { spread ->
-        val leftPage = spread * 2
-        val rightPage = leftPage + 1
+        val firstPage = PageOrder.logicalIndex(direction, spread, spreadCount) * 2
+        val secondPage = firstPage + 1
+        val screenLeftPage = PageOrder.leftPage(direction, firstPage, secondPage)
+        val screenRightPage = PageOrder.rightPage(direction, firstPage, secondPage)
         Row(modifier = Modifier.fillMaxSize()) {
-            ZoomablePage(
-                loader = loader,
-                index = leftPage,
-                onTap = onTap,
-                onZoomedChange = { if (spread == pagerState.currentPage) zoomed = it },
-                modifier = Modifier.weight(1f),
-            )
-            if (rightPage < loader.pageCount) {
+            if (screenLeftPage < loader.pageCount) {
                 ZoomablePage(
                     loader = loader,
-                    index = rightPage,
+                    index = screenLeftPage,
+                    onTap = onTap,
+                    onZoomedChange = { if (spread == pagerState.currentPage) zoomed = it },
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
+            }
+            if (screenRightPage < loader.pageCount) {
+                ZoomablePage(
+                    loader = loader,
+                    index = screenRightPage,
                     onTap = onTap,
                     onZoomedChange = { if (spread == pagerState.currentPage) zoomed = it },
                     modifier = Modifier.weight(1f),
@@ -209,6 +227,7 @@ private fun SpreadReader(
 @Composable
 private fun TabletopReader(
     loader: PageLoader,
+    direction: ReadingDirection,
     hinge: HingeOcclusion?,
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
@@ -218,17 +237,21 @@ private fun TabletopReader(
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
-    val pagerState = rememberPagerState(initialPage = initialPage.coerceIn(0, lastPage(loader))) {
-        loader.pageCount
+    val pageCount = loader.pageCount
+    val pagerState = rememberPagerState(
+        initialPage = PageOrder.pagerIndex(direction, initialPage.coerceIn(0, lastPage(loader)), pageCount),
+    ) {
+        pageCount
     }
     var zoomed by remember { mutableStateOf(false) }
 
     JumpEffect(pendingJump, onJumpApplied) { pagerState.scrollToPage(it.coerceIn(0, lastPage(loader))) }
 
     LaunchedEffect(pagerState.currentPage) {
-        onPageChanged(pagerState.currentPage)
-        loader.preload((pagerState.currentPage - 1)..(pagerState.currentPage + 2))
-        runCatching { loader.load(pagerState.currentPage) }.getOrNull()?.let { onAmbient(it.ambient) }
+        val logicalPage = PageOrder.logicalIndex(direction, pagerState.currentPage, pageCount)
+        onPageChanged(logicalPage)
+        loader.preload((logicalPage - 1)..(logicalPage + 2))
+        runCatching { loader.load(logicalPage) }.getOrNull()?.let { onAmbient(it.ambient) }
     }
 
     LaunchedEffect(pagerState) {
@@ -245,12 +268,12 @@ private fun TabletopReader(
                 userScrollEnabled = !zoomed,
                 beyondViewportPageCount = 1,
                 modifier = Modifier.height(split.pageHeight).fillMaxWidth(),
-            ) { page ->
+            ) { physicalPage ->
                 ZoomablePage(
                     loader = loader,
-                    index = page,
+                    index = PageOrder.logicalIndex(direction, physicalPage, pageCount),
                     onTap = onTap,
-                    onZoomedChange = { if (page == pagerState.currentPage) zoomed = it },
+                    onZoomedChange = { if (physicalPage == pagerState.currentPage) zoomed = it },
                 )
             }
             if (split.hingeHeight > 0.dp) {
@@ -258,7 +281,8 @@ private fun TabletopReader(
             }
             TabletopControls(
                 pagerState = pagerState,
-                pageCount = loader.pageCount,
+                pageCount = pageCount,
+                direction = direction,
                 modifier = Modifier.height(split.controlsHeight).fillMaxWidth(),
             )
         }
@@ -269,21 +293,24 @@ private fun TabletopReader(
 private fun TabletopControls(
     pagerState: PagerState,
     pageCount: Int,
+    direction: ReadingDirection,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    val step = PageOrder.step(direction)
+    val logicalPage = PageOrder.logicalIndex(direction, pagerState.currentPage, pageCount)
     Column(
         modifier = modifier.background(Color.Black.copy(alpha = 0.4f)).padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         ProgressBar(
-            progress = readingProgress(pagerState.currentPage, pageCount),
+            progress = readingProgress(logicalPage, pageCount),
             modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = {
-                scope.launch { pagerState.animateScrollToPage((pagerState.currentPage - 1).coerceAtLeast(0)) }
+                scope.launch { pagerState.animateScrollToPage((pagerState.currentPage - step).coerceIn(0, pageCount - 1)) }
             }) {
                 Icon(
                     imageVector = Icons.Filled.ChevronLeft,
@@ -291,9 +318,9 @@ private fun TabletopControls(
                     tint = Color.White,
                 )
             }
-            PageCounter(current = pagerState.currentPage, total = pageCount)
+            PageCounter(current = logicalPage, total = pageCount)
             IconButton(onClick = {
-                scope.launch { pagerState.animateScrollToPage((pagerState.currentPage + 1).coerceAtMost(pageCount - 1)) }
+                scope.launch { pagerState.animateScrollToPage((pagerState.currentPage + step).coerceIn(0, pageCount - 1)) }
             }) {
                 Icon(
                     imageVector = Icons.Filled.ChevronRight,
