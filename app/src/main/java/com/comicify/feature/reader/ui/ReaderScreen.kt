@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Slideshow
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -104,6 +105,7 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
                     posture = posture,
                     guided = state.guided,
                     guidedFullScreen = state.guidedFullScreen,
+                    guidedAutoPan = state.guidedAutoPan,
                     initialPage = state.position.pageIndex,
                     onPageChanged = viewModel::onPageChanged,
                     onGuidedStop = { index, count -> guidedIndex = index; guidedCount = count },
@@ -118,8 +120,10 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
             posture = posture,
             guided = state.guided,
             guidedFullScreen = state.guidedFullScreen,
+            guidedAutoPan = state.guidedAutoPan,
             onToggleGuided = viewModel::toggleGuided,
             onToggleGuidedFullScreen = viewModel::toggleGuidedFullScreen,
+            onToggleGuidedAutoPan = viewModel::toggleGuidedAutoPan,
             onClose = onClose,
             modifier = Modifier.align(Alignment.TopCenter),
         )
@@ -142,8 +146,10 @@ private fun TopChrome(
     posture: ReadingPosture,
     guided: Boolean,
     guidedFullScreen: Boolean,
+    guidedAutoPan: Boolean,
     onToggleGuided: () -> Unit,
     onToggleGuidedFullScreen: () -> Unit,
+    onToggleGuidedAutoPan: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -177,6 +183,10 @@ private fun TopChrome(
                     GuidedLayoutToggle(fullScreen = guidedFullScreen, onToggle = onToggleGuidedFullScreen)
                     Spacer(modifier = Modifier.width(10.dp))
                 }
+                if (guided) {
+                    AutoPanToggle(enabled = guidedAutoPan, onToggle = onToggleGuidedAutoPan)
+                    Spacer(modifier = Modifier.width(10.dp))
+                }
                 GuidedToggle(guided = guided, onToggle = onToggleGuided)
                 Spacer(modifier = Modifier.width(10.dp))
                 PostureChip(posture)
@@ -195,6 +205,21 @@ private fun GuidedToggle(guided: Boolean, onToggle: () -> Unit) {
         Icon(
             imageVector = Icons.Filled.ViewCarousel,
             contentDescription = stringResource(R.string.reader_action_guided),
+            tint = Color.White,
+        )
+    }
+}
+
+@Composable
+private fun AutoPanToggle(enabled: Boolean, onToggle: () -> Unit) {
+    val background = if (enabled) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.12f)
+    IconButton(
+        onClick = onToggle,
+        modifier = Modifier.background(background, CircleShape),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Slideshow,
+            contentDescription = stringResource(R.string.reader_action_guided_autopan),
             tint = Color.White,
         )
     }

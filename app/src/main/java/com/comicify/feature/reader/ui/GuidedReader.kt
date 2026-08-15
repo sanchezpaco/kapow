@@ -48,13 +48,18 @@ private const val DOUBLE_TAP_ZOOM = 2f
 private const val FOCUS_ANIMATION_MILLIS = 520
 private const val SPOTLIGHT_DIM = 0.72f
 private const val SPOTLIGHT_FEATHER_FRACTION = 0.1f
+private const val AUTO_PAN_ZOOM = 1.2f
+private const val AUTO_PAN_MILLIS = 6000
+private const val AUTO_PAN_MIN_AREA = 0.4f
+private const val AUTO_PAN_MIN_SIDE = 0.45f
 
-private data class FocusTarget(val view: Rect, val animated: Boolean)
+private data class FocusTarget(val view: Rect, val animated: Boolean, val autoPan: Boolean = false)
 
 @Composable
 fun GuidedReader(
     loader: PageLoader,
     spread: Boolean,
+    autoPanEnabled: Boolean,
     initialPage: Int,
     onPageChanged: (Int) -> Unit,
     onGuidedStop: (Int, Int) -> Unit,
@@ -102,21 +107,35 @@ fun GuidedReader(
 
     LaunchedEffect(panelIndex, panels.size) { onGuidedStop(panelIndex, panels.size) }
 
-    val panelView = GuidedFocus.frame(panels.getOrElse(panelIndex) { FullPagePanel }, PANEL_PADDING)
+    val currentStop = panels.getOrElse(panelIndex) { FullPagePanel }
+    val isOverview = panels.size > 1 && panelIndex == 0
+    val autoPan = autoPanEnabled && !isOverview && isLargeStop(currentStop)
+    val panelView = GuidedFocus.frame(currentStop, PANEL_PADDING)
     val resetKey = page to panelIndex
 
     if (!spread) {
-        GuidedPanel(arts[page], panelView, resetKey, ::goPrevious, ::goNext, onTap, Modifier.fillMaxSize())
+        GuidedPanel(arts[page], panelView, autoPan, resetKey, ::goPrevious, ::goNext, onTap, Modifier.fillMaxSize())
         return
     }
     val leftPage = spreadStart(page)
     Row(modifier = Modifier.fillMaxSize()) {
-        SpreadHalf(leftPage, page, arts[leftPage], panelView, resetKey, ::goPrevious, ::goNext, onTap)
-        SpreadHalf(leftPage + 1, page, arts[leftPage + 1], panelView, resetKey, ::goPrevious, ::goNext, onTap)
+        SpreadHalf(leftPage, page, arts[leftPage], panelView, autoPan, resetKey, ::goPrevious, ::goNext, onTap)
+        SpreadHalf(leftPage + 1, page, arts[leftPage + 1], panelView, autoPan, resetKey, ::goPrevious, ::goNext, onTap)
     }
 }
 
 private fun spreadStart(page: Int) = page - page % 2
+
+private fun isLargeStop(stop: Rect) =
+    stop.width * stop.height >= AUTO_PAN_MIN_AREA && minOf(stop.width, stop.height) >= AUTO_PAN_MIN_SIDE
+
+private fun panCrop(stop: Rect, atTop: Boolean): Rect {
+    val width = stop.width / AUTO_PAN_ZOOM
+    val height = stop.height / AUTO_PAN_ZOOM
+    val left = stop.left + (stop.width - width) / 2f
+    val top = if (atTop) stop.top else stop.bottom - height
+    return Rect(left, top, left + width, top + height)
+}
 
 @Composable
 private fun RowScope.SpreadHalf(
@@ -124,6 +143,7 @@ private fun RowScope.SpreadHalf(
     activePage: Int,
     art: PageArt?,
     panelView: Rect,
+    autoPan: Boolean,
     resetKey: Any,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
@@ -131,7 +151,7 @@ private fun RowScope.SpreadHalf(
 ) {
     val modifier = Modifier.weight(1f).fillMaxSize()
     if (index == activePage) {
-        GuidedPanel(art, panelView, resetKey, onPrevious, onNext, onTap, modifier)
+        GuidedPanel(art, panelView, autoPan, resetKey, onPrevious, onNext, onTap, modifier)
         return
     }
     val image = art?.image
@@ -149,6 +169,7 @@ private fun RowScope.SpreadHalf(
 private fun GuidedPanel(
     art: PageArt?,
     panelView: Rect,
+    autoPan: Boolean,
     resetKey: Any,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
@@ -158,7 +179,7 @@ private fun GuidedPanel(
     var zoom by remember(resetKey) { mutableStateOf<FocusTarget?>(null) }
     val currentPanelView by rememberUpdatedState(panelView)
     val currentArt by rememberUpdatedState(art)
-    val target = zoom ?: FocusTarget(panelView, animated = true)
+    val target = zoom ?: FocusTarget(panelView, animated = true, autoPan = autoPan)
 
     Box(
         modifier = modifier
@@ -215,11 +236,16 @@ private fun IntSize.toSize() = Size(width.toFloat(), height.toFloat())
 private fun GuidedPage(image: ImageBitmap, target: FocusTarget) {
     val view = remember { Animatable(target.view, Rect.VectorConverter) }
     LaunchedEffect(target) {
-        if (target.animated) {
-            view.animateTo(target.view, tween(FOCUS_ANIMATION_MILLIS, easing = FastOutSlowInEasing))
-        } else {
+        if (!target.animated) {
             view.snapTo(target.view)
+            return@LaunchedEffect
         }
+        if (!target.autoPan) {
+            view.animateTo(target.view, tween(FOCUS_ANIMATION_MILLIS, easing = FastOutSlowInEasing))
+            return@LaunchedEffect
+        }
+        view.animateTo(panCrop(target.view, atTop = true), tween(FOCUS_ANIMATION_MILLIS, easing = FastOutSlowInEasing))
+        view.animateTo(panCrop(target.view, atTop = false), tween(AUTO_PAN_MILLIS, easing = FastOutSlowInEasing))
     }
 
     Canvas(modifier = Modifier.fillMaxSize()) {

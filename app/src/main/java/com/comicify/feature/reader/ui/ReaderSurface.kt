@@ -40,6 +40,7 @@ fun ReaderSurface(
     posture: ReadingPosture,
     guided: Boolean,
     guidedFullScreen: Boolean,
+    guidedAutoPan: Boolean,
     initialPage: Int,
     onPageChanged: (Int) -> Unit,
     onGuidedStop: (Int, Int) -> Unit,
@@ -48,7 +49,7 @@ fun ReaderSurface(
 ) {
     if (guided) {
         val spread = posture == ReadingPosture.UnfoldedSpread && !guidedFullScreen
-        key(spread) { GuidedReader(loader, spread, initialPage, onPageChanged, onGuidedStop, onTap, onAmbient) }
+        key(spread) { GuidedReader(loader, spread, guidedAutoPan, initialPage, onPageChanged, onGuidedStop, onTap, onAmbient) }
         return
     }
     key(posture) {
