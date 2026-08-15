@@ -55,9 +55,13 @@ Default on `UnfoldedSpread`.
 
 Active in `Tabletop` posture (half-folded, horizontal hinge).
 
-- Layout splits at the hinge using `FoldingFeature.bounds`.
-- Top half shows the page; bottom half shows controls/next-page affordance (or
-  the facing page, configurable) — hands-free reading on a surface.
+- The layout splits at the real hinge: `FoldingFeature.bounds`, converted to dp,
+  drives the pure `splitAtHinge` helper so the page area stops exactly above the
+  occluded band and controls start exactly below it. See `foldable.md`.
+- Above the hinge shows the page; below the hinge shows controls/next-page
+  affordance — hands-free reading on a surface.
+- When hinge bounds are unavailable or don't fit the measured surface, this
+  falls back to the previous proportional split (62% page / 38% controls).
 
 ## Guided View
 

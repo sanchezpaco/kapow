@@ -61,7 +61,7 @@ import com.comicify.R
 import com.comicify.core.input.PageTurnDirection
 import com.comicify.core.input.RegisterVolumeKeyPageTurns
 import com.comicify.core.window.ReadingPosture
-import com.comicify.core.window.rememberReadingPosture
+import com.comicify.core.window.rememberReadingWindowState
 import com.comicify.feature.reader.domain.ComicOpenError
 import kotlinx.coroutines.flow.MutableSharedFlow
 
@@ -71,7 +71,8 @@ private val InitialAmbient = Color(0xFF0B0B0F)
 fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
     val viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.factory(uri))
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val posture = rememberReadingPosture()
+    val windowState = rememberReadingWindowState()
+    val posture = windowState.posture
     val pageTurnRequests = remember { MutableSharedFlow<PageTurnDirection>(extraBufferCapacity = 1) }
 
     RegisterVolumeKeyPageTurns(enabled = state.volumeKeyPagingEnabled) { direction ->
@@ -109,6 +110,7 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
                 ReaderSurface(
                     loader = loader,
                     posture = posture,
+                    hinge = windowState.hinge,
                     guided = state.guided,
                     guidedFullScreen = state.guidedFullScreen,
                     initialPage = state.position.pageIndex,

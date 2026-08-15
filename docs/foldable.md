@@ -36,6 +36,12 @@ The mapping lives in `core/window` as a pure function
 `derivePosture(layoutInfo, sizeClass): ReadingPosture` so it is unit-testable
 without a device.
 
+`rememberReadingWindowState()` (`core/window/PostureTracking.kt`) exposes both the
+derived `ReadingPosture` and, when the hinge is horizontal, its occlusion band as
+a `HingeOcclusion(topDp, bottomDp)` converted from `FoldingFeature.bounds` using
+the current density. The posture derivation itself stays untouched by this: it is
+still the pure `WindowState.toPosture()` covered by `PostureTest`.
+
 ## Adaptive reading surface
 
 The reader renders a strategy chosen from posture (see `reading-modes.md`):
@@ -47,8 +53,16 @@ The reader renders a strategy chosen from posture (see `reading-modes.md`):
 | `UnfoldedSpread` | Two-page spread (left/right), respects double splashes   |
 | `Tabletop`       | Book mode: one page rendered per screen half, hinge-aware |
 
-In `Tabletop` we use the hinge bounds from `FoldingFeature.bounds` to avoid
-drawing content under the fold, splitting the layout at the hinge.
+In `Tabletop`, `TabletopReader` measures its own height with `BoxWithConstraints`
+and calls the pure helper `splitAtHinge(containerHeight, hinge): TabletopSplit`
+(`core/window/TabletopSplit.kt`) to get a `pageHeight` / `hingeHeight` /
+`controlsHeight` triple. The page area stops exactly at the hinge, a spacer of
+`hingeHeight` skips the occluded band, and controls fill the rest below it. When
+the hinge bounds are missing or don't fit inside the measured container,
+`splitAtHinge` falls back to the previous proportional split (62% page / 38%
+controls) so the surface degrades gracefully on devices or emulator states that
+don't report a usable `FoldingFeature`. `splitAtHinge` is pure and unit-tested
+(`TabletopSplitTest`) independently of any device or Compose runtime.
 
 ## Position continuity
 
@@ -78,6 +92,9 @@ survives process death.
 
 ## Testing without a foldable
 
-- `derivePosture` is pure → unit tested with fabricated inputs.
+- `derivePosture` (`WindowState.toPosture()`) is pure → unit tested with
+  fabricated inputs (`PostureTest`).
+- `splitAtHinge` is pure → unit tested with fabricated container heights and
+  hinge bounds, including the fallback path (`TabletopSplitTest`).
 - Emulator: use the Android Studio foldable emulator + virtual sensors to toggle
   postures. Resizable emulator covers size-class transitions.
