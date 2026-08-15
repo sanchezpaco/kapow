@@ -85,6 +85,25 @@ Available on `CompactSingle`, and on demand elsewhere. Full detail in
   default enabled) controls this; toggling it is not yet exposed in a settings
   screen.
 - All transitions are spring/physics based, never linear.
+- **Thumbnail scrubber:** the bottom chrome carries a horizontally scrollable
+  filmstrip of low-resolution page thumbnails. Tapping a thumbnail jumps the
+  reader to that page; the strip is draggable to scan the whole comic. The
+  current page's thumbnail is highlighted and the strip centres on it when the
+  chrome opens. See `thumbnail-scrubber` below. Hidden with the chrome, and
+  suppressed in Guided View (which navigates panel by panel).
+
+## Thumbnail scrubber
+
+- Thumbnails come from a dedicated path in `PageLoader` (`loadThumb`) that decodes
+  each page at a small thumb width into its own LRU cache, separate from the
+  full-page cache so scrubbing never evicts reading-quality bitmaps.
+- Decoding is lazy: the strip is a `LazyRow`, so only visible cells request their
+  thumbnail as they scroll into view — pages are never decoded eagerly.
+- Jumping is unidirectional: a tap raises a `pendingJump` on `ReaderUiState`; the
+  active surface's pager consumes it (`scrollToPage`) and clears it, so the jump
+  lands on the same page state the pager and `onPageChanged` already drive. In the
+  two-page spread the target page maps to its spread step
+  (`ThumbnailStrip.stepIndexForPage`).
 
 ## Preloading
 
