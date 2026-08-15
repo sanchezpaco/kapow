@@ -7,7 +7,7 @@ import androidx.compose.animation.core.DecayAnimationSpec
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VectorConverter
-import androidx.compose.animation.rememberSplineBasedDecay
+import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -72,7 +72,7 @@ private const val ZOOM_ANIMATION_MILLIS = 260
 private const val PANEL_EXIT_EPSILON = 0.001f
 private const val OVERSCROLL_RESISTANCE = 0.32f
 private const val MAX_OVERSCROLL_PX = 220f
-private const val BOUNCE_VELOCITY_FRACTION = 0.55f
+private const val BOUNCE_VELOCITY_FRACTION = 0.3f
 private const val MAX_BOUNCE_VELOCITY_PX = 2400f
 
 @Composable
@@ -192,12 +192,14 @@ private fun GuidedPanel(
     modifier: Modifier,
 ) {
     val scope = rememberCoroutineScope()
-    val decay = rememberSplineBasedDecay<Rect>()
+    val decay = remember { exponentialDecay<Rect>(frictionMultiplier = 2.0f) }
     val view = remember { Animatable(panelView, Rect.VectorConverter) }
     val overscroll = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
     val settleSpring = remember { spring<Offset>(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow) }
     var zoomed by remember { mutableStateOf(false) }
     var flingJob by remember { mutableStateOf<Job?>(null) }
+    var dragView by remember { mutableStateOf<Rect?>(null) }
+    var dragOverscroll by remember { mutableStateOf(Offset.Zero) }
     val currentPanelView by rememberUpdatedState(panelView)
     val currentArt by rememberUpdatedState(art)
     val currentDirection by rememberUpdatedState(direction)
@@ -205,6 +207,7 @@ private fun GuidedPanel(
     LaunchedEffect(resetKey) {
         zoomed = false
         flingJob?.cancel()
+        dragView = null
         view.updateBounds(null, null)
         overscroll.snapTo(Offset.Zero)
         view.animateTo(currentPanelView, tween(FOCUS_ANIMATION_MILLIS, easing = FastOutSlowInEasing))
@@ -273,8 +276,8 @@ private fun GuidedPanel(
                                         maxWidth / MAX_ZOOM, maxWidth, maxHeight / MAX_ZOOM, maxHeight,
                                     )
                                     virtual = Offset(live.left, live.top)
-                                    val pinched = live
-                                    scope.launch { overscroll.snapTo(Offset.Zero); view.snapTo(pinched) }
+                                    dragView = live
+                                    dragOverscroll = Offset.Zero
                                     event.changes.forEach { if (it.positionChanged()) it.consume() }
                                 }
                             } else if (zoomed && pressed == 1) {
@@ -287,26 +290,30 @@ private fun GuidedPanel(
                                 val left = virtual.x.coerceIn(0f, 1f - width)
                                 val top = virtual.y.coerceIn(0f, 1f - height)
                                 live = Rect(left, top, left + width, top + height)
-                                val panned2 = live
-                                val rubber = rubberBand(
+                                dragView = live
+                                dragOverscroll = rubberBand(
                                     Offset(
                                         -(virtual.x - left) * drawn.width / width,
                                         -(virtual.y - top) * drawn.height / height,
                                     ),
                                 )
-                                scope.launch { view.snapTo(panned2); overscroll.snapTo(rubber) }
                                 change.consume()
                             }
                         }
                     } while (event.changes.any { it.pressed })
 
                     val image = currentArt?.image
+                    val finalRect = live
+                    val finalOverscroll = dragOverscroll
                     val atPanel = live.width >= currentPanelView.width - PANEL_EXIT_EPSILON &&
                         live.height >= currentPanelView.height - PANEL_EXIT_EPSILON
                     when {
                         atPanel && zoomed -> {
                             zoomed = false
                             flingJob = scope.launch {
+                                view.snapTo(finalRect)
+                                overscroll.snapTo(finalOverscroll)
+                                dragView = null
                                 view.updateBounds(null, null)
                                 launch { overscroll.animateTo(Offset.Zero, settleSpring) }
                                 view.animateTo(currentPanelView, tween(FOCUS_ANIMATION_MILLIS, easing = FastOutSlowInEasing))
@@ -320,12 +327,20 @@ private fun GuidedPanel(
                             val pixelsPerPageX = drawn.width / live.width
                             val pixelsPerPageY = drawn.height / live.height
                             flingJob = scope.launch {
+                                view.snapTo(finalRect)
+                                overscroll.snapTo(finalOverscroll)
+                                dragView = null
                                 launch { overscroll.animateTo(Offset.Zero, settleSpring) }
                                 fling(view, overscroll, decay, settleSpring, pageVelocity, pixelsPerPageX, pixelsPerPageY)
                             }
                         }
 
-                        else -> flingJob = scope.launch { overscroll.animateTo(Offset.Zero, settleSpring) }
+                        else -> flingJob = scope.launch {
+                            view.snapTo(finalRect)
+                            overscroll.snapTo(finalOverscroll)
+                            dragView = null
+                            overscroll.animateTo(Offset.Zero, settleSpring)
+                        }
                     }
                 }
             },
@@ -335,7 +350,9 @@ private fun GuidedPanel(
         if (image == null) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         } else {
-            GuidedPage(image, view.value, overscroll.value)
+            val displayView = dragView ?: view.value
+            val displayOverscroll = if (dragView != null) dragOverscroll else overscroll.value
+            GuidedPage(image, displayView, displayOverscroll)
         }
     }
 }

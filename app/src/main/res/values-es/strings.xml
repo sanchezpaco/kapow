@@ -12,6 +12,11 @@
     <string name="library_refresh">Actualizar</string>
     <string name="library_action_open_file">Abrir archivo</string>
     <string name="library_scanning">Escaneando carpeta…</string>
+    <string name="library_scan_error">No se pudo leer esa carpeta. Prueba a elegirla de nuevo.</string>
+    <string name="library_count">%1$d cómics</string>
+    <string name="library_shelf_eyebrow">Estante</string>
+    <string name="library_resume_eyebrow">Retomar</string>
+    <string name="library_resume">Reanudar</string>
     <string name="library_completed">Completado</string>
     <string name="library_progress">%1$d / %2$d</string>
     <string name="library_empty_folder_subtitle">Elige una carpeta de cómics para crear tu estantería, o abre un archivo.</string>
@@ -20,6 +25,7 @@
     <string name="reader_page_of">Página %1$d de %2$d</string>
     <string name="reader_action_close">Cerrar</string>
     <string name="reader_action_guided">Vista guiada</string>
+    <string name="reader_action_settings">Ajustes</string>
     <string name="reader_action_guided_full_screen">Viñeta a pantalla completa</string>
     <string name="reader_action_guided_keep_spread">Viñeta dentro de la doble página</string>
     <string name="reader_action_night_tint">Filtro nocturno</string>

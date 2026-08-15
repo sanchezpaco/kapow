@@ -12,6 +12,11 @@
     <string name="library_refresh">Refresh</string>
     <string name="library_action_open_file">Open file</string>
     <string name="library_scanning">Scanning folder…</string>
+    <string name="library_scan_error">Couldn\'t read that folder. Try choosing it again.</string>
+    <string name="library_count">%1$d comics</string>
+    <string name="library_shelf_eyebrow">Shelf</string>
+    <string name="library_resume_eyebrow">Resume</string>
+    <string name="library_resume">Resume</string>
     <string name="library_completed">Completed</string>
     <string name="library_progress">%1$d / %2$d</string>
     <string name="library_empty_folder_subtitle">Choose a comics folder to build your bookshelf, or open a single file.</string>
@@ -20,6 +25,7 @@
     <string name="reader_page_of">Page %1$d of %2$d</string>
     <string name="reader_action_close">Close</string>
     <string name="reader_action_guided">Guided view</string>
+    <string name="reader_action_settings">Settings</string>
     <string name="reader_action_guided_full_screen">Panel on full screen</string>
     <string name="reader_action_guided_keep_spread">Panel within the spread</string>
     <string name="reader_action_night_tint">Night tint</string>

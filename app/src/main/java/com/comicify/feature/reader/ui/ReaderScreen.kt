@@ -5,8 +5,10 @@ import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
@@ -15,19 +17,23 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material3.CircularProgressIndicator
@@ -44,17 +50,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -195,9 +199,9 @@ private fun TopChrome(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent)))
-                .statusBarsPadding()
+                .windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout))
                 .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             IconButton(
@@ -210,18 +214,18 @@ private fun TopChrome(
                     tint = Color.White,
                 )
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (guided && posture == ReadingPosture.UnfoldedSpread) {
-                    GuidedLayoutToggle(fullScreen = guidedFullScreen, onToggle = onToggleGuidedFullScreen)
-                    Spacer(modifier = Modifier.width(10.dp))
-                }
+            Row(verticalAlignment = Alignment.Top) {
                 GuidedToggle(guided = guided, onToggle = onToggleGuided)
                 Spacer(modifier = Modifier.width(10.dp))
-                NightTintToggle(enabled = nightTintEnabled, onToggle = onToggleNightTint)
-                Spacer(modifier = Modifier.width(10.dp))
-                DirectionToggle(direction = direction, onToggle = onToggleDirection)
-                Spacer(modifier = Modifier.width(10.dp))
-                PostureChip(posture)
+                ReaderSettingsMenu(
+                    showGuidedLayout = guided && posture == ReadingPosture.UnfoldedSpread,
+                    guidedFullScreen = guidedFullScreen,
+                    nightTintEnabled = nightTintEnabled,
+                    direction = direction,
+                    onToggleGuidedFullScreen = onToggleGuidedFullScreen,
+                    onToggleNightTint = onToggleNightTint,
+                    onToggleDirection = onToggleDirection,
+                )
             }
         }
     }
@@ -229,67 +233,77 @@ private fun TopChrome(
 
 @Composable
 private fun GuidedToggle(guided: Boolean, onToggle: () -> Unit) {
-    val background = if (guided) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.12f)
-    IconButton(
+    CircleControl(
+        icon = Icons.Filled.ViewCarousel,
+        active = guided,
+        contentDescription = stringResource(R.string.reader_action_guided),
         onClick = onToggle,
-        modifier = Modifier.background(background, CircleShape),
-    ) {
-        Icon(
-            imageVector = Icons.Filled.ViewCarousel,
-            contentDescription = stringResource(R.string.reader_action_guided),
-            tint = Color.White,
+    )
+}
+
+@Composable
+private fun ReaderSettingsMenu(
+    showGuidedLayout: Boolean,
+    guidedFullScreen: Boolean,
+    nightTintEnabled: Boolean,
+    direction: ReadingDirection,
+    onToggleGuidedFullScreen: () -> Unit,
+    onToggleNightTint: () -> Unit,
+    onToggleDirection: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        CircleControl(
+            icon = Icons.Filled.Settings,
+            active = expanded,
+            contentDescription = stringResource(R.string.reader_action_settings),
+            onClick = { expanded = !expanded },
         )
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+        ) {
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (showGuidedLayout) {
+                    CircleControl(
+                        icon = if (guidedFullScreen) Icons.AutoMirrored.Filled.MenuBook else Icons.Filled.Fullscreen,
+                        active = guidedFullScreen,
+                        contentDescription = stringResource(
+                            if (guidedFullScreen) R.string.reader_action_guided_keep_spread else R.string.reader_action_guided_full_screen,
+                        ),
+                        onClick = onToggleGuidedFullScreen,
+                    )
+                }
+                CircleControl(
+                    icon = Icons.Filled.NightsStay,
+                    active = nightTintEnabled,
+                    contentDescription = stringResource(R.string.reader_action_night_tint),
+                    onClick = onToggleNightTint,
+                )
+                CircleControl(
+                    icon = Icons.Filled.SwapHoriz,
+                    active = direction == ReadingDirection.RightToLeft,
+                    contentDescription = stringResource(
+                        if (direction == ReadingDirection.RightToLeft) R.string.reader_action_direction_rtl else R.string.reader_action_direction_ltr,
+                    ),
+                    onClick = onToggleDirection,
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun NightTintToggle(enabled: Boolean, onToggle: () -> Unit) {
-    val background = if (enabled) MaterialTheme.colorScheme.secondary else Color.White.copy(alpha = 0.12f)
+private fun CircleControl(icon: ImageVector, active: Boolean, contentDescription: String, onClick: () -> Unit) {
     IconButton(
-        onClick = onToggle,
-        modifier = Modifier.background(background, CircleShape),
-    ) {
-        Icon(
-            imageVector = Icons.Filled.NightsStay,
-            contentDescription = stringResource(R.string.reader_action_night_tint),
-            tint = Color.White,
-        )
-    }
-}
-
-@Composable
-private fun DirectionToggle(direction: ReadingDirection, onToggle: () -> Unit) {
-    val isRightToLeft = direction == ReadingDirection.RightToLeft
-    IconButton(
-        onClick = onToggle,
+        onClick = onClick,
         modifier = Modifier.background(
-            if (isRightToLeft) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.12f),
+            if (active) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.12f),
             CircleShape,
         ),
     ) {
-        Icon(
-            imageVector = Icons.Filled.SwapHoriz,
-            contentDescription = stringResource(
-                if (isRightToLeft) R.string.reader_action_direction_rtl else R.string.reader_action_direction_ltr,
-            ),
-            tint = Color.White,
-        )
-    }
-}
-
-@Composable
-private fun GuidedLayoutToggle(fullScreen: Boolean, onToggle: () -> Unit) {
-    IconButton(
-        onClick = onToggle,
-        modifier = Modifier.background(Color.White.copy(alpha = 0.12f), CircleShape),
-    ) {
-        Icon(
-            imageVector = if (fullScreen) Icons.Filled.MenuBook else Icons.Filled.Fullscreen,
-            contentDescription = stringResource(
-                if (fullScreen) R.string.reader_action_guided_keep_spread else R.string.reader_action_guided_full_screen,
-            ),
-            tint = Color.White,
-        )
+        Icon(imageVector = icon, contentDescription = contentDescription, tint = Color.White)
     }
 }
 
@@ -340,21 +354,6 @@ private fun BottomChrome(
 }
 
 @Composable
-private fun PostureChip(posture: ReadingPosture) {
-    Text(
-        text = stringResource(posture.labelRes()),
-        color = Color.White,
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.Medium,
-        letterSpacing = 1.sp,
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(Color.White.copy(alpha = 0.12f))
-            .padding(horizontal = 14.dp, vertical = 6.dp),
-    )
-}
-
-@Composable
 private fun CenteredMessage(text: String, showSpinner: Boolean = false) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -384,13 +383,6 @@ private fun ImmersiveReadingMode() {
         controller.hide(WindowInsetsCompat.Type.systemBars())
         onDispose { controller.show(WindowInsetsCompat.Type.systemBars()) }
     }
-}
-
-private fun ReadingPosture.labelRes(): Int = when (this) {
-    ReadingPosture.CompactSingle -> R.string.posture_folded
-    ReadingPosture.UnfoldedSingle -> R.string.posture_unfolded
-    ReadingPosture.UnfoldedSpread -> R.string.posture_spread
-    ReadingPosture.Tabletop -> R.string.posture_tabletop
 }
 
 private fun ComicOpenError.messageRes(): Int = when (this) {

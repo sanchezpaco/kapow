@@ -11,20 +11,15 @@ val naturalOrder: Comparator<String> = Comparator { left, right ->
         val ca = a[i]
         val cb = b[j]
         if (ca.isDigit() && cb.isDigit()) {
-            var endA = i
-            while (endA < a.length && a[endA].isDigit()) endA++
-            var endB = j
-            while (endB < b.length && b[endB].isDigit()) endB++
-            val numA = a.substring(i, endA).trimStart('0').ifEmpty { "0" }
-            val numB = b.substring(j, endB).trimStart('0').ifEmpty { "0" }
-            val cmp = if (numA.length != numB.length) {
-                numA.length - numB.length
-            } else {
-                numA.compareTo(numB)
-            }
-            if (cmp != 0) return@Comparator cmp
-            i = endA
-            j = endB
+            val startA = i
+            while (i < a.length && a[i].isDigit()) i++
+            val startB = j
+            while (j < b.length && b[j].isDigit()) j++
+            val runA = a.substring(startA, i)
+            val runB = b.substring(startB, j)
+            val valueCmp = compareNumericValue(runA, runB)
+            if (valueCmp != 0) return@Comparator valueCmp
+            if (runA.length != runB.length) return@Comparator runA.length - runB.length
         } else {
             if (ca != cb) return@Comparator ca - cb
             i++
@@ -32,4 +27,11 @@ val naturalOrder: Comparator<String> = Comparator { left, right ->
         }
     }
     a.length - b.length
+}
+
+private fun compareNumericValue(runA: String, runB: String): Int {
+    val a = runA.trimStart('0')
+    val b = runB.trimStart('0')
+    if (a.length != b.length) return a.length - b.length
+    return a.compareTo(b)
 }

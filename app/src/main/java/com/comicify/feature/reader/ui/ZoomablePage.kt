@@ -1,7 +1,11 @@
 package com.comicify.feature.reader.ui
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -15,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,10 +27,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.IntSize
 import com.comicify.feature.reader.data.PageArt
 import com.comicify.feature.reader.data.PageLoader
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 private const val MAX_SCALE = 5f
 private const val DOUBLE_TAP_SCALE = 2.5f
@@ -35,10 +44,12 @@ private fun centeredOn(tap: Offset, size: IntSize, scale: Float): Offset {
     return (center - tap) * scale
 }
 
+private fun panBounds(size: IntSize, scale: Float): Offset =
+    Offset((scale - 1f) * size.width / 2f, (scale - 1f) * size.height / 2f)
+
 private fun clampOffset(offset: Offset, size: IntSize, scale: Float): Offset {
-    val maxX = (scale - 1f) * size.width / 2f
-    val maxY = (scale - 1f) * size.height / 2f
-    return Offset(offset.x.coerceIn(-maxX, maxX), offset.y.coerceIn(-maxY, maxY))
+    val max = panBounds(size, scale)
+    return Offset(offset.x.coerceIn(-max.x, max.x), offset.y.coerceIn(-max.y, max.y))
 }
 
 @Composable
@@ -52,6 +63,9 @@ fun ZoomablePage(
     var art by remember(index) { mutableStateOf<PageArt?>(null) }
     var scale by remember(index) { mutableFloatStateOf(1f) }
     var offset by remember(index) { mutableStateOf(Offset.Zero) }
+    var flingJob by remember(index) { mutableStateOf<Job?>(null) }
+    val scope = rememberCoroutineScope()
+    val decay = remember { exponentialDecay<Offset>(frictionMultiplier = 2.0f) }
 
     LaunchedEffect(index) { art = runCatching { loader.load(index) }.getOrNull() }
     LaunchedEffect(scale) { onZoomedChange(scale > 1.01f) }
@@ -74,6 +88,7 @@ fun ZoomablePage(
                         detectTapGestures(
                             onTap = { onTap() },
                             onDoubleTap = { tap ->
+                                flingJob?.cancel()
                                 if (scale > 1f) {
                                     scale = 1f
                                     offset = Offset.Zero
@@ -86,16 +101,36 @@ fun ZoomablePage(
                     }
                     .pointerInput(index) {
                         awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false)
+                            flingJob?.cancel()
+                            val tracker = VelocityTracker()
+                            var panned = false
                             do {
                                 val event = awaitPointerEvent()
                                 val pressed = event.changes.count { it.pressed }
                                 if (pressed >= 2 || scale > 1f) {
                                     val next = (scale * event.calculateZoom()).coerceIn(1f, MAX_SCALE)
                                     scale = next
-                                    offset = if (next > 1f) clampOffset(offset + event.calculatePan(), size, next) else Offset.Zero
+                                    if (next > 1f) {
+                                        if (pressed == 1) event.changes.firstOrNull { it.pressed }?.let(tracker::addPointerInputChange)
+                                        offset = clampOffset(offset + event.calculatePan(), size, next)
+                                        panned = true
+                                    } else {
+                                        offset = Offset.Zero
+                                    }
                                     event.changes.forEach { if (it.positionChanged()) it.consume() }
                                 }
                             } while (event.changes.any { it.pressed })
+
+                            if (panned && scale > 1f) {
+                                val velocity = tracker.calculateVelocity()
+                                val bounds = panBounds(size, scale)
+                                flingJob = scope.launch {
+                                    val fling = Animatable(offset, Offset.VectorConverter)
+                                    fling.updateBounds(Offset(-bounds.x, -bounds.y), bounds)
+                                    fling.animateDecay(Offset(velocity.x, velocity.y), decay) { offset = value }
+                                }
+                            }
                         }
                     }
                     .graphicsLayer {

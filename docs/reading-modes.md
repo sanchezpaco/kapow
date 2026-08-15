@@ -12,8 +12,10 @@ Default on `UnfoldedSingle` and `CompactSingle`.
 - Content fits the screen; the unfolded screen shows a page at near-physical size
   so no zoom is needed for normal reading.
 - Gestures: single-finger horizontal swipe changes page; pinch (two fingers)
-  zooms; when zoomed, one finger pans (clamped to the page) and the pager is
-  locked; double-tap toggles a 2.5× zoom centred on the tapped point. The
+  zooms; when zoomed, one finger pans (clamped to the page) with an inertial
+  fling on release (velocity-tracked, `exponentialDecay` clamped to the pan
+  bounds) and the pager is locked; double-tap toggles a 2.5× zoom centred on the
+  tapped point. The
   zoom/pan detector only consumes events when two fingers are down or the page
   is already zoomed, so single-finger swipes always reach the
   pager (a custom `awaitEachGesture`, not `detectTransformGestures`).
@@ -71,8 +73,11 @@ Available on `CompactSingle`, and on demand elsewhere. Full detail in
 - Auto-focuses one detected panel at a time with an animated pan/zoom.
 - Tap advances to the next panel in reading order; at the last panel, advances
   to the next page's first panel.
-- Double-tap zooms around the tapped point and one finger pans, so any page
-  (including whole-page fallbacks and wide panels) stays readable.
+- Double-tap zooms around the tapped point and one finger pans (with an inertial
+  fling on release), so any page (including whole-page fallbacks and wide panels)
+  stays readable. Panning runs in normalized page space, so the release fling uses
+  `exponentialDecay` (spline decay is pixel-calibrated and would not move a 0..1
+  value).
 
 ## Reading direction
 
@@ -80,8 +85,7 @@ The reader has a `ReadingDirection` setting — `LeftToRight` (default) or
 `RightToLeft` (for manga and other right-bound comics) — persisted with
 DataStore (`ReaderPreferences`, key `reading_direction_rtl`) and exposed as
 `ReaderUiState.direction`, toggled from the ViewModel
-(`ReaderViewModel.toggleReadingDirection`) and from a HUD button next to the
-guided-view toggle.
+(`ReaderViewModel.toggleReadingDirection`) and from the reader settings menu.
 
 When `RightToLeft` is active:
 
@@ -107,6 +111,12 @@ is unit-tested directly (`PageOrderTest`).
 ## Shared reader chrome
 
 - Immersive by default: system bars hidden, edge-to-edge, pure-black background.
+- The top bar keeps only two always-visible controls — the Guided View toggle and
+  a settings **gear** — plus the close button. The gear opens a dropdown with the
+  rest of the reader settings (night tint, reading direction, and, in the spread,
+  the panel-layout toggle) and a posture label. Because immersive mode hides the
+  status bar, the top bar pads for `displayCutout` (unioned with `statusBars`), so
+  the controls never sit under the foldable's front-camera cutout.
 - Center tap toggles a minimal overlay: progress, page number, quick settings.
 - Left/right tap zones page back/forward (mirrored correctly for the surface).
 - Volume-down/volume-up turn the page forward/back (panel-by-panel in Guided

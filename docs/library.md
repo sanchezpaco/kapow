@@ -8,7 +8,14 @@ The home of the collection: import comics, browse covers, resume reading.
   (`ACTION_OPEN_DOCUMENT_TREE`). We `takePersistableUriPermission` and store the
   tree Uri in DataStore (`LibraryPreferences`), so the folder survives restarts.
 - `ComicScanner` walks the tree recursively with `DocumentsContract` (no extra
-  dependency), collecting `.cbz/.cbr/.pdf`. Subfolders name the series.
+  dependency), collecting `.cbz/.cbr/.pdf` by extension, or by comic MIME type
+  when a provider hides the extension. Extension detection is tolerant of trailing
+  suffixes providers append to duplicate downloads (e.g. `Comic.cbr (1)`).
+  Subfolders name the series.
+- A scan that throws (revoked permission, unreadable provider) is caught in the
+  ViewModel: it is logged, surfaced as an error message in the UI, and always
+  clears the scanning state instead of leaving an empty shelf and a stuck
+  spinner.
 - Files stay where the user put them; only a durable document Uri is persisted,
   never a copy. A single file can still be opened directly (`OPEN_DOCUMENT`)
   without adding it to the library.
@@ -46,8 +53,19 @@ ReadingState(
   resolution and writes a JPEG to internal storage (`filesDir/covers/{id}.jpg`),
   recording `coverPath` and `pageCount`.
 - Runs lazily and asynchronously after a scan, so titles appear instantly and
-  thumbnails stream in. A comic whose cover cannot be decoded keeps a null cover
-  and shows a placeholder.
+  thumbnails stream in. A comic with no decoded cover yet (or one that cannot be
+  decoded) shows a **procedural cover** instead of an empty box: a gradient keyed
+  to the series name, a large faded monogram, a comic halftone-dot overlay and the
+  title — so PDFs and freshly-scanned comics still read as cover art.
+
+## Visual identity
+
+The shelf uses a "Comic Red & Ink" palette local to the library UI: pure-black
+OLED ground, a comic-red accent (matching the reader theme's `primary`) with an
+amber highlight and green for completed. Progress shows as a red ring on the cover
+corner (percent) and a red→amber bar under in-progress comics; finished comics get
+a green "Completed" badge. A "Continue reading" row surfaces recent unfinished
+comics with a resume affordance and progress.
 
 ## Home UI
 

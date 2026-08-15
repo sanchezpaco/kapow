@@ -11,6 +11,17 @@ import javax.inject.Inject
 
 private val comicExtensions = setOf("cbz", "cbr", "pdf")
 
+private val comicMimeTypes = setOf(
+    "application/vnd.comicbook+zip",
+    "application/vnd.comicbook-rar",
+    "application/x-cbz",
+    "application/x-cbr",
+    "application/zip",
+    "application/x-rar-compressed",
+    "application/vnd.rar",
+    "application/pdf",
+)
+
 class ComicScanner @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
@@ -42,7 +53,7 @@ class ComicScanner @Inject constructor(
                 val mimeType = cursor.getString(2)
                 if (mimeType == DocumentsContract.Document.MIME_TYPE_DIR) {
                     walk(treeUri, childId, name, sink)
-                } else if (hasComicExtension(name)) {
+                } else if (isComic(name, mimeType)) {
                     sink += DiscoveredComic(
                         documentUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, childId).toString(),
                         displayName = name,
@@ -64,6 +75,9 @@ class ComicScanner @Inject constructor(
         return ""
     }
 
-    private fun hasComicExtension(name: String): Boolean =
-        name.substringAfterLast('.', "").lowercase() in comicExtensions
+    private fun isComic(name: String, mimeType: String?): Boolean =
+        extensionOf(name) in comicExtensions || mimeType in comicMimeTypes
+
+    private fun extensionOf(name: String): String =
+        name.substringAfterLast('.', "").trim().substringBefore(' ').lowercase()
 }
