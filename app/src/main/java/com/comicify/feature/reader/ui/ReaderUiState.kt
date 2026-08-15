@@ -1,5 +1,6 @@
 package com.comicify.feature.reader.ui
 
+import com.comicify.domain.model.ReadingDirection
 import com.comicify.domain.model.ReadingPosition
 
 data class ReaderUiState(
@@ -10,4 +11,5 @@ data class ReaderUiState(
     val chromeVisible: Boolean = false,
     val guided: Boolean = false,
     val guidedFullScreen: Boolean = false,
+    val direction: ReadingDirection = ReadingDirection.LeftToRight,
 )

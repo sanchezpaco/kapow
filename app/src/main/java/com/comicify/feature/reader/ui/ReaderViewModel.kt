@@ -7,9 +7,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.ComicSource
 import com.comicify.feature.reader.data.ComicSourceFactory
 import com.comicify.feature.reader.data.PageLoader
+import com.comicify.feature.reader.data.ReaderPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,12 +26,15 @@ class ReaderViewModel(
     private val _state = MutableStateFlow(ReaderUiState())
     val state: StateFlow<ReaderUiState> = _state.asStateFlow()
 
+    private val preferences = ReaderPreferences(application)
+
     private var source: ComicSource? = null
     var pageLoader: PageLoader? = null
         private set
 
     init {
         openComic()
+        observeReadingDirection()
     }
 
     private fun openComic() {
@@ -60,6 +65,22 @@ class ReaderViewModel(
 
     fun toggleGuidedFullScreen() {
         _state.update { it.copy(guidedFullScreen = !it.guidedFullScreen) }
+    }
+
+    fun toggleReadingDirection() {
+        val next = when (_state.value.direction) {
+            ReadingDirection.LeftToRight -> ReadingDirection.RightToLeft
+            ReadingDirection.RightToLeft -> ReadingDirection.LeftToRight
+        }
+        viewModelScope.launch { preferences.setReadingDirection(next) }
+    }
+
+    private fun observeReadingDirection() {
+        viewModelScope.launch {
+            preferences.readingDirection.collect { direction ->
+                _state.update { it.copy(direction = direction) }
+            }
+        }
     }
 
     override fun onCleared() {

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -60,6 +61,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.comicify.R
 import com.comicify.core.window.ReadingPosture
 import com.comicify.core.window.rememberReadingPosture
+import com.comicify.domain.model.ReadingDirection
 
 private val InitialAmbient = Color(0xFF0B0B0F)
 
@@ -101,6 +103,7 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
                     posture = posture,
                     guided = state.guided,
                     guidedFullScreen = state.guidedFullScreen,
+                    direction = state.direction,
                     initialPage = state.position.pageIndex,
                     onPageChanged = viewModel::onPageChanged,
                     onTap = viewModel::toggleChrome,
@@ -114,8 +117,10 @@ fun ReaderScreen(uri: Uri, onClose: () -> Unit) {
             posture = posture,
             guided = state.guided,
             guidedFullScreen = state.guidedFullScreen,
+            direction = state.direction,
             onToggleGuided = viewModel::toggleGuided,
             onToggleGuidedFullScreen = viewModel::toggleGuidedFullScreen,
+            onToggleDirection = viewModel::toggleReadingDirection,
             onClose = onClose,
             modifier = Modifier.align(Alignment.TopCenter),
         )
@@ -135,8 +140,10 @@ private fun TopChrome(
     posture: ReadingPosture,
     guided: Boolean,
     guidedFullScreen: Boolean,
+    direction: ReadingDirection,
     onToggleGuided: () -> Unit,
     onToggleGuidedFullScreen: () -> Unit,
+    onToggleDirection: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -172,6 +179,8 @@ private fun TopChrome(
                 }
                 GuidedToggle(guided = guided, onToggle = onToggleGuided)
                 Spacer(modifier = Modifier.width(10.dp))
+                DirectionToggle(direction = direction, onToggle = onToggleDirection)
+                Spacer(modifier = Modifier.width(10.dp))
                 PostureChip(posture)
             }
         }
@@ -188,6 +197,26 @@ private fun GuidedToggle(guided: Boolean, onToggle: () -> Unit) {
         Icon(
             imageVector = Icons.Filled.ViewCarousel,
             contentDescription = stringResource(R.string.reader_action_guided),
+            tint = Color.White,
+        )
+    }
+}
+
+@Composable
+private fun DirectionToggle(direction: ReadingDirection, onToggle: () -> Unit) {
+    val isRightToLeft = direction == ReadingDirection.RightToLeft
+    IconButton(
+        onClick = onToggle,
+        modifier = Modifier.background(
+            if (isRightToLeft) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.12f),
+            CircleShape,
+        ),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.SwapHoriz,
+            contentDescription = stringResource(
+                if (isRightToLeft) R.string.reader_action_direction_rtl else R.string.reader_action_direction_ltr,
+            ),
             tint = Color.White,
         )
     }
