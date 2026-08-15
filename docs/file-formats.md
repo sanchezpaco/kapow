@@ -52,6 +52,17 @@ and is unit-tested independently of any file IO.
 - The bundled native library loads on 16 KB-page devices (verified on the
   API 37.1 foldable emulator).
 
+## Plain image folder
+
+- A SAF tree/folder `Uri` (from `ACTION_OPEN_DOCUMENT_TREE`) pointing at an
+  uncompressed folder of images. Opened via `ComicSourceFactory.openFolder`,
+  which returns a `FolderComicSource`.
+- Children are listed with `DocumentsContract` (`buildChildDocumentsUriUsingTree`),
+  filtered to image types (`jpg`, `jpeg`, `png`, `webp`, `gif`, `bmp`) and sorted
+  naturally, behind the same `ComicSource` abstraction.
+- Each page is decoded on demand from its document `Uri` via the shared
+  `decodeSampled` helper; there is no archive to extract or cache file to clean up.
+
 ## PDF (Phase 5)
 
 - Rendered with the framework `android.graphics.pdf.PdfRenderer` in
