@@ -9,6 +9,19 @@ data class Box(val left: Int, val top: Int, val right: Int, val bottom: Int) {
     val height: Int get() = bottom - top
     val area: Int get() = width * height
 
+    fun contains(x: Int, y: Int) = x >= left && x < right && y >= top && y < bottom
+
+    fun chebyshevDistanceTo(x: Int, y: Int): Int =
+        max(max(0, max(left - x, x - right + 1)), max(0, max(top - y, y - bottom + 1)))
+
+    fun distanceSquaredTo(x: Int, y: Int): Int {
+        val dx = max(0, max(left - x, x - right + 1))
+        val dy = max(0, max(top - y, y - bottom + 1))
+        return dx * dx + dy * dy
+    }
+
+    fun intersect(other: Box) = Box(max(left, other.left), max(top, other.top), min(right, other.right), min(bottom, other.bottom))
+
     fun union(other: Box) = Box(min(left, other.left), min(top, other.top), max(right, other.right), max(bottom, other.bottom))
 
     fun intersectionArea(other: Box): Int {

@@ -35,6 +35,7 @@
     <string name="reader_page_of">Page %1$d of %2$d</string>
     <string name="reader_action_close">Close</string>
     <string name="reader_action_guided">Guided view</string>
+    <string name="reader_action_enlarge_bubbles">Enlarge speech bubbles</string>
     <string name="reader_action_settings">Settings</string>
     <string name="reader_action_guided_full_screen">Panel on full screen</string>
     <string name="reader_action_guided_keep_spread">Panel within the spread</string>

@@ -81,6 +81,11 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       Guided View and on regular pages
 - [x] Per-page cache of detected panels (lazy, only when Guided View is used)
 - [x] Offline detection visualizer + unit tests on synthetic pages
+- [x] Enlarged speech bubbles: an alternative to panel-by-panel — every
+      detected bubble/caption (white or cream, gated on text-like ink inside) is
+      redrawn ~1.3× in place over the normal page, pushed apart or shrunk so
+      copies never overlap or uncover the original; HUD toggle. See
+      `docs/speech-bubbles.md`
 - [ ] Manual panel-region override/editor for pages detected poorly
 
 ## Phase 5 — Polish

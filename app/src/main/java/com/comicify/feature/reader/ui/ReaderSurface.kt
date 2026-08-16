@@ -55,6 +55,7 @@ fun ReaderSurface(
     hinge: HingeOcclusion?,
     guided: Boolean,
     guidedFullScreen: Boolean,
+    bubbleScale: Float?,
     direction: ReadingDirection,
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
@@ -75,11 +76,11 @@ fun ReaderSurface(
     key(posture, direction) {
         when (posture) {
             ReadingPosture.UnfoldedSpread ->
-                SpreadReader(loader, direction, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
+                SpreadReader(loader, bubbleScale, direction, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
             ReadingPosture.Tabletop ->
-                TabletopReader(loader, direction, hinge, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
+                TabletopReader(loader, bubbleScale, direction, hinge, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
             else ->
-                SinglePageReader(loader, direction, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
+                SinglePageReader(loader, bubbleScale, direction, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
         }
     }
 }
@@ -92,6 +93,7 @@ private fun targetPage(current: Int, lastIndex: Int, direction: PageTurnDirectio
 @Composable
 private fun SinglePageReader(
     loader: PageLoader,
+    bubbleScale: Float?,
     direction: ReadingDirection,
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
@@ -132,6 +134,7 @@ private fun SinglePageReader(
     ) { physicalPage ->
         ZoomablePage(
             loader = loader,
+            bubbleScale = bubbleScale,
             index = PageOrder.logicalIndex(direction, physicalPage, pageCount),
             onTap = onTap,
             onZoomedChange = { if (physicalPage == pagerState.currentPage) zoomed = it },
@@ -155,6 +158,7 @@ private fun Modifier.pageTurnDepth(pagerState: PagerState, page: Int): Modifier 
 @Composable
 private fun SpreadReader(
     loader: PageLoader,
+    bubbleScale: Float?,
     direction: ReadingDirection,
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
@@ -204,6 +208,7 @@ private fun SpreadReader(
             if (screenLeftPage < loader.pageCount) {
                 ZoomablePage(
                     loader = loader,
+                    bubbleScale = bubbleScale,
                     index = screenLeftPage,
                     onTap = onTap,
                     onZoomedChange = { if (spread == pagerState.currentPage) zoomed = it },
@@ -215,6 +220,7 @@ private fun SpreadReader(
             if (screenRightPage < loader.pageCount) {
                 ZoomablePage(
                     loader = loader,
+                    bubbleScale = bubbleScale,
                     index = screenRightPage,
                     onTap = onTap,
                     onZoomedChange = { if (spread == pagerState.currentPage) zoomed = it },
@@ -230,6 +236,7 @@ private fun SpreadReader(
 @Composable
 private fun TabletopReader(
     loader: PageLoader,
+    bubbleScale: Float?,
     direction: ReadingDirection,
     hinge: HingeOcclusion?,
     initialPage: Int,
@@ -274,6 +281,7 @@ private fun TabletopReader(
             ) { physicalPage ->
                 ZoomablePage(
                     loader = loader,
+                    bubbleScale = bubbleScale,
                     index = PageOrder.logicalIndex(direction, physicalPage, pageCount),
                     onTap = onTap,
                     onZoomedChange = { if (physicalPage == pagerState.currentPage) zoomed = it },
