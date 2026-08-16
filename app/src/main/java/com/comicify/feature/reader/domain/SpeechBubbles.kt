@@ -25,6 +25,7 @@ private const val MIN_LINE_PIXELS = 4
 private const val MIN_WORD_HEIGHT_FRACTION = 0.004f
 private const val MIN_BLOCK_DENSITY = 0.25f
 private const val MIN_INK_BOUNDED_SHARE = 0.6f
+private const val THICK_PAPER_RADIUS = 2
 private const val MIN_WORD_INK_SHARE = 0.5f
 private const val MIN_OVERLAP_TO_MERGE = 0.15f
 private const val GUTTER_MIN_RUN_FRACTION = 0.3f
@@ -53,18 +54,22 @@ object SpeechBubbles {
         val minWordHeight = (pageSide * MIN_WORD_HEIGHT_FRACTION).toInt()
         val holes = enclosedHoles(paper, width, height).segment(width, height, MIN_LINE_PIXELS)
         val inkPerHole = inkPerLabel(holes, ink)
+        val maxBlockHeight = (pageSide * MAX_TEXT_BLOCK_HEIGHT_FRACTION).toInt()
+        val isLine = { box: Box -> isTextLike(box) && box.height >= minWordHeight && box.width >= box.height }
         val words = holes.components
-            .filter { isTextLike(it.box) && it.box.height >= minWordHeight && it.box.width >= it.box.height }
+            .filter { it.box.height in minWordHeight..maxBlockHeight && it.box.width >= minWordHeight }
             .filter { inkPerHole[it.label] >= it.pixels * MIN_WORD_INK_SHARE }
         val blocks = TextBlocks.cluster(words, (pageSide * MAX_WORD_GAP_FRACTION).toInt(), (pageSide * MAX_LINE_GAP_FRACTION).toInt())
-            .filter { it.density >= MIN_BLOCK_DENSITY }
+            .filter { it.density >= MIN_BLOCK_DENSITY && it.words.any(isLine) }
             .map { it.box }
         val maxMargin = (pageSide * MAX_MARGIN_FRACTION).toInt()
+        val thickPaper = paper.opened(width, height, THICK_PAPER_RADIUS)
         return blocks
             .map { Blob.grown(it, maxMargin, paper, width, height) }
+            .let { mergeSharingPaper(it) }
             .filter { !it.touchesBorder(width, height) && it.fill >= MIN_BUBBLE_FILL && it.pixels <= pageArea * MAX_BUBBLE_AREA_FRACTION }
             .filter { min(it.box.width, it.box.height) >= minSide && aspect(it.box) <= MAX_BUBBLE_ASPECT }
-            .filter { hasTextInside(it, isTextLike) && it.inkBoundedShare(paper, width, height) >= MIN_INK_BOUNDED_SHARE }
+            .filter { hasTextInside(it, isTextLike) && it.inkBoundedShare(thickPaper, width, height) >= MIN_INK_BOUNDED_SHARE }
             .map { it.silhouette(width, height) }
     }
 
@@ -132,6 +137,15 @@ object SpeechBubbles {
         return lineInk >= holeCount * MIN_LINE_INK_SHARE
     }
 
+    private fun mergeSharingPaper(blobs: List<Blob>): List<Blob> {
+        val merged = ArrayList<Blob>()
+        blobs.sortedByDescending { it.pixels }.forEach { candidate ->
+            val partner = merged.indexOfFirst { it.sharesCells(candidate) }
+            if (partner < 0) merged.add(candidate) else merged[partner] = merged[partner].union(candidate)
+        }
+        return merged
+    }
+
     private fun mergeTouching(silhouettes: List<Silhouette>) = merge(silhouettes) { a, b -> a.touches(b) || a.overlaps(b) }
 
     private fun mergeOverlapping(silhouettes: List<Silhouette>) = merge(silhouettes) { a, b -> a.overlaps(b) }
@@ -155,6 +169,25 @@ private class Blob(val box: Box, val cells: BooleanArray) {
     fun touchesBorder(width: Int, height: Int) = box.left == 0 || box.top == 0 || box.right == width || box.bottom == height
 
     fun contains(x: Int, y: Int) = box.contains(x, y) && cells[(y - box.top) * box.width + (x - box.left)]
+
+    fun sharesCells(other: Blob): Boolean {
+        val overlap = box.intersect(other.box)
+        if (overlap.width <= 0 || overlap.height <= 0) return false
+        for (y in overlap.top until overlap.bottom) for (x in overlap.left until overlap.right) {
+            if (contains(x, y) && other.contains(x, y)) return true
+        }
+        return false
+    }
+
+    fun union(other: Blob): Blob {
+        val joined = box.union(other.box)
+        val cells = BooleanArray(joined.area) {
+            val x = joined.left + it % joined.width
+            val y = joined.top + it / joined.width
+            contains(x, y) || other.contains(x, y)
+        }
+        return Blob(joined, cells)
+    }
 
     fun interiorHoles(): BooleanArray {
         val open = BooleanArray(cells.size) { !cells[it] }

@@ -36,14 +36,16 @@ merged at the end. Steps per tone:
    thick) are removed, so a bubble cut by a panel edge no longer merges with an
    axis-aligned white gutter.
 2. **Words.** Non-paper cells enclosed by paper (not reachable from the page
-   border) are segmented; a component is a *word* when it is line-shaped (a
-   short horizontal band, or a wide short block for two or three lines merged
-   by descenders), at least 0.4 % of the page tall, wider than tall, and at
-   least half of it is `ink`. The ink test is what separates lettering from
-   sky showing through clouds or moon texture.
+   border) are segmented; a component is a *word* when it is between 0.4 % and
+   4.5 % of the page tall, at least 0.4 % wide, and at least half of it is
+   `ink`. The ink test is what separates lettering from sky showing through
+   clouds or moon texture.
 3. **Text blocks.** Words within a word gap horizontally (0.8 % of the page)
    and a line gap vertically (1.2 %) are clustered (union-find); a block must
-   be dense (words cover ≥ 25 % of its box).
+   be dense (words cover ≥ 25 % of its box) and contain at least one
+   line-shaped word (a short horizontal band, or a wide short block for two or
+   three lines merged by descenders, wider than tall) — a "que/trabajo" pair
+   glued by a descender still bridges the block, only real lines prove text.
 4. **Grow the bubble.** From the block, paper is flooded outwards ring by ring
    (Chebyshev distance to the block box), only within a rounded reach of 2.4 %
    of the page around the block, stopping as soon as a ring adds less than 1 %
@@ -51,16 +53,21 @@ merged at the end. Steps per tone:
    is filled row by row even for a tight caption). This is what lets bubbles
    that overhang tilted keylines, bubbles fused with a white background, or
    two overlapping bubbles each be found from their own text.
-5. **Bubble filters.** The grown blob must not touch the page border, have a
+5. **Shared paper.** Blobs whose cells overlap (two text blocks inside one
+   drawn shape, e.g. a bubble chained to the next with no separator between
+   them) are unioned before filtering, so the copy carries both texts instead
+   of one covering the other.
+6. **Bubble filters.** The grown blob must not touch the page border, have a
    compact fill (≥ 35 % of its box), be between 0.05 % and 12 % of the page,
    not thinner than 1.2 % of the page, aspect ≤ 6, have 3–50 % ink inside with
    ≥ 75 % of it text-like, and be **ink-bounded**: ≥ 60 % of its outer contour
-   must end on non-paper (an outline or art) rather than on the reach limit —
-   text sitting on an open white background is not a bubble.
-6. **Silhouette.** For every row of the blob the leftmost/rightmost cell,
+   must end on non-paper or on thin paper (an outline, art, a keyline) rather
+   than on thick open paper at the reach limit — text sitting on an open white
+   background is not a bubble.
+7. **Silhouette.** For every row of the blob the leftmost/rightmost cell,
    inflated by 2 cells so the drawn outline stroke is included, gives a
    row-span polygon (`SpeechBubble.outline`, normalized).
-7. **Chained / overlapping bubbles** of the same tone whose silhouettes touch,
+8. **Chained / overlapping bubbles** of the same tone whose silhouettes touch,
    or of any tone whose boxes overlap by ≥ 15 %, are merged into one unit, so
    they grow together instead of covering each other.
 
