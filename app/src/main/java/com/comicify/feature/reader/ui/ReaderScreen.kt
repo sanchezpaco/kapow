@@ -288,7 +288,6 @@ private fun BubbleToggle(enlarged: Boolean, onToggle: () -> Unit) {
 
 @Composable
 private fun BubbleScaleSlider(scale: Float, onScale: (Float) -> Unit) {
-    var dragged by remember(scale) { mutableFloatStateOf(scale) }
     Row(
         modifier = Modifier
             .background(Color.Black.copy(alpha = 0.55f), CircleShape)
@@ -296,15 +295,14 @@ private fun BubbleScaleSlider(scale: Float, onScale: (Float) -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "%.1f×".format(dragged),
+            text = "%.1f×".format(scale),
             color = Color.White,
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.width(44.dp),
         )
         Slider(
-            value = dragged,
-            onValueChange = { dragged = it },
-            onValueChangeFinished = { onScale(dragged) },
+            value = scale,
+            onValueChange = onScale,
             valueRange = BUBBLE_SCALE_RANGE,
             steps = 8,
             modifier = Modifier.width(200.dp),
