@@ -30,14 +30,24 @@ class LibraryViewModel @Inject constructor(
     private val filter = MutableStateFlow(LibraryFilter.ALL)
 
     val state: StateFlow<LibraryUiState> =
-        combine(repository.library, repository.folderUri, scanning, scanFailed, filter) { comics, folder, isScanning, failed, selectedFilter ->
+        combine(
+            repository.library,
+            repository.folderUri,
+            combine(scanning, scanFailed) { isScanning, failed -> isScanning to failed },
+            combine(filter, repository.grouped) { selectedFilter, isGrouped -> selectedFilter to isGrouped },
+        ) { comics, folder, scanState, viewState ->
+            val (isScanning, failed) = scanState
+            val (selectedFilter, isGrouped) = viewState
+            val filtered = LibraryCatalog.filtered(comics, selectedFilter)
             LibraryUiState(
                 loading = false,
                 scanning = isScanning,
                 scanFailed = failed,
                 hasFolder = folder != null,
                 filter = selectedFilter,
-                comics = LibraryCatalog.filtered(comics, selectedFilter),
+                grouped = isGrouped,
+                comics = filtered,
+                entries = LibraryCatalog.grouped(filtered),
                 continueReading = if (selectedFilter == LibraryFilter.ALL) LibraryCatalog.continueReading(comics) else emptyList(),
                 totalCount = comics.size,
             )
@@ -59,12 +69,20 @@ class LibraryViewModel @Inject constructor(
         filter.value = selected
     }
 
+    fun onToggleGrouped() {
+        viewModelScope.launch { repository.setGrouped(!state.value.grouped) }
+    }
+
     fun onToggleRead(comic: LibraryComic) {
         viewModelScope.launch { repository.setRead(comic.id, !comic.completed) }
     }
 
     fun onToggleFavorite(comic: LibraryComic) {
         viewModelScope.launch { repository.setFavorite(comic.id, !comic.favorite) }
+    }
+
+    fun onDeleteComic(comic: LibraryComic) {
+        viewModelScope.launch { repository.deleteComic(comic.id) }
     }
 
     private fun runScan(scan: suspend () -> Unit) {

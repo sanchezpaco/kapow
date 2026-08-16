@@ -85,4 +85,31 @@ class LibraryCatalogTest {
         val result = LibraryCatalog.continueReading(input).map { it.id }
         assertEquals(listOf(3L, 1L), result)
     }
+
+    @Test
+    fun groupsSeriesWithSeveralVolumesAndLeavesSinglesAlone() {
+        val input = listOf(
+            comic(1, series = "Batman", issueNumber = 1),
+            comic(2, series = "Batman", issueNumber = 2),
+            comic(3, series = "Watchmen", issueNumber = null),
+        )
+        val entries = LibraryCatalog.grouped(input)
+        assertEquals(2, entries.size)
+        val group = entries[0] as LibraryEntry.Group
+        assertEquals("Batman", group.series)
+        assertEquals(listOf(1L, 2L), group.comics.map { it.id })
+        val single = entries[1] as LibraryEntry.Single
+        assertEquals(3L, single.comic.id)
+    }
+
+    @Test
+    fun groupingIgnoresSeriesCaseAndSurroundingSpace() {
+        val input = listOf(
+            comic(1, series = "Spawn"),
+            comic(2, series = " spawn "),
+        )
+        val entries = LibraryCatalog.grouped(input)
+        assertEquals(1, entries.size)
+        assertEquals(2, (entries[0] as LibraryEntry.Group).comics.size)
+    }
 }

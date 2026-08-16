@@ -19,6 +19,12 @@ The home of the collection: import comics, browse covers, resume reading.
 - Files stay where the user put them; only a durable document Uri is persisted,
   never a copy. A single file can still be opened directly (`OPEN_DOCUMENT`)
   without adding it to the library.
+- A re-scan reconciles the library with the folder in **both** directions: new
+  files are inserted, and rows whose document Uri is no longer present are
+  removed (their cover and reading state deleted with them). Deleting a comic
+  from the folder and refreshing makes it disappear instead of lingering as a
+  broken entry. The folder Uri is taken with read **and** write permission so
+  the app can also delete the underlying file itself (below).
 - Scanning stays responsive: each discovered comic is inserted immediately with
   `pageCount`/`coverPath` left null, and covers fill in afterwards (below).
 
@@ -49,8 +55,33 @@ ReadingState(
   (clearing its resume position). `favorite` lives on the comic itself and is
   toggled the same way. Both are reached by long-pressing a cover. The `favorite`
   column was added in schema **v2** (migration `1→2`).
+- The long-press menu also offers **Delete comic**, which after a confirmation
+  dialog deletes the file from the folder via
+  `DocumentsContract.deleteDocument` and removes its library row, cover, and
+  reading state. If the delete fails (e.g. the folder was granted read-only by
+  an older pick), the file and its entry are left intact rather than lying about
+  a deletion that did not happen; re-picking the folder grants write access.
 - Detected panels are cached in-memory per session by the reader's `PageLoader`;
   a persistent panel cache is deferred to a later phase.
+
+## Grouping by series
+
+- A header toggle switches the grid between the flat view and a **grouped** view.
+  Grouping is purely visual — no files move, nothing is renamed; it reorganises
+  the same `LibraryComic` list. `LibraryCatalog.grouped` buckets comics by a
+  normalized `series` key (trimmed, case-insensitive) preserving the sorted
+  order. A bucket with **two or more** volumes becomes a `LibraryEntry.Group`
+  (a folder card); a lone comic stays a `LibraryEntry.Single` and opens directly.
+  Since `series` is the file name with the volume/issue number, year, and volume
+  marker stripped (`ComicNameParser`), only names that match apart from the
+  number collapse together.
+- A group card shows the first volume's cover with a stacked-card backing, a
+  count badge, and aggregate read progress. Tapping it drills into a **series
+  sub-screen** (a back button plus that series' volumes as normal comic cards);
+  the flat/grouped choice and reader navigation are otherwise unchanged.
+- The toggle is remembered across restarts (`grouped` in `LibraryPreferences`,
+  default off). Filters apply before grouping, so a filtered group that drops to
+  one volume renders as a single card.
 
 ## Covers
 
