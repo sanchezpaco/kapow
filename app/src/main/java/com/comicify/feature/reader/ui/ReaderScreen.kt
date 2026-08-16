@@ -3,6 +3,7 @@ package com.comicify.feature.reader.ui
 import android.app.Activity
 import android.app.Application
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -12,7 +13,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +32,7 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuBook
@@ -38,13 +42,16 @@ import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.ViewCarousel
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,17 +59,23 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -89,6 +102,7 @@ fun ReaderScreen(
     onClose: () -> Unit,
     initialPage: Int = 0,
     onPageChanged: (pageIndex: Int, pageCount: Int) -> Unit = { _, _ -> },
+    onOpenNext: (() -> Unit)? = null,
 ) {
     val application = LocalContext.current.applicationContext as Application
     val viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.factory(application, uri, initialPage))
@@ -114,11 +128,24 @@ fun ReaderScreen(
         label = "ambient",
     )
 
+    val atLastPage = state.pageCount > 0 && state.position.pageIndex >= state.pageCount - 1
+    var atEnd by remember { mutableStateOf(false) }
+    LaunchedEffect(atLastPage) { if (!atLastPage) atEnd = false }
+
+    BackHandler { if (atEnd) atEnd = false else onClose() }
+
+    val forwardSign = if (state.direction == ReadingDirection.LeftToRight) -1f else 1f
+    val endOverscroll = rememberEndOverscroll(
+        enabled = atLastPage && !state.guided,
+        forwardSign = forwardSign,
+    ) { atEnd = true }
+
     ImmersiveReadingMode()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .nestedScroll(endOverscroll)
             .drawBehind {
                 drawRect(Color.Black)
                 drawRect(
@@ -135,23 +162,25 @@ fun ReaderScreen(
             state.loading -> CenteredMessage(stringResource(R.string.reader_loading), showSpinner = true)
             openError != null -> CenteredMessage(stringResource(openError.messageRes()))
             else -> viewModel.pageLoader?.let { loader ->
-                ReaderSurface(
-                    loader = loader,
-                    posture = posture,
-                    hinge = windowState.hinge,
-                    guided = state.guided,
-                    guidedFullScreen = state.guidedFullScreen,
-                    bubbleScale = state.bubbleScale.takeIf { state.bubblesEnlarged },
-                    direction = state.direction,
-                    initialPage = state.position.pageIndex,
-                    pageTurnRequests = pageTurnRequests,
-                    pendingJump = state.pendingJump,
-                    onJumpApplied = viewModel::onJumpApplied,
-                    onPageChanged = viewModel::onPageChanged,
-                    onGuidedStop = { index, count -> guidedIndex = index; guidedCount = count },
-                    onTap = viewModel::toggleChrome,
-                    onAmbient = { ambient = it },
-                )
+                CompositionLocalProvider(LocalOverscrollFactory provides null) {
+                    ReaderSurface(
+                        loader = loader,
+                        posture = posture,
+                        hinge = windowState.hinge,
+                        guided = state.guided,
+                        guidedFullScreen = state.guidedFullScreen,
+                        bubbleScale = state.bubbleScale.takeIf { state.bubblesEnlarged },
+                        direction = state.direction,
+                        initialPage = state.position.pageIndex,
+                        pageTurnRequests = pageTurnRequests,
+                        pendingJump = state.pendingJump,
+                        onJumpApplied = viewModel::onJumpApplied,
+                        onPageChanged = viewModel::onPageChanged,
+                        onGuidedStop = { index, count -> guidedIndex = index; guidedCount = count },
+                        onTap = viewModel::toggleChrome,
+                        onAmbient = { ambient = it },
+                    )
+                }
             }
         }
 
@@ -189,6 +218,99 @@ fun ReaderScreen(
             guidedStopCount = guidedCount,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
+
+        EndOfComicOverlay(
+            visible = atEnd,
+            hasNext = onOpenNext != null,
+            onNext = { atEnd = false; onOpenNext?.invoke() },
+            onLibrary = onClose,
+            onResume = { atEnd = false },
+        )
+    }
+}
+
+private const val END_OVERSCROLL_TRIGGER = 160f
+
+@Composable
+private fun rememberEndOverscroll(
+    enabled: Boolean,
+    forwardSign: Float,
+    onReachedEnd: () -> Unit,
+): NestedScrollConnection {
+    val currentOnReachedEnd = rememberUpdatedState(onReachedEnd)
+    return remember(enabled, forwardSign) {
+        object : NestedScrollConnection {
+            private var pulled = 0f
+
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (!enabled) {
+                    pulled = 0f
+                    return Offset.Zero
+                }
+                val forward = available.x * forwardSign
+                if (forward <= 0f) return Offset.Zero
+                pulled += forward
+                if (pulled >= END_OVERSCROLL_TRIGGER) {
+                    pulled = 0f
+                    currentOnReachedEnd.value()
+                }
+                return Offset.Zero
+            }
+        }
+    }
+}
+
+@Composable
+private fun EndOfComicOverlay(
+    visible: Boolean,
+    hasNext: Boolean,
+    onNext: () -> Unit,
+    onLibrary: () -> Unit,
+    onResume: () -> Unit,
+) {
+    AnimatedVisibility(visible = visible, enter = fadeIn(), exit = fadeOut()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.82f))
+                .clickable(indication = null, interactionSource = null, onClick = onResume),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .padding(horizontal = 28.dp, vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.reader_end_title),
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (hasNext) {
+                        Button(onClick = onNext, modifier = Modifier.width(240.dp)) {
+                            Text(text = stringResource(R.string.reader_end_next))
+                        }
+                    }
+                    TextButton(onClick = onLibrary, modifier = Modifier.width(240.dp)) {
+                        Text(text = stringResource(R.string.reader_end_library))
+                    }
+                    TextButton(onClick = onResume, modifier = Modifier.width(240.dp)) {
+                        Text(
+                            text = stringResource(R.string.reader_end_resume),
+                            color = Color.White.copy(alpha = 0.7f),
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

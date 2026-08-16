@@ -103,6 +103,28 @@ class LibraryCatalogTest {
     }
 
     @Test
+    fun nextInSeriesFollowsIssueOrderIgnoringInputOrder() {
+        val input = listOf(
+            comic(1, series = "Saga", issueNumber = 3),
+            comic(2, series = "Saga", issueNumber = 1),
+            comic(3, series = "Saga", issueNumber = 2),
+            comic(4, series = "Batman", issueNumber = 1),
+        )
+        assertEquals(3L, LibraryCatalog.nextInSeries(input, comicId = 2)?.id)
+        assertEquals(1L, LibraryCatalog.nextInSeries(input, comicId = 3)?.id)
+    }
+
+    @Test
+    fun nextInSeriesReturnsNullOnLastIssueOrUnknownComic() {
+        val input = listOf(
+            comic(1, series = "Saga", issueNumber = 1),
+            comic(2, series = "Saga", issueNumber = 2),
+        )
+        assertEquals(null, LibraryCatalog.nextInSeries(input, comicId = 2))
+        assertEquals(null, LibraryCatalog.nextInSeries(input, comicId = 99))
+    }
+
+    @Test
     fun groupingIgnoresSeriesCaseAndSurroundingSpace() {
         val input = listOf(
             comic(1, series = "Spawn"),

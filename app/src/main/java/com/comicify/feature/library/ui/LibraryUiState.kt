@@ -12,6 +12,7 @@ data class LibraryUiState(
     val filter: LibraryFilter = LibraryFilter.ALL,
     val grouped: Boolean = false,
     val comics: List<LibraryComic> = emptyList(),
+    val allComics: List<LibraryComic> = emptyList(),
     val entries: List<LibraryEntry> = emptyList(),
     val continueReading: List<LibraryComic> = emptyList(),
     val totalCount: Int = 0,

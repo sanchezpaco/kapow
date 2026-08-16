@@ -57,6 +57,10 @@
     <string name="reader_error_empty_archive">This archive does not contain any readable pages.</string>
     <string name="reader_error_read_failure">This comic could not be read. The file may be corrupted or unavailable.</string>
     <string name="reader_thumbnail_go_to_page">Go to page %1$d</string>
+    <string name="reader_end_title">You\'ve reached the end</string>
+    <string name="reader_end_next">Next issue</string>
+    <string name="reader_end_library">Back to library</string>
+    <string name="reader_end_resume">Keep reading</string>
 
     <string name="posture_folded">Folded</string>
     <string name="posture_unfolded">Unfolded</string>

@@ -19,6 +19,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.ui.LibraryScreen
 import com.comicify.feature.library.ui.LibraryViewModel
@@ -61,6 +62,9 @@ fun ComicifyRoot(initialUri: Uri? = null) {
                         request.comicId?.let { viewModel.saveProgress(it, pageIndex, pageCount) }
                     },
                     onClose = { open = null },
+                    onOpenNext = request.comicId
+                        ?.let { LibraryCatalog.nextInSeries(state.allComics, it) }
+                        ?.let { next -> { open = next.toOpenRequest() } },
                 )
             }
         }

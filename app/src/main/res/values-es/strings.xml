@@ -57,6 +57,10 @@
     <string name="reader_error_empty_archive">Este archivo no contiene páginas legibles.</string>
     <string name="reader_error_read_failure">No se ha podido leer este cómic. Puede que el archivo esté dañado o no esté disponible.</string>
     <string name="reader_thumbnail_go_to_page">Ir a la página %1$d</string>
+    <string name="reader_end_title">Has llegado al final</string>
+    <string name="reader_end_next">Siguiente número</string>
+    <string name="reader_end_library">Volver a la biblioteca</string>
+    <string name="reader_end_resume">Seguir leyendo</string>
 
     <string name="posture_folded">Plegado</string>
     <string name="posture_unfolded">Desplegado</string>
