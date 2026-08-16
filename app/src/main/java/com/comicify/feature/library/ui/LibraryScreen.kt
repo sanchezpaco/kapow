@@ -33,20 +33,28 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,6 +79,7 @@ import coil3.compose.AsyncImage
 import com.comicify.R
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
+import com.comicify.feature.library.domain.LibraryEntry
 import com.comicify.feature.library.domain.LibraryFilter
 import java.io.File
 import kotlin.math.roundToInt
@@ -103,8 +112,10 @@ fun LibraryScreen(
     onOpenComic: (LibraryComic) -> Unit,
     onOpenFile: (Uri) -> Unit,
     onFilterSelected: (LibraryFilter) -> Unit,
+    onToggleGrouped: () -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
+    onDeleteComic: (LibraryComic) -> Unit,
 ) {
     val folderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
@@ -115,6 +126,26 @@ fun LibraryScreen(
 
     val pickFolder = { folderLauncher.launch(null) }
     val openFile = { fileLauncher.launch(openDocumentMimeTypes) }
+
+    var openedSeries by remember { mutableStateOf<String?>(null) }
+    val openGroup = openedSeries?.let { series ->
+        state.entries.filterIsInstance<LibraryEntry.Group>().firstOrNull { it.series == series }
+    }
+    LaunchedEffect(openedSeries, openGroup) {
+        if (openedSeries != null && openGroup == null) openedSeries = null
+    }
+
+    if (openGroup != null) {
+        SeriesScreen(
+            group = openGroup,
+            onBack = { openedSeries = null },
+            onOpenComic = onOpenComic,
+            onToggleRead = onToggleRead,
+            onToggleFavorite = onToggleFavorite,
+            onDeleteComic = onDeleteComic,
+        )
+        return
+    }
 
     if (state.totalCount == 0 && !state.scanning) {
         EmptyLibrary(scanFailed = state.scanFailed, onPickFolder = pickFolder, onOpenFile = openFile)
@@ -133,9 +164,11 @@ fun LibraryScreen(
                 comicCount = state.totalCount,
                 scanning = state.scanning,
                 scanFailed = state.scanFailed,
+                grouped = state.grouped,
                 onPickFolder = pickFolder,
                 onRefresh = onRefresh,
                 onOpenFile = openFile,
+                onToggleGrouped = onToggleGrouped,
             )
         }
         if (state.continueReading.isNotEmpty()) {
@@ -154,12 +187,105 @@ fun LibraryScreen(
                 FilterEmpty()
             }
         }
-        items(items = state.comics, key = { it.id }) { comic ->
+        if (state.grouped) {
+            items(items = state.entries, key = { it.gridKey() }) { entry ->
+                when (entry) {
+                    is LibraryEntry.Single -> ComicCard(
+                        comic = entry.comic,
+                        onOpenComic = onOpenComic,
+                        onToggleRead = onToggleRead,
+                        onToggleFavorite = onToggleFavorite,
+                        onDeleteComic = onDeleteComic,
+                    )
+                    is LibraryEntry.Group -> GroupCard(group = entry, onOpen = { openedSeries = it.series })
+                }
+            }
+        } else {
+            items(items = state.comics, key = { it.id }) { comic ->
+                ComicCard(
+                    comic = comic,
+                    onOpenComic = onOpenComic,
+                    onToggleRead = onToggleRead,
+                    onToggleFavorite = onToggleFavorite,
+                    onDeleteComic = onDeleteComic,
+                )
+            }
+        }
+    }
+}
+
+private fun LibraryEntry.gridKey(): String = when (this) {
+    is LibraryEntry.Single -> "comic-${comic.id}"
+    is LibraryEntry.Group -> "group-$series"
+}
+
+@Composable
+private fun SeriesScreen(
+    group: LibraryEntry.Group,
+    onBack: () -> Unit,
+    onOpenComic: (LibraryComic) -> Unit,
+    onToggleRead: (LibraryComic) -> Unit,
+    onToggleFavorite: (LibraryComic) -> Unit,
+    onDeleteComic: (LibraryComic) -> Unit,
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 158.dp),
+        modifier = Modifier.fillMaxSize().statusBarsPadding(),
+        contentPadding = PaddingValues(20.dp),
+        horizontalArrangement = Arrangement.spacedBy(18.dp),
+        verticalArrangement = Arrangement.spacedBy(22.dp),
+    ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            SeriesHeader(
+                title = group.series,
+                subtitle = stringResource(R.string.library_group_read, group.comics.count { it.completed }, group.comics.size),
+                onBack = onBack,
+            )
+        }
+        items(items = group.comics, key = { it.id }) { comic ->
             ComicCard(
                 comic = comic,
                 onOpenComic = onOpenComic,
                 onToggleRead = onToggleRead,
                 onToggleFavorite = onToggleFavorite,
+                onDeleteComic = onDeleteComic,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SeriesHeader(title: String, subtitle: String, onBack: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Surface2)
+                .clickable(onClick = onBack),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.library_back),
+                tint = InkDim,
+                modifier = Modifier.size(19.dp),
+            )
+        }
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-0.5).sp,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelMedium,
+                color = InkFaint,
             )
         }
     }
@@ -170,9 +296,11 @@ private fun LibraryHeader(
     comicCount: Int,
     scanning: Boolean,
     scanFailed: Boolean,
+    grouped: Boolean,
     onPickFolder: () -> Unit,
     onRefresh: () -> Unit,
     onOpenFile: () -> Unit,
+    onToggleGrouped: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -192,6 +320,12 @@ private fun LibraryHeader(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             PrimaryAction(icon = Icons.Filled.CreateNewFolder, label = stringResource(R.string.library_pick_folder), onClick = onPickFolder)
+            GhostAction(
+                icon = if (grouped) Icons.Filled.GridView else Icons.Outlined.Folder,
+                contentDescription = stringResource(if (grouped) R.string.library_ungroup else R.string.library_group),
+                onClick = onToggleGrouped,
+                active = grouped,
+            )
             GhostAction(icon = Icons.Filled.Refresh, contentDescription = stringResource(R.string.library_refresh), onClick = onRefresh)
             GhostAction(icon = Icons.AutoMirrored.Filled.MenuBook, contentDescription = stringResource(R.string.library_action_open_file), onClick = onOpenFile)
         }
@@ -233,16 +367,26 @@ private fun PrimaryAction(icon: androidx.compose.ui.graphics.vector.ImageVector,
 }
 
 @Composable
-private fun GhostAction(icon: androidx.compose.ui.graphics.vector.ImageVector, contentDescription: String, onClick: () -> Unit) {
+private fun GhostAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    active: Boolean = false,
+) {
     Box(
         modifier = Modifier
             .size(44.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Surface2)
+            .background(if (active) Accent.copy(alpha = 0.16f) else Surface2)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(imageVector = icon, contentDescription = contentDescription, tint = InkDim, modifier = Modifier.size(19.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = if (active) Accent else InkDim,
+            modifier = Modifier.size(19.dp),
+        )
     }
 }
 
@@ -353,8 +497,10 @@ private fun ComicCard(
     onOpenComic: (LibraryComic) -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
+    onDeleteComic: (LibraryComic) -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -379,7 +525,7 @@ private fun ComicCard(
             )
             val pageCount = comic.pageCount
             when {
-                comic.completed -> CompletedBadge(modifier = Modifier.align(Alignment.TopEnd).padding(9.dp))
+                comic.completed -> CompletedBadge(modifier = Modifier.align(Alignment.BottomEnd).padding(9.dp))
                 pageCount != null && pageCount > 0 && comic.pageIndex > 0 ->
                     ProgressRing(
                         progress = LibraryCatalog.progress(comic.pageIndex, pageCount),
@@ -422,8 +568,45 @@ private fun ComicCard(
             onDismiss = { menuExpanded = false },
             onToggleRead = onToggleRead,
             onToggleFavorite = onToggleFavorite,
+            onDelete = {
+                menuExpanded = false
+                confirmDelete = true
+            },
         )
     }
+    if (confirmDelete) {
+        DeleteConfirmDialog(
+            comic = comic,
+            onConfirm = {
+                confirmDelete = false
+                onDeleteComic(comic)
+            },
+            onDismiss = { confirmDelete = false },
+        )
+    }
+}
+
+@Composable
+private fun DeleteConfirmDialog(
+    comic: LibraryComic,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.library_delete_confirm_title)) },
+        text = { Text(stringResource(R.string.library_delete_confirm_body, comic.title)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.library_delete_confirm), color = Accent)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.library_delete_cancel))
+            }
+        },
+    )
 }
 
 @Composable
@@ -433,6 +616,7 @@ private fun ComicCardMenu(
     onDismiss: () -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
+    onDelete: () -> Unit,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         val readLabel = if (comic.completed) R.string.library_mark_unread else R.string.library_mark_read
@@ -458,6 +642,11 @@ private fun ComicCardMenu(
                 onDismiss()
             },
         )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.library_delete), color = Accent) },
+            leadingIcon = { Icon(imageVector = Icons.Outlined.Delete, contentDescription = null, tint = Accent) },
+            onClick = onDelete,
+        )
     }
 }
 
@@ -475,6 +664,82 @@ private fun FavoriteBadge(modifier: Modifier = Modifier) {
             contentDescription = stringResource(R.string.library_favorite),
             tint = AccentAmber,
             modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+@Composable
+private fun GroupCard(group: LibraryEntry.Group, onOpen: (LibraryEntry.Group) -> Unit) {
+    val representative = group.comics.firstOrNull { !it.completed && it.pageIndex > 0 } ?: group.comics.first()
+    val readCount = group.comics.count { it.completed }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .clickable { onOpen(group) },
+        verticalArrangement = Arrangement.spacedBy(11.dp),
+    ) {
+        Box(modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 12.dp, bottom = 12.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Surface2),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = 12.dp, end = 12.dp)
+                    .clip(RoundedCornerShape(14.dp)),
+            ) {
+                CoverArt(comic = representative, showArtwork = true)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Brush.verticalGradient(0.55f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.5f))),
+                )
+                CountBadge(count = group.comics.size, modifier = Modifier.align(Alignment.TopEnd).padding(9.dp))
+                if (readCount == group.comics.size) {
+                    CompletedBadge(modifier = Modifier.align(Alignment.BottomEnd).padding(9.dp))
+                }
+            }
+        }
+        Column {
+            Text(
+                text = group.series,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = stringResource(R.string.library_group_read, readCount, group.comics.size),
+                style = MaterialTheme.typography.labelSmall,
+                color = InkFaint,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CountBadge(count: Int, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(Color(0xD2060608))
+            .padding(horizontal = 9.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(imageVector = Icons.Filled.Layers, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+        Text(
+            text = "$count",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
         )
     }
 }
@@ -632,20 +897,18 @@ private fun ProgressRing(progress: Float, modifier: Modifier = Modifier) {
 
 @Composable
 private fun CompletedBadge(modifier: Modifier = Modifier) {
-    Row(
+    Box(
         modifier = modifier
+            .size(30.dp)
             .clip(CircleShape)
-            .background(Good.copy(alpha = 0.18f))
-            .padding(horizontal = 9.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+            .background(Good),
+        contentAlignment = Alignment.Center,
     ) {
-        Icon(imageVector = Icons.Filled.Check, contentDescription = null, tint = Good, modifier = Modifier.size(12.dp))
-        Text(
-            text = stringResource(R.string.library_completed),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = Good,
+        Icon(
+            imageVector = Icons.Filled.Check,
+            contentDescription = stringResource(R.string.library_completed),
+            tint = Color.White,
+            modifier = Modifier.size(18.dp),
         )
     }
 }

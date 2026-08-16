@@ -12,6 +12,9 @@ interface ComicDao {
     @Query("SELECT * FROM comics")
     fun observeAll(): Flow<List<ComicEntity>>
 
+    @Query("SELECT * FROM comics")
+    suspend fun getAll(): List<ComicEntity>
+
     @Query("SELECT * FROM comics WHERE id = :id")
     suspend fun findById(id: Long): ComicEntity?
 
@@ -29,4 +32,7 @@ interface ComicDao {
 
     @Query("UPDATE comics SET favorite = :favorite WHERE id = :id")
     suspend fun setFavorite(id: Long, favorite: Boolean)
+
+    @Query("DELETE FROM comics WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }

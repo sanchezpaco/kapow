@@ -1,6 +1,7 @@
 package com.comicify.feature.library.ui
 
 import com.comicify.feature.library.domain.LibraryComic
+import com.comicify.feature.library.domain.LibraryEntry
 import com.comicify.feature.library.domain.LibraryFilter
 
 data class LibraryUiState(
@@ -9,7 +10,9 @@ data class LibraryUiState(
     val scanFailed: Boolean = false,
     val hasFolder: Boolean = false,
     val filter: LibraryFilter = LibraryFilter.ALL,
+    val grouped: Boolean = false,
     val comics: List<LibraryComic> = emptyList(),
+    val entries: List<LibraryEntry> = emptyList(),
     val continueReading: List<LibraryComic> = emptyList(),
     val totalCount: Int = 0,
 )

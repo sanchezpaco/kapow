@@ -30,6 +30,15 @@
     <string name="library_add_favorite">Add to favorites</string>
     <string name="library_remove_favorite">Remove from favorites</string>
     <string name="library_favorite">Favorite</string>
+    <string name="library_delete">Delete comic</string>
+    <string name="library_delete_confirm_title">Delete comic?</string>
+    <string name="library_delete_confirm_body">%1$s will be permanently deleted from your device.</string>
+    <string name="library_delete_confirm">Delete</string>
+    <string name="library_delete_cancel">Cancel</string>
+    <string name="library_group">Group by series</string>
+    <string name="library_ungroup">Show all comics</string>
+    <string name="library_group_read">%1$d/%2$d read</string>
+    <string name="library_back">Back</string>
 
     <string name="reader_loading">Loading comic…</string>
     <string name="reader_page_of">Page %1$d of %2$d</string>

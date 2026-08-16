@@ -34,4 +34,17 @@ object LibraryCatalog {
         comics.filter { it.lastReadAt != null && !it.completed && it.pageIndex > 0 }
             .sortedByDescending { it.lastReadAt }
             .take(CONTINUE_READING_LIMIT)
+
+    fun grouped(comics: List<LibraryComic>): List<LibraryEntry> {
+        val bySeries = LinkedHashMap<String, MutableList<LibraryComic>>()
+        comics.forEach { comic ->
+            bySeries.getOrPut(groupKey(comic.series)) { mutableListOf() }.add(comic)
+        }
+        return bySeries.values.map { members ->
+            if (members.size >= 2) LibraryEntry.Group(members.first().series, members)
+            else LibraryEntry.Single(members.first())
+        }
+    }
+
+    private fun groupKey(series: String): String = series.trim().lowercase()
 }
