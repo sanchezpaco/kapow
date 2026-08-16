@@ -146,13 +146,8 @@ class ReaderViewModel(
     }
 
     companion object {
-        fun factory(uri: Uri, initialPage: Int): ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val application = this[APPLICATION_KEY] as Application
-                ReaderViewModel(application, uri, initialPage)
-            }
+        fun factory(application: Application, uri: Uri, initialPage: Int): ViewModelProvider.Factory = viewModelFactory {
+            initializer { ReaderViewModel(application, uri, initialPage) }
         }
-
-        private val APPLICATION_KEY = ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY
     }
 }

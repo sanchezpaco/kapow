@@ -1,6 +1,7 @@
 package com.comicify.feature.reader.ui
 
 import android.app.Activity
+import android.app.Application
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -89,7 +90,8 @@ fun ReaderScreen(
     initialPage: Int = 0,
     onPageChanged: (pageIndex: Int, pageCount: Int) -> Unit = { _, _ -> },
 ) {
-    val viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.factory(uri, initialPage))
+    val application = LocalContext.current.applicationContext as Application
+    val viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.factory(application, uri, initialPage))
     val state by viewModel.state.collectAsStateWithLifecycle()
     val windowState = rememberReadingWindowState()
     val posture = windowState.posture
