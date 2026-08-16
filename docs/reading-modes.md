@@ -79,6 +79,17 @@ Available on `CompactSingle`, and on demand elsewhere. Full detail in
   `exponentialDecay` (spline decay is pixel-calibrated and would not move a 0..1
   value).
 
+## Enlarged speech bubbles
+
+An alternative to Guided View for small lettering that keeps the whole page (and
+its art) on screen: the ChatBubble button in the HUD (`ReaderUiState.bubblesEnlarged`,
+hidden while Guided View is on) redraws every detected speech bubble and caption
+scaled up ~1.3× **in place**, as an overlay on the regular page surfaces
+(`ZoomablePage`, so it works on single pages, the spread and tabletop and follows
+pinch/double-tap zoom). It is a static render enhancement — no page zoom, no
+bubble-to-bubble navigation, nothing to order — so it deliberately sidesteps
+panel segmentation and reading-order errors. Full detail in `speech-bubbles.md`.
+
 ## Reading direction
 
 The reader has a `ReadingDirection` setting — `LeftToRight` (default) or

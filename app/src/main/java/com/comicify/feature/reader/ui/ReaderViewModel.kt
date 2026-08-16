@@ -77,6 +77,10 @@ class ReaderViewModel(
         _state.update { it.copy(guided = !it.guided) }
     }
 
+    fun toggleBubblesEnlarged() {
+        _state.update { it.copy(bubblesEnlarged = !it.bubblesEnlarged) }
+    }
+
     fun toggleGuidedFullScreen() {
         _state.update { it.copy(guidedFullScreen = !it.guidedFullScreen) }
     }

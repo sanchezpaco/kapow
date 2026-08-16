@@ -7,6 +7,7 @@ How Comicify works, one concern per file.
 - [reading-modes.md](reading-modes.md) — the reading surfaces and how they render
 - [file-formats.md](file-formats.md) — CBZ / CBR / PDF loading pipeline
 - [guided-view.md](guided-view.md) — automatic panel detection and navigation
+- [speech-bubbles.md](speech-bubbles.md) — enlarged speech bubbles toggle (detection, layout, overlay)
 - [library.md](library.md) — import, storage, metadata, persistence
 - [i18n.md](i18n.md) — the bilingual (ES/EN) resource strategy
 

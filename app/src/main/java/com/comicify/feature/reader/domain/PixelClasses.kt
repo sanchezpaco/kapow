@@ -10,8 +10,20 @@ private const val MIN_BORDER_SHARE = 0.35f
 private const val BORDER_TOLERANCE = 20
 private const val MAX_BORDER_CHROMA = 40
 private const val BORDER_LINE_RADIUS = 2
+private const val PAPER_LUMINANCE = 215
+private const val PAPER_MIN_RED = 235
+private const val PAPER_MIN_GREEN = 225
+private const val PAPER_MIN_BLUE = 130
+private const val PAPER_MAX_RED_GREEN_GAP = 25
 
-class PixelClasses(val width: Int, val height: Int, val white: BooleanArray, val solidWhite: BooleanArray, val border: BooleanArray) {
+class PixelClasses(
+    val width: Int,
+    val height: Int,
+    val white: BooleanArray,
+    val solidWhite: BooleanArray,
+    val solidPaper: BooleanArray,
+    val border: BooleanArray,
+) {
 
     val art: BooleanArray = BooleanArray(width * height) { !white[it] && !border[it] }
 
@@ -21,6 +33,7 @@ class PixelClasses(val width: Int, val height: Int, val white: BooleanArray, val
             val height = sourceHeight / pool
             val white = BooleanArray(width * height)
             val solidWhite = BooleanArray(width * height) { true }
+            val solidPaper = BooleanArray(width * height) { true }
             val border = BooleanArray(width * height)
             val borderColor = borderColor(pixels, sourceWidth, sourceHeight)
             for (y in 0 until height * pool) {
@@ -29,14 +42,22 @@ class PixelClasses(val width: Int, val height: Int, val white: BooleanArray, val
                     val color = pixels[y * sourceWidth + x]
                     val cell = row + x / pool
                     if (isWhite(color)) white[cell] = true else solidWhite[cell] = false
+                    if (!isPaper(color)) solidPaper[cell] = false
                     if (borderColor != null && near(color, borderColor)) border[cell] = true
                 }
             }
             val thickBorder = if (borderColor == null || isWhite(borderColor)) border else border.opened(width, height, BORDER_LINE_RADIUS)
-            return PixelClasses(width, height, white, solidWhite, thickBorder)
+            return PixelClasses(width, height, white, solidWhite, solidPaper, thickBorder)
         }
 
         private fun isWhite(color: Int) = luminance(color) >= WHITE_LUMINANCE && chroma(color) <= WHITE_CHROMA
+
+        private fun isPaper(color: Int) = isWhite(color) || isCream(color)
+
+        private fun isCream(color: Int) =
+            luminance(color) >= PAPER_LUMINANCE &&
+                red(color) >= PAPER_MIN_RED && green(color) >= PAPER_MIN_GREEN && blue(color) >= PAPER_MIN_BLUE &&
+                red(color) - green(color) <= PAPER_MAX_RED_GREEN_GAP && green(color) > blue(color)
 
         private fun luminance(color: Int) = (red(color) * 77 + green(color) * 150 + blue(color) * 29) shr 8
 

@@ -14,6 +14,7 @@ data class ReaderUiState(
     val guidedFullScreen: Boolean = false,
     val volumeKeyPagingEnabled: Boolean = true,
     val nightTintEnabled: Boolean = false,
+    val bubblesEnlarged: Boolean = false,
     val pendingJump: Int? = null,
     val direction: ReadingDirection = ReadingDirection.LeftToRight,
 )

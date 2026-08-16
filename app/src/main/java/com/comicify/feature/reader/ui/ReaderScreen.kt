@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Settings
@@ -135,6 +136,7 @@ fun ReaderScreen(
                     hinge = windowState.hinge,
                     guided = state.guided,
                     guidedFullScreen = state.guidedFullScreen,
+                    bubblesEnlarged = state.bubblesEnlarged,
                     direction = state.direction,
                     initialPage = state.position.pageIndex,
                     pageTurnRequests = pageTurnRequests,
@@ -157,9 +159,11 @@ fun ReaderScreen(
             posture = posture,
             guided = state.guided,
             guidedFullScreen = state.guidedFullScreen,
+            bubblesEnlarged = state.bubblesEnlarged,
             nightTintEnabled = state.nightTintEnabled,
             direction = state.direction,
             onToggleGuided = viewModel::toggleGuided,
+            onToggleBubblesEnlarged = viewModel::toggleBubblesEnlarged,
             onToggleGuidedFullScreen = viewModel::toggleGuidedFullScreen,
             onToggleNightTint = viewModel::toggleNightTint,
             onToggleDirection = viewModel::toggleReadingDirection,
@@ -187,9 +191,11 @@ private fun TopChrome(
     posture: ReadingPosture,
     guided: Boolean,
     guidedFullScreen: Boolean,
+    bubblesEnlarged: Boolean,
     nightTintEnabled: Boolean,
     direction: ReadingDirection,
     onToggleGuided: () -> Unit,
+    onToggleBubblesEnlarged: () -> Unit,
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
     onToggleDirection: () -> Unit,
@@ -222,6 +228,10 @@ private fun TopChrome(
                 )
             }
             Row(verticalAlignment = Alignment.Top) {
+                if (!guided) {
+                    BubbleToggle(enlarged = bubblesEnlarged, onToggle = onToggleBubblesEnlarged)
+                    Spacer(modifier = Modifier.width(10.dp))
+                }
                 GuidedToggle(guided = guided, onToggle = onToggleGuided)
                 Spacer(modifier = Modifier.width(10.dp))
                 ReaderSettingsMenu(
@@ -244,6 +254,16 @@ private fun GuidedToggle(guided: Boolean, onToggle: () -> Unit) {
         icon = Icons.Filled.ViewCarousel,
         active = guided,
         contentDescription = stringResource(R.string.reader_action_guided),
+        onClick = onToggle,
+    )
+}
+
+@Composable
+private fun BubbleToggle(enlarged: Boolean, onToggle: () -> Unit) {
+    CircleControl(
+        icon = Icons.Filled.ChatBubbleOutline,
+        active = enlarged,
+        contentDescription = stringResource(R.string.reader_action_enlarge_bubbles),
         onClick = onToggle,
     )
 }

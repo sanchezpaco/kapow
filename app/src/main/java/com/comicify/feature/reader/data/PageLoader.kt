@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import com.comicify.feature.reader.domain.SpeechBubble
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,6 +27,7 @@ class PageLoader(
     private val cache = LruCache<Int, PageArt>(CACHE_SIZE)
     private val thumbCache = LruCache<Int, ImageBitmap>(THUMB_CACHE_SIZE)
     private val panelCache = LruCache<Int, List<Rect>>(CACHE_SIZE)
+    private val bubbleCache = LruCache<Int, List<SpeechBubble>>(CACHE_SIZE)
     private val locks = HashMap<Int, Mutex>()
     private val thumbLocks = HashMap<Int, Mutex>()
 
@@ -63,6 +65,13 @@ class PageLoader(
         val art = load(index)
         return withContext(Dispatchers.Default) { PanelDetector.detect(art.image.asAndroidBitmap()) }
             .also { panelCache.put(index, it) }
+    }
+
+    suspend fun bubbles(index: Int): List<SpeechBubble> {
+        bubbleCache[index]?.let { return it }
+        val art = load(index)
+        return withContext(Dispatchers.Default) { PanelDetector.bubbles(art.image.asAndroidBitmap()) }
+            .also { bubbleCache.put(index, it) }
     }
 
     fun preload(indices: Iterable<Int>) {
