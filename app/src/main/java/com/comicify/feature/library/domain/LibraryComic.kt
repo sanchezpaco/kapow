@@ -10,5 +10,6 @@ data class LibraryComic(
     val pageCount: Int?,
     val pageIndex: Int,
     val completed: Boolean,
+    val favorite: Boolean,
     val lastReadAt: Long?,
 )

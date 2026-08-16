@@ -22,6 +22,14 @@ object LibraryCatalog {
         return comics.sortedWith(comparator)
     }
 
+    fun filtered(comics: List<LibraryComic>, filter: LibraryFilter): List<LibraryComic> =
+        when (filter) {
+            LibraryFilter.ALL -> comics
+            LibraryFilter.UNREAD -> comics.filter { !it.completed }
+            LibraryFilter.READ -> comics.filter { it.completed }
+            LibraryFilter.FAVORITES -> comics.filter { it.favorite }
+        }
+
     fun continueReading(comics: List<LibraryComic>): List<LibraryComic> =
         comics.filter { it.lastReadAt != null && !it.completed && it.pageIndex > 0 }
             .sortedByDescending { it.lastReadAt }

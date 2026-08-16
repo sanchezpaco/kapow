@@ -20,6 +20,16 @@
     <string name="library_completed">Completado</string>
     <string name="library_progress">%1$d / %2$d</string>
     <string name="library_empty_folder_subtitle">Elige una carpeta de cómics para crear tu estantería, o abre un archivo.</string>
+    <string name="library_filter_all">Todos</string>
+    <string name="library_filter_unread">Sin leer</string>
+    <string name="library_filter_read">Leídos</string>
+    <string name="library_filter_favorites">Favoritos</string>
+    <string name="library_filter_empty">Aquí no hay nada todavía.</string>
+    <string name="library_mark_read">Marcar como leído</string>
+    <string name="library_mark_unread">Marcar como no leído</string>
+    <string name="library_add_favorite">Añadir a favoritos</string>
+    <string name="library_remove_favorite">Quitar de favoritos</string>
+    <string name="library_favorite">Favorito</string>
 
     <string name="reader_loading">Cargando cómic…</string>
     <string name="reader_page_of">Página %1$d de %2$d</string>

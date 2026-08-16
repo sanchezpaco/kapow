@@ -16,4 +16,7 @@ interface ReadingStateDao {
 
     @Upsert
     suspend fun upsert(state: ReadingStateEntity)
+
+    @Query("DELETE FROM reading_states WHERE comicId = :comicId")
+    suspend fun delete(comicId: Long)
 }

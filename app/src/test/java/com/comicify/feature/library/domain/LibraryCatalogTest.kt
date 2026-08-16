@@ -13,6 +13,7 @@ class LibraryCatalogTest {
         issueNumber: Int? = null,
         pageIndex: Int = 0,
         completed: Boolean = false,
+        favorite: Boolean = false,
         lastReadAt: Long? = null,
         pageCount: Int? = 20,
     ) = LibraryComic(
@@ -25,6 +26,7 @@ class LibraryCatalogTest {
         pageCount = pageCount,
         pageIndex = pageIndex,
         completed = completed,
+        favorite = favorite,
         lastReadAt = lastReadAt,
     )
 
@@ -57,6 +59,19 @@ class LibraryCatalogTest {
         )
         val sorted = LibraryCatalog.sort(input).map { it.id }
         assertEquals(listOf(3L, 2L, 1L), sorted)
+    }
+
+    @Test
+    fun filtersByReadUnreadAndFavorite() {
+        val input = listOf(
+            comic(1, completed = false, favorite = false),
+            comic(2, completed = true, favorite = false),
+            comic(3, completed = false, favorite = true),
+        )
+        assertEquals(listOf(1L, 2L, 3L), LibraryCatalog.filtered(input, LibraryFilter.ALL).map { it.id })
+        assertEquals(listOf(1L, 3L), LibraryCatalog.filtered(input, LibraryFilter.UNREAD).map { it.id })
+        assertEquals(listOf(2L), LibraryCatalog.filtered(input, LibraryFilter.READ).map { it.id })
+        assertEquals(listOf(3L), LibraryCatalog.filtered(input, LibraryFilter.FAVORITES).map { it.id })
     }
 
     @Test

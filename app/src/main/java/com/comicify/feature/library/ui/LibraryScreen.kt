@@ -3,9 +3,13 @@ package com.comicify.feature.library.ui
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,11 +38,19 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,6 +71,7 @@ import coil3.compose.AsyncImage
 import com.comicify.R
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
+import com.comicify.feature.library.domain.LibraryFilter
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -89,6 +102,9 @@ fun LibraryScreen(
     onRefresh: () -> Unit,
     onOpenComic: (LibraryComic) -> Unit,
     onOpenFile: (Uri) -> Unit,
+    onFilterSelected: (LibraryFilter) -> Unit,
+    onToggleRead: (LibraryComic) -> Unit,
+    onToggleFavorite: (LibraryComic) -> Unit,
 ) {
     val folderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
@@ -100,7 +116,7 @@ fun LibraryScreen(
     val pickFolder = { folderLauncher.launch(null) }
     val openFile = { fileLauncher.launch(openDocumentMimeTypes) }
 
-    if (state.comics.isEmpty() && !state.scanning) {
+    if (state.totalCount == 0 && !state.scanning) {
         EmptyLibrary(scanFailed = state.scanFailed, onPickFolder = pickFolder, onOpenFile = openFile)
         return
     }
@@ -114,7 +130,7 @@ fun LibraryScreen(
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             LibraryHeader(
-                comicCount = state.comics.size,
+                comicCount = state.totalCount,
                 scanning = state.scanning,
                 scanFailed = state.scanFailed,
                 onPickFolder = pickFolder,
@@ -130,8 +146,21 @@ fun LibraryScreen(
         item(span = { GridItemSpan(maxLineSpan) }) {
             SectionHeader(eyebrow = stringResource(R.string.library_shelf_eyebrow), title = stringResource(R.string.library_all_comics))
         }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            FilterBar(selected = state.filter, onFilterSelected = onFilterSelected)
+        }
+        if (state.comics.isEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                FilterEmpty()
+            }
+        }
         items(items = state.comics, key = { it.id }) { comic ->
-            ComicCard(comic = comic, onOpenComic = onOpenComic)
+            ComicCard(
+                comic = comic,
+                onOpenComic = onOpenComic,
+                onToggleRead = onToggleRead,
+                onToggleFavorite = onToggleFavorite,
+            )
         }
     }
 }
@@ -317,13 +346,23 @@ private fun SectionHeader(eyebrow: String, title: String) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ComicCard(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit) {
+private fun ComicCard(
+    comic: LibraryComic,
+    onOpenComic: (LibraryComic) -> Unit,
+    onToggleRead: (LibraryComic) -> Unit,
+    onToggleFavorite: (LibraryComic) -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .clickable { onOpenComic(comic) },
+            .combinedClickable(
+                onClick = { onOpenComic(comic) },
+                onLongClick = { menuExpanded = true },
+            ),
         verticalArrangement = Arrangement.spacedBy(11.dp),
     ) {
         Box(
@@ -346,6 +385,9 @@ private fun ComicCard(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit) 
                         progress = LibraryCatalog.progress(comic.pageIndex, pageCount),
                         modifier = Modifier.align(Alignment.TopEnd).padding(9.dp),
                     )
+            }
+            if (comic.favorite) {
+                FavoriteBadge(modifier = Modifier.align(Alignment.TopStart).padding(9.dp))
             }
             comic.issueNumber?.let {
                 Text(
@@ -374,7 +416,108 @@ private fun ComicCard(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit) 
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
+        ComicCardMenu(
+            expanded = menuExpanded,
+            comic = comic,
+            onDismiss = { menuExpanded = false },
+            onToggleRead = onToggleRead,
+            onToggleFavorite = onToggleFavorite,
+        )
     }
+}
+
+@Composable
+private fun ComicCardMenu(
+    expanded: Boolean,
+    comic: LibraryComic,
+    onDismiss: () -> Unit,
+    onToggleRead: (LibraryComic) -> Unit,
+    onToggleFavorite: (LibraryComic) -> Unit,
+) {
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        val readLabel = if (comic.completed) R.string.library_mark_unread else R.string.library_mark_read
+        val favoriteLabel = if (comic.favorite) R.string.library_remove_favorite else R.string.library_add_favorite
+        DropdownMenuItem(
+            text = { Text(stringResource(readLabel)) },
+            leadingIcon = { Icon(imageVector = Icons.Filled.Check, contentDescription = null) },
+            onClick = {
+                onToggleRead(comic)
+                onDismiss()
+            },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(favoriteLabel)) },
+            leadingIcon = {
+                Icon(
+                    imageVector = if (comic.favorite) Icons.Outlined.StarBorder else Icons.Filled.Star,
+                    contentDescription = null,
+                )
+            },
+            onClick = {
+                onToggleFavorite(comic)
+                onDismiss()
+            },
+        )
+    }
+}
+
+@Composable
+private fun FavoriteBadge(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(28.dp)
+            .clip(CircleShape)
+            .background(Color(0xD2060608)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Star,
+            contentDescription = stringResource(R.string.library_favorite),
+            tint = AccentAmber,
+            modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+@Composable
+private fun FilterBar(selected: LibraryFilter, onFilterSelected: (LibraryFilter) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        FilterPill(R.string.library_filter_all, selected == LibraryFilter.ALL) { onFilterSelected(LibraryFilter.ALL) }
+        FilterPill(R.string.library_filter_unread, selected == LibraryFilter.UNREAD) { onFilterSelected(LibraryFilter.UNREAD) }
+        FilterPill(R.string.library_filter_read, selected == LibraryFilter.READ) { onFilterSelected(LibraryFilter.READ) }
+        FilterPill(R.string.library_filter_favorites, selected == LibraryFilter.FAVORITES) { onFilterSelected(LibraryFilter.FAVORITES) }
+    }
+}
+
+@Composable
+private fun FilterPill(labelRes: Int, selected: Boolean, onClick: () -> Unit) {
+    Text(
+        text = stringResource(labelRes),
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = if (selected) Color.White else InkDim,
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(if (selected) Accent else Surface2)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 9.dp),
+    )
+}
+
+@Composable
+private fun FilterEmpty() {
+    Text(
+        text = stringResource(R.string.library_filter_empty),
+        style = MaterialTheme.typography.bodyMedium,
+        color = InkFaint,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+        textAlign = TextAlign.Center,
+    )
 }
 
 @Composable

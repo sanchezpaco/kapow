@@ -82,6 +82,26 @@ class LibraryRepositoryImpl @Inject constructor(
         )
     }
 
+    override suspend fun setRead(comicId: Long, read: Boolean) {
+        if (!read) {
+            readingStateDao.delete(comicId)
+            return
+        }
+        val lastPage = comicDao.findById(comicId)?.pageCount?.let { it - 1 } ?: 0
+        readingStateDao.upsert(
+            ReadingStateEntity(
+                comicId = comicId,
+                pageIndex = lastPage,
+                completed = true,
+                updatedAt = System.currentTimeMillis(),
+            ),
+        )
+    }
+
+    override suspend fun setFavorite(comicId: Long, favorite: Boolean) {
+        comicDao.setFavorite(comicId, favorite)
+    }
+
     private fun ComicEntity.toLibraryComic(state: ReadingStateEntity?): LibraryComic =
         LibraryComic(
             id = id,
@@ -93,6 +113,7 @@ class LibraryRepositoryImpl @Inject constructor(
             pageCount = pageCount,
             pageIndex = state?.pageIndex ?: 0,
             completed = state?.completed ?: false,
+            favorite = favorite,
             lastReadAt = state?.updatedAt,
         )
 }

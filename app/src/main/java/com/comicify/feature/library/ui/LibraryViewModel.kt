@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.comicify.feature.library.data.LibraryRepository
 import com.comicify.feature.library.domain.LibraryCatalog
+import com.comicify.feature.library.domain.LibraryComic
+import com.comicify.feature.library.domain.LibraryFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,16 +27,19 @@ class LibraryViewModel @Inject constructor(
 
     private val scanning = MutableStateFlow(false)
     private val scanFailed = MutableStateFlow(false)
+    private val filter = MutableStateFlow(LibraryFilter.ALL)
 
     val state: StateFlow<LibraryUiState> =
-        combine(repository.library, repository.folderUri, scanning, scanFailed) { comics, folder, isScanning, failed ->
+        combine(repository.library, repository.folderUri, scanning, scanFailed, filter) { comics, folder, isScanning, failed, selectedFilter ->
             LibraryUiState(
                 loading = false,
                 scanning = isScanning,
                 scanFailed = failed,
                 hasFolder = folder != null,
-                comics = comics,
-                continueReading = LibraryCatalog.continueReading(comics),
+                filter = selectedFilter,
+                comics = LibraryCatalog.filtered(comics, selectedFilter),
+                continueReading = if (selectedFilter == LibraryFilter.ALL) LibraryCatalog.continueReading(comics) else emptyList(),
+                totalCount = comics.size,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState())
 
@@ -48,6 +53,18 @@ class LibraryViewModel @Inject constructor(
 
     fun saveProgress(comicId: Long, pageIndex: Int, pageCount: Int) {
         viewModelScope.launch { repository.saveProgress(comicId, pageIndex, pageCount) }
+    }
+
+    fun onFilterSelected(selected: LibraryFilter) {
+        filter.value = selected
+    }
+
+    fun onToggleRead(comic: LibraryComic) {
+        viewModelScope.launch { repository.setRead(comic.id, !comic.completed) }
+    }
+
+    fun onToggleFavorite(comic: LibraryComic) {
+        viewModelScope.launch { repository.setFavorite(comic.id, !comic.favorite) }
     }
 
     private fun runScan(scan: suspend () -> Unit) {

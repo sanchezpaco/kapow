@@ -31,7 +31,7 @@ The home of the collection: import comics, browse covers, resume reading.
 Comic(
     id, documentUri, displayName,
     series, issueNumber, year,
-    pageCount?, coverPath?, addedAt,
+    pageCount?, coverPath?, addedAt, favorite,
 )
 
 ReadingState(
@@ -44,6 +44,11 @@ ReadingState(
   (see `foldable.md` for the in-memory `ReadingPosition` this maps to). The
   reader seeds its initial page from it and, on each page turn, saves the index
   and marks `completed` at the last page.
+- `completed` is also settable by hand from the library: marking a comic read
+  writes a `ReadingState` at the last page; marking it unread deletes the row
+  (clearing its resume position). `favorite` lives on the comic itself and is
+  toggled the same way. Both are reached by long-pressing a cover. The `favorite`
+  column was added in schema **v2** (migration `1→2`).
 - Detected panels are cached in-memory per session by the reader's `PageLoader`;
   a persistent panel cache is deferred to a later phase.
 
@@ -64,15 +69,20 @@ The shelf uses a "Comic Red & Ink" palette local to the library UI: pure-black
 OLED ground, a comic-red accent (matching the reader theme's `primary`) with an
 amber highlight and green for completed. Progress shows as a red ring on the cover
 corner (percent) and a red→amber bar under in-progress comics; finished comics get
-a green "Completed" badge. A "Continue reading" row surfaces recent unfinished
-comics with a resume affordance and progress.
+a green "Completed" badge and favorites an amber star. A "Continue reading" row
+surfaces recent unfinished comics with a resume affordance and progress.
 
 ## Home UI
 
 - Cover grid with an adaptive column count (`GridCells.Adaptive`), so wider /
   unfolded windows show more columns.
-- Each cover shows a reading-progress indicator ("n / total" + bar) and a
-  "Completed" badge on finished comics.
+- Each cover shows a reading-progress indicator ("n / total" + bar), a
+  "Completed" badge on finished comics, and an amber star on favorites.
+- A **filter bar** (All / Unread / Read / Favorites) narrows the grid; the choice
+  lives in the ViewModel and resets on relaunch. "Continue reading" only shows
+  under the "All" filter.
+- **Long-pressing a cover** opens a menu to mark it read/unread and add/remove it
+  from favorites.
 - A "Continue reading" shelf surfaces the most recently read, unfinished comics.
 - Affordances to choose/refresh the folder and to open a single file.
 - Entries are naturally sorted by series, then issue number, then title.

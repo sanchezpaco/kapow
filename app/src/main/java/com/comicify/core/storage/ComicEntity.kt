@@ -18,4 +18,5 @@ data class ComicEntity(
     val pageCount: Int?,
     val coverPath: String?,
     val addedAt: Long,
+    val favorite: Boolean = false,
 )
