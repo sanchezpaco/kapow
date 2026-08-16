@@ -47,6 +47,7 @@ class LibraryViewModel @Inject constructor(
                 filter = selectedFilter,
                 grouped = isGrouped,
                 comics = filtered,
+                allComics = comics,
                 entries = LibraryCatalog.grouped(filtered),
                 continueReading = if (selectedFilter == LibraryFilter.ALL) LibraryCatalog.continueReading(comics) else emptyList(),
                 totalCount = comics.size,

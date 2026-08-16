@@ -1,6 +1,7 @@
 package com.comicify.feature.library.ui
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -134,6 +135,8 @@ fun LibraryScreen(
     LaunchedEffect(openedSeries, openGroup) {
         if (openedSeries != null && openGroup == null) openedSeries = null
     }
+
+    BackHandler(enabled = openGroup != null) { openedSeries = null }
 
     if (openGroup != null) {
         SeriesScreen(

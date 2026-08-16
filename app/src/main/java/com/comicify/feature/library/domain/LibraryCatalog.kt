@@ -30,6 +30,13 @@ object LibraryCatalog {
             LibraryFilter.FAVORITES -> comics.filter { it.favorite }
         }
 
+    fun nextInSeries(comics: List<LibraryComic>, comicId: Long): LibraryComic? {
+        val current = comics.firstOrNull { it.id == comicId } ?: return null
+        val seriesKey = groupKey(current.series)
+        val ordered = sort(comics.filter { groupKey(it.series) == seriesKey })
+        return ordered.getOrNull(ordered.indexOfFirst { it.id == comicId } + 1)
+    }
+
     fun continueReading(comics: List<LibraryComic>): List<LibraryComic> =
         comics.filter { it.lastReadAt != null && !it.completed && it.pageIndex > 0 }
             .sortedByDescending { it.lastReadAt }
