@@ -11,6 +11,8 @@ import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -53,6 +55,9 @@ import kotlinx.coroutines.launch
 private const val MAX_SCALE = 5f
 private const val DOUBLE_TAP_SCALE = 2.5f
 private val BubbleOutlineWidth = 1.dp
+private val BubbleSpinnerSize = 22.dp
+private val BubbleSpinnerStroke = 2.dp
+private val BubbleSpinnerMargin = 14.dp
 private val BubbleOutlineColor = Color.Black.copy(alpha = 0.35f)
 
 private fun centeredOn(tap: Offset, size: IntSize, scale: Float): Offset {
@@ -78,7 +83,7 @@ fun ZoomablePage(
     modifier: Modifier = Modifier,
 ) {
     var art by remember(index) { mutableStateOf<PageArt?>(null) }
-    var bubbles by remember(index) { mutableStateOf<List<EnlargedBubble>>(emptyList()) }
+    var bubbles by remember(index) { mutableStateOf<List<EnlargedBubble>?>(emptyList()) }
     var scale by remember(index) { mutableFloatStateOf(1f) }
     var offset by remember(index) { mutableStateOf(Offset.Zero) }
     var flingJob by remember(index) { mutableStateOf<Job?>(null) }
@@ -87,8 +92,9 @@ fun ZoomablePage(
 
     LaunchedEffect(index) { art = runCatching { loader.load(index) }.getOrNull() }
     LaunchedEffect(index, bubbleScale) {
-        bubbles = if (bubbleScale == null) emptyList() else runCatching { loader.bubbles(index) }.getOrDefault(emptyList())
-            .let { BubbleLayout.enlarge(it, bubbleScale) }
+        if (bubbleScale == null) { bubbles = emptyList(); return@LaunchedEffect }
+        bubbles = null
+        bubbles = runCatching { loader.bubbles(index) }.getOrDefault(emptyList()).let { BubbleLayout.enlarge(it, bubbleScale) }
     }
     LaunchedEffect(scale) { onZoomedChange(scale > 1.01f) }
 
@@ -163,9 +169,16 @@ fun ZoomablePage(
                     }
                     .drawWithContent {
                         drawContent()
-                        drawEnlargedBubbles(page.image, bubbles)
+                        drawEnlargedBubbles(page.image, bubbles.orEmpty())
                     },
             )
+            if (bubbles == null) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = BubbleSpinnerStroke,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(BubbleSpinnerMargin).size(BubbleSpinnerSize),
+                )
+            }
         }
     }
 }

@@ -11,6 +11,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
@@ -19,6 +21,7 @@ private const val THUMB_WIDTH_PX = 180
 private const val CACHE_SIZE = 8
 private const val CROP_MARGINS = true
 private const val THUMB_CACHE_SIZE = 64
+private const val PARALLEL_DETECTIONS = 2
 
 class PageLoader(
     private val source: ComicSource,
@@ -28,6 +31,7 @@ class PageLoader(
     private val thumbCache = LruCache<Int, ImageBitmap>(THUMB_CACHE_SIZE)
     private val panelCache = LruCache<Int, List<Rect>>(CACHE_SIZE)
     private val bubbleCache = LruCache<Int, List<SpeechBubble>>(CACHE_SIZE)
+    private val detectionSlots = Semaphore(PARALLEL_DETECTIONS)
     private val locks = HashMap<Int, Mutex>()
     private val thumbLocks = HashMap<Int, Mutex>()
 
@@ -70,8 +74,9 @@ class PageLoader(
     suspend fun bubbles(index: Int): List<SpeechBubble> {
         bubbleCache[index]?.let { return it }
         val art = load(index)
-        return withContext(Dispatchers.Default) { PanelDetector.bubbles(art.image.asAndroidBitmap()) }
-            .also { bubbleCache.put(index, it) }
+        return detectionSlots.withPermit {
+            bubbleCache[index] ?: withContext(Dispatchers.Default) { PanelDetector.bubbles(art.image.asAndroidBitmap()) }
+        }.also { bubbleCache.put(index, it) }
     }
 
     fun preload(indices: Iterable<Int>) {

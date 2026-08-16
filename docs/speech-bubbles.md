@@ -21,52 +21,53 @@ thread and cached per page in `PageLoader` (only when the toggle is used).
 
 ## Detecting bubbles (`SpeechBubbles`)
 
-Built on `PixelClasses` (see `guided-view.md`), plus one extra class:
+Built on `PixelClasses` (see `guided-view.md`), plus two extra classes:
 
 - `solidPaper`: every source pixel in the cell is white **or cream** (the pale
   yellow of Marvel-style caption boxes) — bubble and caption interiors.
+- `ink`: some source pixel in the cell is dark — lettering strokes.
 
-White and cream are processed as two separate tones (a cream caption never
-grows into a white moon behind it), then their results are merged. Steps per
-tone:
+Detection is **text-first**: it looks for lettering, then grows the paper
+around it into the bubble. White and cream are processed as two separate tones
+(a cream caption never grows into a white moon behind it); their results are
+merged at the end. Steps per tone:
 
 1. **Strip gutters.** Long thin runs of paper (≥ 30 % of the page long, ≤ 1.2 %
    thick) are removed, so a bubble cut by a panel edge no longer merges with an
    axis-aligned white gutter.
-2. **Seeds.** The mask is opened with radius 3: keylines, tilted gutters, tails
-   and text-line gaps vanish, the thick core of every bubble survives. Cores
-   become 4-connected seed components.
-3. **Grow back, box-limited.** Each seed is regrown through the raw paper of its
-   tone, but only inside its own bounding box inflated one cell per pass, and
-   only while a pass still adds ≥ 1 % of the blob (a tight caption or a
-   footnote grows back to its full body row by row; creeping along a thin
-   keyline or white wedge adds almost nothing per pass and stops). A seed
-   whose box balloons past 4× its size (a caption bleeding into a large white
-   area) is dropped instead of producing a huge patch. This is what lets
-   chained bubbles that overhang a tilted panel edge be enlarged.
-4. **Candidates.** Blobs that do not touch the page border, with a compact fill
-   (≥ 35 % of their box — bubbles with tails are around 0.4), between 0.05 %
-   and 12 % of the page, not thinner than 1.2 % of the page and with aspect ≤ 6.
-5. **Text gate (precision).** Interior *holes* of the blob (non-paper cells
-   inside its box that cannot be reached from the box edge) are the ink inside
-   the bubble. A bubble must have 3–50 % ink, and ≥ 75 % of that ink must be in
-   *text-like* holes: at pooled resolution a text line is a horizontal band
-   (≤ 1.8 % of the page tall), and two or three lines merged by descenders are a
-   wide, short block (≤ 4.5 % tall, wider than 1.2× their height). Blank white
-   walls (no ink), white regions around a dark figure (one tall compact hole) and
-   big SFX lettering are rejected — false positives look bad because the overlay
-   covers visible art.
+2. **Words.** Non-paper cells enclosed by paper (not reachable from the page
+   border) are segmented; a component is a *word* when it is line-shaped (a
+   short horizontal band, or a wide short block for two or three lines merged
+   by descenders), at least 0.4 % of the page tall, wider than tall, and at
+   least half of it is `ink`. The ink test is what separates lettering from
+   sky showing through clouds or moon texture.
+3. **Text blocks.** Words within a word gap horizontally (0.8 % of the page)
+   and a line gap vertically (1.2 %) are clustered (union-find); a block must
+   be dense (words cover ≥ 25 % of its box).
+4. **Grow the bubble.** From the block, paper is flooded outwards ring by ring
+   (Chebyshev distance to the block box), only within a rounded reach of 2.4 %
+   of the page around the block, stopping as soon as a ring adds less than 1 %
+   of what was reached (creeping along a thin keyline stops; the bubble body
+   is filled row by row even for a tight caption). This is what lets bubbles
+   that overhang tilted keylines, bubbles fused with a white background, or
+   two overlapping bubbles each be found from their own text.
+5. **Bubble filters.** The grown blob must not touch the page border, have a
+   compact fill (≥ 35 % of its box), be between 0.05 % and 12 % of the page,
+   not thinner than 1.2 % of the page, aspect ≤ 6, have 3–50 % ink inside with
+   ≥ 75 % of it text-like, and be **ink-bounded**: ≥ 60 % of its outer contour
+   must end on non-paper (an outline or art) rather than on the reach limit —
+   text sitting on an open white background is not a bubble.
 6. **Silhouette.** For every row of the blob the leftmost/rightmost cell,
    inflated by 2 cells so the drawn outline stroke is included, gives a
-   row-span polygon (`SpeechBubble.outline`, normalized). The thick part of a
-   tail is kept — the enlarged tail still points at the speaker.
-7. **Chained bubbles** whose silhouettes touch are merged into one unit, so they
-   grow together instead of covering each other.
+   row-span polygon (`SpeechBubble.outline`, normalized).
+7. **Chained / overlapping bubbles** of the same tone whose silhouettes touch,
+   or of any tone whose boxes overlap by ≥ 15 %, are merged into one unit, so
+   they grow together instead of covering each other.
 
-Known limits: black/negative bubbles and lettering-only SFX are not enlarged;
-a bubble whose white connects to a bright white area (a moon, a lab coat) can
-grow a stair-step protrusion; a bubble that fails the text gate can be partly
-covered by an enlarged neighbour.
+Known limits: black/negative bubbles and lettering-only SFX are not enlarged
+(their lettering is not enclosed by paper); a bubble fused with a large white
+area (a moon) is found, but its copy carries a bit of that background up to
+the reach limit, so a faint seam can show there.
 
 ## Laying out the enlargement (`BubbleLayout`)
 
@@ -87,7 +88,10 @@ small original never peeks out):
 
 ## Rendering
 
-`ZoomablePage` draws the page as before and, in a `drawWithContent` after the
+`ZoomablePage` shows a small spinner in the page corner while its bubbles are
+being detected (at most two pages detect concurrently — `PageLoader` gates
+detection with a semaphore so the visible page is not slowed by its
+neighbours), draws the page as before and, in a `drawWithContent` after the
 zoom/pan `graphicsLayer` (so the overlay pans and zooms with the page), for each
 enlarged bubble clips to the scaled outline polygon and draws the source bitmap
 region of the bubble box into its target box with high filter quality, plus a

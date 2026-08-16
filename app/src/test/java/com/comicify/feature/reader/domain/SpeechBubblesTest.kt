@@ -14,7 +14,7 @@ class SpeechBubblesTest {
     private fun SyntheticPage.textBubble(box: Box, ink: Int = BLACK, paper: Int = WHITE) = apply {
         fill(box, ink)
         fill(Box(box.left + 2, box.top + 2, box.right - 2, box.bottom - 2), paper)
-        for (y in box.top + 12 until box.bottom - 12 step 8) fill(Box(box.left + 12, y, box.right - 12, y + 3), ink)
+        for (y in box.top + 7 until box.bottom - 7 step 6) fill(Box(box.left + 7, y, box.right - 7, y + 3), ink)
     }
 
     @Test
@@ -57,7 +57,9 @@ class SpeechBubblesTest {
         page.fill(Box(bubble.left + 2, 298, bubble.right - 2, 308), WHITE)
         val found = bubblesOf(page)
         assertEquals(1, found.size)
-        assertRoughly(bubble, page.box(found[0].box), tolerance = 8)
+        val box = page.box(found[0].box)
+        assertTrue("$box should stay inside the bubble", box.left >= bubble.left - 4 && box.right <= bubble.right + 4 && box.top >= bubble.top - 4)
+        assertTrue("$box should cover the text", box.left <= bubble.left + 7 && box.right >= bubble.right - 7 && box.top <= bubble.top + 7 && box.bottom >= 295)
     }
 
     @Test
