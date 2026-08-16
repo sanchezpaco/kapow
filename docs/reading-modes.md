@@ -84,7 +84,7 @@ Available on `CompactSingle`, and on demand elsewhere. Full detail in
 An alternative to Guided View for small lettering that keeps the whole page (and
 its art) on screen: the ChatBubble button in the HUD (`ReaderUiState.bubblesEnlarged`,
 hidden while Guided View is on) redraws every detected speech bubble and caption
-scaled up ~1.3× **in place**, as an overlay on the regular page surfaces
+scaled up **in place** (1.3× by default, a slider under the HUD buttons sets 1.1–2×, persisted), as an overlay on the regular page surfaces
 (`ZoomablePage`, so it works on single pages, the spread and tabletop and follows
 pinch/double-tap zoom). It is a static render enhancement — no page zoom, no
 bubble-to-bubble navigation, nothing to order — so it deliberately sidesteps

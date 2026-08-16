@@ -14,6 +14,7 @@ import com.comicify.feature.reader.data.ComicSource
 import com.comicify.feature.reader.data.ComicSourceException
 import com.comicify.feature.reader.data.ComicSourceFactory
 import com.comicify.feature.reader.data.PageLoader
+import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.ComicOpenError
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,6 +40,7 @@ class ReaderViewModel(
         openComic()
         observeVolumeKeyPaging()
         observeNightTint()
+        observeBubbleScale()
         observeReadingDirection()
     }
 
@@ -79,6 +81,18 @@ class ReaderViewModel(
 
     fun toggleBubblesEnlarged() {
         _state.update { it.copy(bubblesEnlarged = !it.bubblesEnlarged) }
+    }
+
+    fun setBubbleScale(scale: Float) {
+        viewModelScope.launch { preferencesRepository.setBubbleScale(scale) }
+    }
+
+    private fun observeBubbleScale() {
+        viewModelScope.launch {
+            preferencesRepository.bubbleScale.collect { scale ->
+                _state.update { it.copy(bubbleScale = scale ?: BUBBLE_ENLARGE_SCALE) }
+            }
+        }
     }
 
     fun toggleGuidedFullScreen() {

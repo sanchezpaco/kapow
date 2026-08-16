@@ -9,6 +9,8 @@ data class Box(val left: Int, val top: Int, val right: Int, val bottom: Int) {
     val height: Int get() = bottom - top
     val area: Int get() = width * height
 
+    fun contains(x: Int, y: Int) = x >= left && x < right && y >= top && y < bottom
+
     fun union(other: Box) = Box(min(left, other.left), min(top, other.top), max(right, other.right), max(bottom, other.bottom))
 
     fun intersectionArea(other: Box): Int {

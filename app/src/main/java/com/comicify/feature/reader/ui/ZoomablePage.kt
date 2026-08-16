@@ -45,7 +45,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.comicify.feature.reader.data.PageArt
 import com.comicify.feature.reader.data.PageLoader
-import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.BubbleLayout
 import com.comicify.feature.reader.domain.EnlargedBubble
 import kotlinx.coroutines.Job
@@ -73,7 +72,7 @@ private fun clampOffset(offset: Offset, size: IntSize, scale: Float): Offset {
 fun ZoomablePage(
     loader: PageLoader,
     index: Int,
-    bubblesEnlarged: Boolean,
+    bubbleScale: Float?,
     onTap: () -> Unit,
     onZoomedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -87,9 +86,9 @@ fun ZoomablePage(
     val decay = remember { exponentialDecay<Offset>(frictionMultiplier = 2.0f) }
 
     LaunchedEffect(index) { art = runCatching { loader.load(index) }.getOrNull() }
-    LaunchedEffect(index, bubblesEnlarged) {
-        bubbles = if (!bubblesEnlarged) emptyList() else runCatching { loader.bubbles(index) }.getOrDefault(emptyList())
-            .let { BubbleLayout.enlarge(it, BUBBLE_ENLARGE_SCALE) }
+    LaunchedEffect(index, bubbleScale) {
+        bubbles = if (bubbleScale == null) emptyList() else runCatching { loader.bubbles(index) }.getOrDefault(emptyList())
+            .let { BubbleLayout.enlarge(it, bubbleScale) }
     }
     LaunchedEffect(scale) { onZoomedChange(scale > 1.01f) }
 

@@ -8,6 +8,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 const val BUBBLE_ENLARGE_SCALE = 1.3f
+val BUBBLE_SCALE_RANGE = 1.1f..2f
 private const val SEPARATION_PASSES = 8
 
 data class EnlargedBubble(val bubble: SpeechBubble, val scale: Float, val target: Rect) {

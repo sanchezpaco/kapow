@@ -41,11 +41,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -73,6 +75,7 @@ import com.comicify.core.window.ReadingPosture
 import com.comicify.core.window.rememberReadingWindowState
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
+import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
 import com.comicify.feature.reader.domain.ComicOpenError
 import kotlinx.coroutines.flow.MutableSharedFlow
 
@@ -136,7 +139,7 @@ fun ReaderScreen(
                     hinge = windowState.hinge,
                     guided = state.guided,
                     guidedFullScreen = state.guidedFullScreen,
-                    bubblesEnlarged = state.bubblesEnlarged,
+                    bubbleScale = state.bubbleScale.takeIf { state.bubblesEnlarged },
                     direction = state.direction,
                     initialPage = state.position.pageIndex,
                     pageTurnRequests = pageTurnRequests,
@@ -160,10 +163,12 @@ fun ReaderScreen(
             guided = state.guided,
             guidedFullScreen = state.guidedFullScreen,
             bubblesEnlarged = state.bubblesEnlarged,
+            bubbleScale = state.bubbleScale,
             nightTintEnabled = state.nightTintEnabled,
             direction = state.direction,
             onToggleGuided = viewModel::toggleGuided,
             onToggleBubblesEnlarged = viewModel::toggleBubblesEnlarged,
+            onBubbleScale = viewModel::setBubbleScale,
             onToggleGuidedFullScreen = viewModel::toggleGuidedFullScreen,
             onToggleNightTint = viewModel::toggleNightTint,
             onToggleDirection = viewModel::toggleReadingDirection,
@@ -192,10 +197,12 @@ private fun TopChrome(
     guided: Boolean,
     guidedFullScreen: Boolean,
     bubblesEnlarged: Boolean,
+    bubbleScale: Float,
     nightTintEnabled: Boolean,
     direction: ReadingDirection,
     onToggleGuided: () -> Unit,
     onToggleBubblesEnlarged: () -> Unit,
+    onBubbleScale: (Float) -> Unit,
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
     onToggleDirection: () -> Unit,
@@ -227,22 +234,31 @@ private fun TopChrome(
                     tint = Color.White,
                 )
             }
-            Row(verticalAlignment = Alignment.Top) {
-                if (!guided) {
-                    BubbleToggle(enlarged = bubblesEnlarged, onToggle = onToggleBubblesEnlarged)
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.Top) {
+                    if (!guided) {
+                        BubbleToggle(enlarged = bubblesEnlarged, onToggle = onToggleBubblesEnlarged)
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
+                    GuidedToggle(guided = guided, onToggle = onToggleGuided)
                     Spacer(modifier = Modifier.width(10.dp))
+                    ReaderSettingsMenu(
+                        showGuidedLayout = guided && posture == ReadingPosture.UnfoldedSpread,
+                        guidedFullScreen = guidedFullScreen,
+                        nightTintEnabled = nightTintEnabled,
+                        direction = direction,
+                        onToggleGuidedFullScreen = onToggleGuidedFullScreen,
+                        onToggleNightTint = onToggleNightTint,
+                        onToggleDirection = onToggleDirection,
+                    )
                 }
-                GuidedToggle(guided = guided, onToggle = onToggleGuided)
-                Spacer(modifier = Modifier.width(10.dp))
-                ReaderSettingsMenu(
-                    showGuidedLayout = guided && posture == ReadingPosture.UnfoldedSpread,
-                    guidedFullScreen = guidedFullScreen,
-                    nightTintEnabled = nightTintEnabled,
-                    direction = direction,
-                    onToggleGuidedFullScreen = onToggleGuidedFullScreen,
-                    onToggleNightTint = onToggleNightTint,
-                    onToggleDirection = onToggleDirection,
-                )
+                AnimatedVisibility(
+                    visible = bubblesEnlarged && !guided,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically(),
+                ) {
+                    BubbleScaleSlider(scale = bubbleScale, onScale = onBubbleScale)
+                }
             }
         }
     }
@@ -266,6 +282,32 @@ private fun BubbleToggle(enlarged: Boolean, onToggle: () -> Unit) {
         contentDescription = stringResource(R.string.reader_action_enlarge_bubbles),
         onClick = onToggle,
     )
+}
+
+@Composable
+private fun BubbleScaleSlider(scale: Float, onScale: (Float) -> Unit) {
+    var dragged by remember(scale) { mutableFloatStateOf(scale) }
+    Row(
+        modifier = Modifier
+            .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "%.1f×".format(dragged),
+            color = Color.White,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.width(44.dp),
+        )
+        Slider(
+            value = dragged,
+            onValueChange = { dragged = it },
+            onValueChangeFinished = { onScale(dragged) },
+            valueRange = BUBBLE_SCALE_RANGE,
+            steps = 8,
+            modifier = Modifier.width(200.dp),
+        )
+    }
 }
 
 @Composable

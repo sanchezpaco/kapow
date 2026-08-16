@@ -17,7 +17,10 @@ private const val MAX_TEXT_BLOCK_HEIGHT_FRACTION = 0.045f
 private const val MIN_TEXT_BLOCK_ASPECT = 1.2f
 private const val MIN_LINE_INK_SHARE = 0.75f
 private const val OUTLINE_MARGIN = 2
-private const val KEYLINE_RADIUS = 1
+private const val SEED_RADIUS = 3
+private const val MAX_GROWTH_PASSES = 64
+private const val MIN_GROWTH_SHARE = 0.01f
+private const val MAX_GROWTH_FACTOR = 4
 private const val GUTTER_MIN_RUN_FRACTION = 0.3f
 private const val GUTTER_MAX_THICKNESS_FRACTION = 0.012f
 
@@ -29,20 +32,26 @@ object SpeechBubbles {
         detect(PixelClasses.classify(pixels, sourceWidth, sourceHeight, pool))
 
     fun detect(classes: PixelClasses): List<SpeechBubble> {
-        val width = classes.width
-        val height = classes.height
+        val cream = BooleanArray(classes.solidPaper.size) { classes.solidPaper[it] && !classes.solidWhite[it] }
+        return (silhouettes(classes.solidWhite, classes.width, classes.height) + silhouettes(cream, classes.width, classes.height))
+            .let { mergeTouching(it) }
+            .map { it.toBubble(classes.width, classes.height) }
+    }
+
+    private fun silhouettes(tone: BooleanArray, width: Int, height: Int): List<Silhouette> {
         val pageArea = width * height
         val minSide = (min(width, height) * MIN_BUBBLE_SIDE_FRACTION).toInt()
-        val paper = withoutGutters(classes.solidPaper, width, height).opened(width, height, KEYLINE_RADIUS)
-        val segmentation = paper.segment(width, height, (pageArea * MIN_BUBBLE_AREA_FRACTION).toInt())
+        val paper = withoutGutters(tone, width, height)
+        val cores = paper.opened(width, height, SEED_RADIUS)
+        val seeds = cores.segment(width, height, (pageArea * MIN_BUBBLE_AREA_FRACTION).toInt())
         val isTextLike = textLikeHole(min(width, height))
-        return segmentation.components
-            .filter { !it.touchesBorder && it.fill >= MIN_BUBBLE_FILL && it.pixels <= pageArea * MAX_BUBBLE_AREA_FRACTION }
+        return seeds.components
+            .filter { !it.touchesBorder && it.pixels <= pageArea * MAX_BUBBLE_AREA_FRACTION }
+            .mapNotNull { Blob.grown(it, cores, paper, width, height) }
+            .filter { !it.touchesBorder(width, height) && it.fill >= MIN_BUBBLE_FILL && it.pixels <= pageArea * MAX_BUBBLE_AREA_FRACTION }
             .filter { min(it.box.width, it.box.height) >= minSide && aspect(it.box) <= MAX_BUBBLE_ASPECT }
-            .filter { hasTextInside(it, segmentation.labels, width, isTextLike) }
-            .map { silhouette(it, segmentation.labels, width, height) }
-            .let { mergeTouching(it) }
-            .map { it.toBubble(width, height) }
+            .filter { hasTextInside(it, isTextLike) }
+            .map { it.silhouette(width, height) }
     }
 
     private fun withoutGutters(paper: BooleanArray, width: Int, height: Int): BooleanArray {
@@ -82,57 +91,14 @@ object SpeechBubbles {
         return { hole -> hole.height <= maxLineHeight || (hole.height <= maxBlockHeight && hole.width >= hole.height * MIN_TEXT_BLOCK_ASPECT) }
     }
 
-    private fun hasTextInside(component: Component, labels: IntArray, width: Int, isTextLike: (Box) -> Boolean): Boolean {
-        val box = component.box
-        val holes = interiorHoles(component, labels, width)
+    private fun hasTextInside(blob: Blob, isTextLike: (Box) -> Boolean): Boolean {
+        val holes = blob.interiorHoles()
         val holeCount = holes.count { it }
-        val inkShare = holeCount / (component.pixels + holeCount).toFloat()
+        val inkShare = holeCount / (blob.pixels + holeCount).toFloat()
         if (inkShare < MIN_INK_SHARE || inkShare > MAX_INK_SHARE) return false
-        val lines = holes.segment(box.width, box.height, 1).components
+        val lines = holes.segment(blob.box.width, blob.box.height, 1).components
         val lineInk = lines.filter { isTextLike(it.box) }.sumOf { it.pixels }
         return lineInk >= holeCount * MIN_LINE_INK_SHARE
-    }
-
-    private fun interiorHoles(component: Component, labels: IntArray, width: Int): BooleanArray {
-        val box = component.box
-        val w = box.width
-        val h = box.height
-        val open = BooleanArray(w * h) { labels[(box.top + it / w) * width + box.left + it % w] != component.label }
-        val reached = BooleanArray(w * h)
-        val stack = IntArray(w * h)
-        var top = 0
-        for (i in 0 until w * h) {
-            val edge = i < w || i >= w * (h - 1) || i % w == 0 || i % w == w - 1
-            if (edge && open[i] && !reached[i]) { reached[i] = true; stack[top++] = i }
-        }
-        while (top > 0) {
-            val p = stack[--top]
-            val x = p % w
-            if (x > 0 && open[p - 1] && !reached[p - 1]) { reached[p - 1] = true; stack[top++] = p - 1 }
-            if (x < w - 1 && open[p + 1] && !reached[p + 1]) { reached[p + 1] = true; stack[top++] = p + 1 }
-            if (p >= w && open[p - w] && !reached[p - w]) { reached[p - w] = true; stack[top++] = p - w }
-            if (p < w * (h - 1) && open[p + w] && !reached[p + w]) { reached[p + w] = true; stack[top++] = p + w }
-        }
-        return BooleanArray(w * h) { open[it] && !reached[it] }
-    }
-
-    private fun silhouette(component: Component, labels: IntArray, width: Int, height: Int): Silhouette {
-        val box = component.box
-        val spans = HashMap<Int, IntRange>()
-        for (y in box.top until box.bottom) {
-            var left = -1
-            var right = -1
-            for (x in box.left until box.right) {
-                if (labels[y * width + x] != component.label) continue
-                if (left < 0) left = x
-                right = x
-            }
-            if (left < 0) continue
-            for (row in max(0, y - OUTLINE_MARGIN)..min(height - 1, y + OUTLINE_MARGIN)) {
-                spans[row] = spans[row].widened(max(0, left - OUTLINE_MARGIN), min(width - 1, right + OUTLINE_MARGIN))
-            }
-        }
-        return Silhouette(spans)
     }
 
     private fun mergeTouching(silhouettes: List<Silhouette>): List<Silhouette> {
@@ -145,6 +111,80 @@ object SpeechBubbles {
     }
 
     private fun aspect(box: Box) = max(box.width, box.height) / min(box.width, box.height).toFloat()
+}
+
+private class Blob(val box: Box, val cells: BooleanArray) {
+    val pixels: Int = cells.count { it }
+    val fill: Float get() = pixels / box.area.toFloat()
+
+    fun touchesBorder(width: Int, height: Int) = box.left == 0 || box.top == 0 || box.right == width || box.bottom == height
+
+    fun contains(x: Int, y: Int) = box.contains(x, y) && cells[(y - box.top) * box.width + (x - box.left)]
+
+    fun interiorHoles(): BooleanArray {
+        val open = BooleanArray(cells.size) { !cells[it] }
+        val reached = BooleanArray(cells.size)
+        val w = box.width
+        val h = box.height
+        floodFrom(open, reached, w, h) { it < w || it >= w * (h - 1) || it % w == 0 || it % w == w - 1 }
+        return BooleanArray(cells.size) { open[it] && !reached[it] }
+    }
+
+    fun silhouette(width: Int, height: Int): Silhouette {
+        val spans = HashMap<Int, IntRange>()
+        for (y in 0 until box.height) {
+            var left = -1
+            var right = -1
+            for (x in 0 until box.width) {
+                if (!cells[y * box.width + x]) continue
+                if (left < 0) left = x
+                right = x
+            }
+            if (left < 0) continue
+            for (row in max(0, box.top + y - OUTLINE_MARGIN)..min(height - 1, box.top + y + OUTLINE_MARGIN)) {
+                spans[row] = spans[row].widened(max(0, box.left + left - OUTLINE_MARGIN), min(width - 1, box.left + right + OUTLINE_MARGIN))
+            }
+        }
+        return Silhouette(spans)
+    }
+
+    companion object {
+        fun grown(seed: Component, cores: BooleanArray, paper: BooleanArray, width: Int, height: Int): Blob? {
+            var blob = grownWithin(seed.box, paper, width, height) { x, y -> cores[y * width + x] }
+            repeat(MAX_GROWTH_PASSES) {
+                val larger = grownWithin(blob.box.inflate(1, width, height), paper, width, height) { x, y -> blob.contains(x, y) }
+                if (larger.pixels - blob.pixels < blob.pixels * MIN_GROWTH_SHARE) return larger
+                if (larger.box.area > seed.box.area * MAX_GROWTH_FACTOR) return null
+                blob = larger
+            }
+            return null
+        }
+
+        private fun grownWithin(box: Box, paper: BooleanArray, width: Int, height: Int, isSeed: (Int, Int) -> Boolean): Blob {
+            val w = box.width
+            val h = box.height
+            val open = BooleanArray(w * h) { paper[(box.top + it / w) * width + box.left + it % w] }
+            val reached = BooleanArray(w * h)
+            floodFrom(open, reached, w, h) { isSeed(box.left + it % w, box.top + it / w) }
+            return Blob(box, reached)
+        }
+    }
+}
+
+private inline fun floodFrom(open: BooleanArray, reached: BooleanArray, w: Int, h: Int, isSeed: (Int) -> Boolean) {
+    val stack = IntArray(w * h)
+    var top = 0
+    for (i in 0 until w * h) {
+        if (open[i] && !reached[i] && isSeed(i)) { reached[i] = true; stack[top++] = i }
+    }
+    while (top > 0) {
+        val p = stack[--top]
+        val x = p % w
+        if (x > 0 && open[p - 1] && !reached[p - 1]) { reached[p - 1] = true; stack[top++] = p - 1 }
+        if (x < w - 1 && open[p + 1] && !reached[p + 1]) { reached[p + 1] = true; stack[top++] = p + 1 }
+        if (p >= w && open[p - w] && !reached[p - w]) { reached[p - w] = true; stack[top++] = p - w }
+        if (p < w * (h - 1) && open[p + w] && !reached[p + w]) { reached[p + w] = true; stack[top++] = p + w }
+    }
 }
 
 private fun IntRange?.widened(left: Int, right: Int) =
