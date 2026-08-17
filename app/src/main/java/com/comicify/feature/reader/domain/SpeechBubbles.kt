@@ -21,6 +21,11 @@ private const val MIN_GROWTH_SHARE = 0.01f
 private const val MAX_MARGIN_FRACTION = 0.024f
 private const val MAX_WORD_GAP_FRACTION = 0.008f
 private const val MAX_LINE_GAP_FRACTION = 0.012f
+private const val MARGIN_BLOCK_FACTOR = 0.8f
+private const val MAX_MARGIN_CAP_FRACTION = 0.08f
+private const val LOCAL_LINE_HEIGHT_FACTOR = 1.4f
+private const val LOCAL_BLOCK_HEIGHT_FACTOR = 3.5f
+private const val NEGATIVE_BODY_RADIUS = 3
 private const val MIN_LINE_PIXELS = 4
 private const val MIN_WORD_HEIGHT_FRACTION = 0.004f
 private const val MIN_BLOCK_DENSITY = 0.25f
@@ -40,9 +45,10 @@ object SpeechBubbles {
 
     fun detect(classes: PixelClasses): List<SpeechBubble> {
         val cream = BooleanArray(classes.solidPaper.size) { classes.solidPaper[it] && !classes.solidWhite[it] }
+        val darkBody = withSolidCore(classes.solidDark, classes.width, classes.height)
         val white = mergeTouching(silhouettes(classes.solidWhite, classes.ink, classes.width, classes.height))
         val captions = mergeTouching(silhouettes(cream, classes.ink, classes.width, classes.height))
-        val negatives = mergeTouching(silhouettes(classes.solidDark, classes.white, classes.width, classes.height))
+        val negatives = mergeTouching(silhouettes(darkBody, classes.white, classes.width, classes.height))
         return mergeOverlapping(white + captions + negatives).map { it.toBubble(classes.width, classes.height) }
     }
 
@@ -51,11 +57,12 @@ object SpeechBubbles {
         val pageSide = min(width, height)
         val minSide = (pageSide * MIN_BUBBLE_SIDE_FRACTION).toInt()
         val paper = withoutGutters(tone, width, height)
-        val isTextLike = textLikeHole(pageSide)
+        val maxLineHeight = (pageSide * MAX_LINE_HEIGHT_FRACTION).toInt()
+        val maxBlockHeight = (pageSide * MAX_TEXT_BLOCK_HEIGHT_FRACTION).toInt()
+        val isTextLike = textLikeHole(maxLineHeight, maxBlockHeight)
         val minWordHeight = (pageSide * MIN_WORD_HEIGHT_FRACTION).toInt()
         val holes = enclosedHoles(paper, width, height).segment(width, height, MIN_LINE_PIXELS)
         val inkPerHole = inkPerLabel(holes, ink)
-        val maxBlockHeight = (pageSide * MAX_TEXT_BLOCK_HEIGHT_FRACTION).toInt()
         val isLine = { box: Box -> isTextLike(box) && box.height >= minWordHeight && box.width >= box.height }
         val words = holes.components
             .filter { it.box.height in minWordHeight..maxBlockHeight && it.box.width >= minWordHeight }
@@ -63,15 +70,31 @@ object SpeechBubbles {
         val blocks = TextBlocks.cluster(words, (pageSide * MAX_WORD_GAP_FRACTION).toInt(), (pageSide * MAX_LINE_GAP_FRACTION).toInt())
             .filter { it.density >= MIN_BLOCK_DENSITY && it.words.any(isLine) }
             .map { it.box }
-        val maxMargin = (pageSide * MAX_MARGIN_FRACTION).toInt()
+        val pageMargin = (pageSide * MAX_MARGIN_FRACTION).toInt()
         val thickPaper = paper.opened(width, height, THICK_PAPER_RADIUS)
         return blocks
-            .map { Blob.grown(it, maxMargin, paper, width, height) }
+            .map { Blob.grown(it, blockReach(it, pageMargin, pageSide), paper, width, height) }
             .let { mergeSharingPaper(it) }
             .filter { !it.touchesBorder(width, height) && it.fill >= MIN_BUBBLE_FILL && it.pixels <= pageArea * MAX_BUBBLE_AREA_FRACTION }
             .filter { min(it.box.width, it.box.height) >= minSide && aspect(it.box) <= MAX_BUBBLE_ASPECT }
-            .filter { hasTextInside(it, isTextLike) && it.inkBoundedShare(thickPaper, width, height) >= MIN_INK_BOUNDED_SHARE }
+            .filter { hasTextInside(it, pageSide) && it.inkBoundedShare(thickPaper, width, height) >= MIN_INK_BOUNDED_SHARE }
             .map { it.silhouette(width, height) }
+    }
+
+    private fun withSolidCore(mask: BooleanArray, width: Int, height: Int): BooleanArray {
+        val core = mask.opened(width, height, NEGATIVE_BODY_RADIUS)
+        val seg = mask.segment(width, height, 1)
+        val hasCore = BooleanArray((seg.components.maxOfOrNull { it.label } ?: -1) + 1)
+        for (i in seg.labels.indices) {
+            val label = seg.labels[i]
+            if (label != NO_LABEL && core[i]) hasCore[label] = true
+        }
+        return BooleanArray(mask.size) { seg.labels[it].let { label -> label != NO_LABEL && hasCore[label] } }
+    }
+
+    private fun blockReach(block: Box, pageMargin: Int, pageSide: Int): Int {
+        val fromBlock = (min(block.width, block.height) * MARGIN_BLOCK_FACTOR).toInt()
+        return fromBlock.coerceIn(pageMargin, (pageSide * MAX_MARGIN_CAP_FRACTION).toInt())
     }
 
     private fun withoutGutters(paper: BooleanArray, width: Int, height: Int): BooleanArray {
@@ -122,18 +145,19 @@ object SpeechBubbles {
         return BooleanArray(paper.size) { open[it] && !reached[it] }
     }
 
-    private fun textLikeHole(pageSide: Int): (Box) -> Boolean {
-        val maxLineHeight = (pageSide * MAX_LINE_HEIGHT_FRACTION).toInt()
-        val maxBlockHeight = (pageSide * MAX_TEXT_BLOCK_HEIGHT_FRACTION).toInt()
-        return { hole -> hole.height <= maxLineHeight || (hole.height <= maxBlockHeight && hole.width >= hole.height * MIN_TEXT_BLOCK_ASPECT) }
-    }
+    private fun textLikeHole(maxLineHeight: Int, maxBlockHeight: Int): (Box) -> Boolean =
+        { hole -> hole.height <= maxLineHeight || (hole.height <= maxBlockHeight && hole.width >= hole.height * MIN_TEXT_BLOCK_ASPECT) }
 
-    private fun hasTextInside(blob: Blob, isTextLike: (Box) -> Boolean): Boolean {
+    private fun hasTextInside(blob: Blob, pageSide: Int): Boolean {
         val holes = blob.interiorHoles()
         val holeCount = holes.count { it }
         val inkShare = holeCount / (blob.pixels + holeCount).toFloat()
         if (inkShare < MIN_INK_SHARE || inkShare > MAX_INK_SHARE) return false
         val lines = holes.segment(blob.box.width, blob.box.height, 1).components
+        val glyphHeight = lines.map { it.box.height }.sorted().let { if (it.isEmpty()) 0 else it[it.size / 2] }
+        val maxLineHeight = max((pageSide * MAX_LINE_HEIGHT_FRACTION).toInt(), (glyphHeight * LOCAL_LINE_HEIGHT_FACTOR).toInt())
+        val maxBlockHeight = max((pageSide * MAX_TEXT_BLOCK_HEIGHT_FRACTION).toInt(), (glyphHeight * LOCAL_BLOCK_HEIGHT_FACTOR).toInt())
+        val isTextLike = textLikeHole(maxLineHeight, maxBlockHeight)
         val lineInk = lines.filter { isTextLike(it.box) }.sumOf { it.pixels }
         return lineInk >= holeCount * MIN_LINE_INK_SHARE
     }

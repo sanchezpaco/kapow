@@ -82,6 +82,23 @@ class SpeechBubblesTest {
         assertTrue(bubblesOf(page).isEmpty())
     }
 
+    private fun SyntheticPage.largeBubble(outer: Box, textBlock: Box, ink: Int = BLACK) = apply {
+        fill(outer, ink)
+        fill(Box(outer.left + 2, outer.top + 2, outer.right - 2, outer.bottom - 2), WHITE)
+        for (y in textBlock.top + 7 until textBlock.bottom - 7 step 6) fill(Box(textBlock.left + 7, y, textBlock.right - 7, y + 3), ink)
+    }
+
+    @Test
+    fun largeBubbleWithSmallCenteredTextGrowsToItsOutline() {
+        val outer = Box(120, 150, 300, 430)
+        val textBlock = Box(150, 185, 270, 395)
+        val page = SyntheticPage(800, 1000).fill(Box(20, 20, 780, 980), RED).largeBubble(outer, textBlock)
+        val found = bubblesOf(page)
+        assertEquals(1, found.size)
+        val box = page.box(found[0].box)
+        assertTrue("$box should grow past the text block toward the outline", box.width >= 150 && box.height >= 230)
+    }
+
     @Test
     fun touchingBubblesMergeIntoOne() {
         val page = SyntheticPage(400, 600).fill(panel, RED)

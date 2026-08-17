@@ -35,7 +35,12 @@ merged at the end: **white** (dark ink on white paper), **cream** (dark ink on
 the pale yellow of caption boxes, so a cream caption never grows into a white
 moon behind it), and **negative** (light ink on `solidDark` — white lettering
 on a solid-black bubble, the mirror of the white pass: the `ink` role is played
-by `white` cells and the paper role by `solidDark`). Steps per tone:
+by `white` cells and the paper role by `solidDark`). The negative tone is first
+restricted to **solid dark bodies**: only `solidDark` components that keep a
+core after an opening (radius 3) are used as paper, so a real filled bubble body
+survives with its interior text intact while the thin strokes of black lettering
+and small dark features (a pupil, a bit of hair) — which have no solid core —
+never act as a bubble and so are not enlarged over the artwork. Steps per tone:
 
 1. **Strip gutters.** Long thin runs of paper (≥ 30 % of the page long, ≤ 1.2 %
    thick) are removed, so a bubble cut by a panel edge no longer merges with an
@@ -52,12 +57,16 @@ by `white` cells and the paper role by `solidDark`). Steps per tone:
    three lines merged by descenders, wider than tall) — a "que/trabajo" pair
    glued by a descender still bridges the block, only real lines prove text.
 4. **Grow the bubble.** From the block, paper is flooded outwards ring by ring
-   (Chebyshev distance to the block box), only within a rounded reach of 2.4 %
-   of the page around the block, stopping as soon as a ring adds less than 1 %
-   of what was reached (creeping along a thin keyline stops; the bubble body
-   is filled row by row even for a tight caption). This is what lets bubbles
-   that overhang tilted keylines, bubbles fused with a white background, or
-   two overlapping bubbles each be found from their own text.
+   (Chebyshev distance to the block box), only within a rounded reach around the
+   block, stopping as soon as a ring adds less than 1 % of what was reached
+   (creeping along a thin keyline stops; the bubble body is filled row by row
+   even for a tight caption). The reach is **scale-invariant**: it grows with
+   the block (0.8 × its shorter side), floored at 2.4 % of the page and capped
+   at 8 %, so a large manga balloon whose text sits far from its outline is
+   still filled to that outline, while small captions keep the tight Marvel
+   reach. This is what lets bubbles that overhang tilted keylines, bubbles
+   fused with a white background, or two overlapping bubbles each be found from
+   their own text.
 5. **Shared paper.** Blobs whose cells overlap (two text blocks inside one
    drawn shape, e.g. a bubble chained to the next with no separator between
    them) are unioned before filtering, so the copy carries both texts instead
@@ -65,7 +74,10 @@ by `white` cells and the paper role by `solidDark`). Steps per tone:
 6. **Bubble filters.** The grown blob must not touch the page border, have a
    compact fill (≥ 35 % of its box), be between 0.05 % and 12 % of the page,
    not thinner than 1.2 % of the page, aspect ≤ 6, have 3–50 % ink inside with
-   ≥ 75 % of it text-like, and be **ink-bounded**: ≥ 60 % of its outer contour
+   ≥ 75 % of it text-like (the text-like line/block heights are the larger of
+   the page fraction and a multiple of the blob's own median glyph height, so
+   the large lettering of manga counts as text just like dense Marvel type),
+   and be **ink-bounded**: ≥ 60 % of its outer contour
    must end on non-paper or on thin paper (an outline, art, a keyline) rather
    than on thick open paper at the reach limit — text sitting on an open white
    background is not a bubble.
@@ -80,10 +92,12 @@ Known limits: lettering-only SFX are not enlarged (their lettering is not
 enclosed by any tone); a bubble fused with a large white area (a moon) is
 found, but its copy carries a bit of that background up to the reach limit, so
 a faint seam can show there. The negative pass trades a small false-positive
-risk for black-bubble support: a dark lattice with regular light gaps (a
-floodlight truss silhouetted against a bright sky) can read as light lettering
-enclosed by dark and be enlarged spuriously — rare, small, and confined to
-genuinely dark artwork (white/cream pages are unaffected).
+risk for black-bubble support; the solid-core restriction removes the common
+cases (black lettering and small dark shapes read as tiny negative bubbles over
+the art), but a large solid dark shape with a light gap — a floodlight truss
+against a bright sky, a big eye or open mouth — still has a core and can be
+enlarged spuriously, rare and confined to genuinely dark artwork (white/cream
+pages are unaffected).
 
 ## Laying out the enlargement (`BubbleLayout`)
 
