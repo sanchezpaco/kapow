@@ -40,6 +40,20 @@ class BubbleLayoutTest {
     }
 
     @Test
+    fun stackedCaptionsGrowUniformlyInsteadOfPinningTheMiddleToOne() {
+        val stacked = listOf(
+            bubble(0.3f, 0.40f, 0.7f, 0.46f),
+            bubble(0.3f, 0.47f, 0.7f, 0.53f),
+            bubble(0.3f, 0.54f, 0.7f, 0.60f),
+        )
+        val enlarged = BubbleLayout.enlarge(stacked, 1.3f)
+        assertTrue("every bubble should grow visibly", enlarged.all { it.scale > 1.1f })
+        assertEquals(enlarged[0].scale, enlarged[1].scale, 0.001f)
+        assertEquals(enlarged[1].scale, enlarged[2].scale, 0.001f)
+        enlarged.forEach { assertCovers(it) }
+    }
+
+    @Test
     fun overlappingOriginalsShrinkRatherThanCoverEachOther() {
         val enlarged = BubbleLayout.enlarge(listOf(bubble(0.4f, 0.4f, 0.6f, 0.5f), bubble(0.4f, 0.5f, 0.6f, 0.6f)), 1.3f)
         assertTrue(enlarged.all { it.scale >= 1f })

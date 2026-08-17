@@ -17,6 +17,11 @@ class SpeechBubblesTest {
         for (y in box.top + 7 until box.bottom - 7 step 6) fill(Box(box.left + 7, y, box.right - 7, y + 3), ink)
     }
 
+    private fun SyntheticPage.negativeBubble(box: Box, body: Int = BLACK, lettering: Int = WHITE) = apply {
+        fill(box, body)
+        for (y in box.top + 7 until box.bottom - 7 step 6) fill(Box(box.left + 7, y, box.right - 7, y + 3), lettering)
+    }
+
     @Test
     fun textBubbleOverArtIsDetectedWithItsBox() {
         val bubble = Box(100, 100, 220, 170)
@@ -60,6 +65,21 @@ class SpeechBubblesTest {
         val box = page.box(found[0].box)
         assertTrue("$box should stay inside the bubble", box.left >= bubble.left - 4 && box.right <= bubble.right + 4 && box.top >= bubble.top - 4)
         assertTrue("$box should cover the text", box.left <= bubble.left + 7 && box.right >= bubble.right - 7 && box.top <= bubble.top + 7 && box.bottom >= 295)
+    }
+
+    @Test
+    fun blackBubbleWithLightLetteringIsDetected() {
+        val bubble = Box(110, 100, 210, 170)
+        val page = SyntheticPage(400, 600).fill(panel, RED).negativeBubble(bubble)
+        val found = bubblesOf(page)
+        assertEquals(1, found.size)
+        assertRoughly(bubble, page.box(found[0].box))
+    }
+
+    @Test
+    fun solidBlackRegionWithoutLetteringIsNotABubble() {
+        val page = SyntheticPage(400, 600).fill(panel, RED).fill(Box(110, 100, 210, 170), BLACK)
+        assertTrue(bubblesOf(page).isEmpty())
     }
 
     @Test

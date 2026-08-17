@@ -2,7 +2,6 @@ package com.comicify.feature.reader.domain
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -10,6 +9,7 @@ import kotlin.math.min
 const val BUBBLE_ENLARGE_SCALE = 1.3f
 val BUBBLE_SCALE_RANGE = 1.1f..2f
 private const val SEPARATION_PASSES = 8
+private const val MIN_ENLARGE_SCALE = 1.15f
 
 data class EnlargedBubble(val bubble: SpeechBubble, val scale: Float, val target: Rect) {
     fun map(point: Offset): Offset = Offset(
@@ -21,19 +21,38 @@ data class EnlargedBubble(val bubble: SpeechBubble, val scale: Float, val target
 object BubbleLayout {
 
     fun enlarge(bubbles: List<SpeechBubble>, scale: Float): List<EnlargedBubble> {
-        val targets = bubbles.map { grown(it.box, scale) }.toMutableList()
-        repeat(SEPARATION_PASSES) { pushApart(targets, bubbles) }
+        if (bubbles.isEmpty()) return emptyList()
+        val floor = min(MIN_ENLARGE_SCALE, scale)
+        val spread = bubbles.map { grown(it.box, scale) }.toMutableList()
+        repeat(SEPARATION_PASSES) { pushApart(spread, bubbles) }
         val scales = FloatArray(bubbles.size) { scale }
-        for (i in bubbles.indices) for (j in i + 1 until bubbles.size) {
-            if (!targets[i].overlaps(targets[j])) continue
-            val limit = separatingScale(targets[i], targets[j], scale)
-            scales[i] = min(scales[i], limit)
-            scales[j] = min(scales[j], limit)
+        for (cluster in clusters(spread)) {
+            if (cluster.size < 2) continue
+            val uniform = clusterScale(cluster, spread, scale).coerceIn(floor, scale)
+            cluster.forEach { scales[it] = uniform }
         }
-        return bubbles.indices.map { index ->
-            val target = if (scales[index] < scale) shrunk(targets[index], scales[index] / scale).covering(bubbles[index].box) else targets[index]
-            EnlargedBubble(bubbles[index], scales[index], target)
+        val targets = bubbles.indices.map { grown(bubbles[it].box, scales[it]) }.toMutableList()
+        repeat(SEPARATION_PASSES) { pushApart(targets, bubbles) }
+        return bubbles.indices.map { EnlargedBubble(bubbles[it], scales[it], targets[it]) }
+    }
+
+    private fun clusters(targets: List<Rect>): Collection<List<Int>> {
+        val parent = IntArray(targets.size) { it }
+        fun root(i: Int): Int = if (parent[i] == i) i else root(parent[i]).also { parent[i] = it }
+        for (i in targets.indices) for (j in i + 1 until targets.size) {
+            if (targets[i].overlaps(targets[j])) parent[root(i)] = root(j)
         }
+        return targets.indices.groupBy { root(it) }.values
+    }
+
+    private fun clusterScale(cluster: List<Int>, spread: List<Rect>, scale: Float): Float {
+        var limit = scale
+        for (i in cluster.indices) for (j in i + 1 until cluster.size) {
+            val a = spread[cluster[i]]
+            val b = spread[cluster[j]]
+            if (a.overlaps(b)) limit = min(limit, separatingScale(a, b, scale))
+        }
+        return limit
     }
 
     private fun pushApart(targets: MutableList<Rect>, bubbles: List<SpeechBubble>) {
@@ -57,12 +76,6 @@ object BubbleLayout {
         val gapX = abs(a.center.x - b.center.x) / ((a.width + b.width) / 2f)
         val gapY = abs(a.center.y - b.center.y) / ((a.height + b.height) / 2f)
         return (max(gapX, gapY) * scale).coerceIn(1f, scale)
-    }
-
-    private fun shrunk(target: Rect, factor: Float): Rect {
-        val width = target.width * factor
-        val height = target.height * factor
-        return Rect(Offset(target.center.x - width / 2f, target.center.y - height / 2f), Size(width, height))
     }
 
     private fun grown(box: Rect, scale: Float): Rect {

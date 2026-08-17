@@ -42,7 +42,8 @@ object SpeechBubbles {
         val cream = BooleanArray(classes.solidPaper.size) { classes.solidPaper[it] && !classes.solidWhite[it] }
         val white = mergeTouching(silhouettes(classes.solidWhite, classes.ink, classes.width, classes.height))
         val captions = mergeTouching(silhouettes(cream, classes.ink, classes.width, classes.height))
-        return mergeOverlapping(white + captions).map { it.toBubble(classes.width, classes.height) }
+        val negatives = mergeTouching(silhouettes(classes.solidDark, classes.white, classes.width, classes.height))
+        return mergeOverlapping(white + captions + negatives).map { it.toBubble(classes.width, classes.height) }
     }
 
     private fun silhouettes(tone: BooleanArray, ink: BooleanArray, width: Int, height: Int): List<Silhouette> {

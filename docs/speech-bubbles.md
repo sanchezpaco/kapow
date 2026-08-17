@@ -21,16 +21,21 @@ thread and cached per page in `PageLoader` (only when the toggle is used).
 
 ## Detecting bubbles (`SpeechBubbles`)
 
-Built on `PixelClasses` (see `guided-view.md`), plus two extra classes:
+Built on `PixelClasses` (see `guided-view.md`), plus three extra classes:
 
 - `solidPaper`: every source pixel in the cell is white **or cream** (the pale
   yellow of Marvel-style caption boxes) — bubble and caption interiors.
+- `solidDark`: every source pixel in the cell is dark and near-neutral (low
+  chroma) — the body of a black/negative bubble.
 - `ink`: some source pixel in the cell is dark — lettering strokes.
 
-Detection is **text-first**: it looks for lettering, then grows the paper
-around it into the bubble. White and cream are processed as two separate tones
-(a cream caption never grows into a white moon behind it); their results are
-merged at the end. Steps per tone:
+Detection is **text-first**: it looks for lettering, then grows the enclosing
+tone around it into the bubble. Three tones are processed independently and
+merged at the end: **white** (dark ink on white paper), **cream** (dark ink on
+the pale yellow of caption boxes, so a cream caption never grows into a white
+moon behind it), and **negative** (light ink on `solidDark` — white lettering
+on a solid-black bubble, the mirror of the white pass: the `ink` role is played
+by `white` cells and the paper role by `solidDark`). Steps per tone:
 
 1. **Strip gutters.** Long thin runs of paper (≥ 30 % of the page long, ≤ 1.2 %
    thick) are removed, so a bubble cut by a panel edge no longer merges with an
@@ -71,10 +76,14 @@ merged at the end. Steps per tone:
    or of any tone whose boxes overlap by ≥ 15 %, are merged into one unit, so
    they grow together instead of covering each other.
 
-Known limits: black/negative bubbles and lettering-only SFX are not enlarged
-(their lettering is not enclosed by paper); a bubble fused with a large white
-area (a moon) is found, but its copy carries a bit of that background up to
-the reach limit, so a faint seam can show there.
+Known limits: lettering-only SFX are not enlarged (their lettering is not
+enclosed by any tone); a bubble fused with a large white area (a moon) is
+found, but its copy carries a bit of that background up to the reach limit, so
+a faint seam can show there. The negative pass trades a small false-positive
+risk for black-bubble support: a dark lattice with regular light gaps (a
+floodlight truss silhouetted against a bright sky) can read as light lettering
+enclosed by dark and be enlarged spuriously — rare, small, and confined to
+genuinely dark artwork (white/cream pages are unaffected).
 
 ## Laying out the enlargement (`BubbleLayout`)
 
@@ -85,13 +94,18 @@ under the HUD buttons while the toggle is on; persisted in DataStore as
 original bubble (the enlarged copy must always contain the original box, so the
 small original never peeks out):
 
-1. Enlarged boxes are clamped inside the page.
-2. Overlapping neighbours are **pushed apart** (up to 8 passes, along the axis
-   with the smaller overlap, half the overlap each), but only as far as the
-   copy still covers its original — stacked captions and dialogue pairs both
-   grow instead of both shrinking.
-3. Pairs that still overlap **shrink** together to the scale at which they just
-   separate (never below 1×), re-anchored to keep covering the original.
+1. Every box is grown to the full scale, clamped inside the page, and
+   **pushed apart** (up to 8 passes, along the axis with the smaller overlap,
+   half the overlap each), but only as far as each copy still covers its
+   original — isolated neighbours separate at full scale and keep it.
+2. Boxes that still overlap after pushing form a **cluster**. The whole cluster
+   is scaled by one **uniform** factor — the tightest pairwise separating scale
+   in the cluster — so a caption sandwiched between two others grows the same
+   as its neighbours instead of being pinned to 1× by the pairwise minimum.
+3. That uniform factor is floored at `MIN_ENLARGE_SCALE` (1.15×, capped at the
+   requested scale) so every bubble grows visibly; in a genuinely tight cluster
+   the copies may then overlap a little, but each still covers its own original.
+4. Members are re-grown at their assigned scale and pushed apart once more.
 
 ## Rendering
 
