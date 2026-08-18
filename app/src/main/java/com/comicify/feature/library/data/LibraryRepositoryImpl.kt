@@ -1,11 +1,13 @@
 package com.comicify.feature.library.data
 
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Log
 import androidx.core.net.toUri
+import com.comicify.R
 import com.comicify.core.storage.ComicDao
 import com.comicify.core.storage.ComicEntity
 import com.comicify.core.storage.LibraryPreferences
@@ -23,6 +25,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val LIBRARY_TAG = "Library"
+private const val SAMPLE_ASSET = "sample.cbz"
+private const val SAMPLE_DIRECTORY = "sample"
 
 @Singleton
 class LibraryRepositoryImpl @Inject constructor(
@@ -46,6 +50,34 @@ class LibraryRepositoryImpl @Inject constructor(
 
     override suspend fun setGrouped(grouped: Boolean) {
         preferences.setGrouped(grouped)
+    }
+
+    override suspend fun seedSampleIfNeeded() {
+        if (preferences.sampleSeeded.first()) return
+        val file = copySampleAsset()
+        val title = context.getString(R.string.sample_comic_title)
+        comicDao.insert(
+            ComicEntity(
+                documentUri = Uri.fromFile(file).toString(),
+                displayName = title,
+                series = title,
+                issueNumber = null,
+                year = null,
+                pageCount = null,
+                coverPath = null,
+                addedAt = System.currentTimeMillis(),
+            ),
+        )
+        preferences.setSampleSeeded()
+    }
+
+    private fun copySampleAsset(): File {
+        val directory = File(context.filesDir, SAMPLE_DIRECTORY).apply { mkdirs() }
+        val file = File(directory, SAMPLE_ASSET)
+        context.assets.open(SAMPLE_ASSET).use { input ->
+            file.outputStream().use { output -> input.copyTo(output) }
+        }
+        return file
     }
 
     override suspend fun setFolder(treeUri: Uri) {
@@ -120,22 +152,36 @@ class LibraryRepositoryImpl @Inject constructor(
 
     override suspend fun deleteComic(comicId: Long): Boolean {
         val comic = comicDao.findById(comicId) ?: return false
-        val deleted = runCatching {
-            DocumentsContract.deleteDocument(context.contentResolver, comic.documentUri.toUri())
-        }.getOrElse { error ->
-            Log.e(LIBRARY_TAG, "Failed to delete ${comic.documentUri}", error)
-            false
+        val deleted = if (isManagedLocally(comic)) {
+            deleteLocalFile(comic.documentUri.toUri())
+        } else {
+            runCatching {
+                DocumentsContract.deleteDocument(context.contentResolver, comic.documentUri.toUri())
+            }.getOrElse { error ->
+                Log.e(LIBRARY_TAG, "Failed to delete ${comic.documentUri}", error)
+                false
+            }
         }
         if (!deleted) return false
         removeComic(comic)
         return true
     }
 
+    private fun deleteLocalFile(uri: Uri): Boolean {
+        val path = uri.path ?: return false
+        val file = File(path)
+        return !file.exists() || file.delete()
+    }
+
     private suspend fun pruneMissing(presentUris: Set<String>) {
         comicDao.getAll().forEach { comic ->
+            if (isManagedLocally(comic)) return@forEach
             if (comic.documentUri !in presentUris) removeComic(comic)
         }
     }
+
+    private fun isManagedLocally(comic: ComicEntity): Boolean =
+        comic.documentUri.toUri().scheme == ContentResolver.SCHEME_FILE
 
     private suspend fun removeComic(comic: ComicEntity) {
         comic.coverPath?.let { File(it).delete() }

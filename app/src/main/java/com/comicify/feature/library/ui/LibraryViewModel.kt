@@ -55,7 +55,10 @@ class LibraryViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState())
 
     init {
-        viewModelScope.launch { repository.generateMissingCovers() }
+        viewModelScope.launch {
+            repository.seedSampleIfNeeded()
+            repository.generateMissingCovers()
+        }
     }
 
     fun onFolderPicked(treeUri: Uri) = runScan { repository.setFolder(treeUri) }

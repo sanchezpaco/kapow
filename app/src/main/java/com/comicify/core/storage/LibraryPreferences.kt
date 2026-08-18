@@ -14,6 +14,7 @@ import javax.inject.Singleton
 private val Context.libraryDataStore by preferencesDataStore(name = "library")
 private val folderUriKey = stringPreferencesKey("folder_uri")
 private val groupedKey = booleanPreferencesKey("grouped_by_series")
+private val sampleSeededKey = booleanPreferencesKey("sample_seeded")
 
 @Singleton
 class LibraryPreferences @Inject constructor(
@@ -22,6 +23,12 @@ class LibraryPreferences @Inject constructor(
     val folderUri: Flow<String?> = context.libraryDataStore.data.map { it[folderUriKey] }
 
     val grouped: Flow<Boolean> = context.libraryDataStore.data.map { it[groupedKey] ?: false }
+
+    val sampleSeeded: Flow<Boolean> = context.libraryDataStore.data.map { it[sampleSeededKey] ?: false }
+
+    suspend fun setSampleSeeded() {
+        context.libraryDataStore.edit { it[sampleSeededKey] = true }
+    }
 
     suspend fun setFolderUri(uri: String) {
         context.libraryDataStore.edit { it[folderUriKey] = uri }

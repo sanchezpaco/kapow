@@ -28,6 +28,21 @@ The home of the collection: import comics, browse covers, resume reading.
 - Scanning stays responsive: each discovered comic is inserted immediately with
   `pageCount`/`coverPath` left null, and covers fill in afterwards (below).
 
+## Sample comic
+
+- A short bundled comic (`assets/sample.cbz`) gives a freshly installed app
+  something to open before the user picks a folder. On first launch
+  `seedSampleIfNeeded` copies it into internal storage
+  (`filesDir/sample/sample.cbz`) and inserts a library row whose `documentUri`
+  is a `file://` Uri, titled from `sample_comic_title`. A `sampleSeeded` flag in
+  `LibraryPreferences` guards it: the seed runs exactly once, so deleting the
+  sample keeps it gone rather than resurrecting it on the next launch.
+- Because its Uri is a locally-managed `file://` (not a SAF `content://`), two
+  paths special-case it: a folder re-scan's prune step skips locally-managed
+  comics (a SAF scan never lists them, so they must not be treated as missing),
+  and **Delete comic** removes the backing file directly instead of through
+  `DocumentsContract`. It reads and deletes like any other comic otherwise.
+
 ## Persistence (Room)
 
 `ComicifyDatabase` (`core/storage`) holds two tables, exposed as Flows through
