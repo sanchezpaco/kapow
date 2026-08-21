@@ -29,13 +29,9 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChanged
@@ -48,17 +44,16 @@ import androidx.compose.ui.unit.dp
 import com.comicify.feature.reader.data.PageArt
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.domain.BubbleLayout
-import com.comicify.feature.reader.domain.EnlargedBubble
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 
 private const val MAX_SCALE = 5f
 private const val DOUBLE_TAP_SCALE = 2.5f
-private val BubbleOutlineWidth = 1.dp
 private val BubbleSpinnerSize = 22.dp
 private val BubbleSpinnerStroke = 2.dp
 private val BubbleSpinnerMargin = 14.dp
-private val BubbleOutlineColor = Color.Black.copy(alpha = 0.35f)
 
 private fun centeredOn(tap: Offset, size: IntSize, scale: Float): Offset {
     val center = Offset(size.width / 2f, size.height / 2f)
@@ -83,7 +78,7 @@ fun ZoomablePage(
     modifier: Modifier = Modifier,
 ) {
     var art by remember(index) { mutableStateOf<PageArt?>(null) }
-    var bubbles by remember(index) { mutableStateOf<List<EnlargedBubble>?>(emptyList()) }
+    var overlay by remember(index) { mutableStateOf<BubbleOverlayState>(BubbleOverlayState.None) }
     var scale by remember(index) { mutableFloatStateOf(1f) }
     var offset by remember(index) { mutableStateOf(Offset.Zero) }
     var flingJob by remember(index) { mutableStateOf<Job?>(null) }
@@ -91,10 +86,12 @@ fun ZoomablePage(
     val decay = remember { exponentialDecay<Offset>(frictionMultiplier = 2.0f) }
 
     LaunchedEffect(index) { art = runCatching { loader.load(index) }.getOrNull() }
-    LaunchedEffect(index, bubbleScale) {
-        if (bubbleScale == null) { bubbles = emptyList(); return@LaunchedEffect }
-        bubbles = null
-        bubbles = runCatching { loader.bubbles(index) }.getOrDefault(emptyList()).let { BubbleLayout.enlarge(it, bubbleScale) }
+    LaunchedEffect(index, bubbleScale, art) {
+        val page = art
+        if (bubbleScale == null || page == null) { overlay = BubbleOverlayState.None; return@LaunchedEffect }
+        overlay = BubbleOverlayState.Loading
+        val enlarged = runCatching { loader.bubbles(index) }.getOrDefault(emptyList()).let { BubbleLayout.enlarge(it, bubbleScale) }
+        overlay = withContext(Dispatchers.Default) { BubbleOverlayState.Ready(BubbleOverlay.render(page.image, enlarged)) }
     }
     LaunchedEffect(scale) { onZoomedChange(scale > 1.01f) }
 
@@ -169,10 +166,10 @@ fun ZoomablePage(
                     }
                     .drawWithContent {
                         drawContent()
-                        drawEnlargedBubbles(page.image, bubbles.orEmpty())
+                        (overlay as? BubbleOverlayState.Ready)?.let { drawOverlay(it.image) }
                     },
             )
-            if (bubbles == null) {
+            if (overlay == BubbleOverlayState.Loading) {
                 CircularProgressIndicator(
                     color = MaterialTheme.colorScheme.primary,
                     strokeWidth = BubbleSpinnerStroke,
@@ -183,32 +180,20 @@ fun ZoomablePage(
     }
 }
 
-private fun ContentDrawScope.drawEnlargedBubbles(image: ImageBitmap, bubbles: List<EnlargedBubble>) {
-    if (bubbles.isEmpty()) return
+private sealed interface BubbleOverlayState {
+    data object None : BubbleOverlayState
+    data object Loading : BubbleOverlayState
+    data class Ready(val image: ImageBitmap) : BubbleOverlayState
+}
+
+private fun ContentDrawScope.drawOverlay(image: ImageBitmap) {
     val fitted = fittedImageRect(image, size)
-    val outline = Stroke(BubbleOutlineWidth.toPx())
-    bubbles.filter { it.scale > 1f }.forEach { item ->
-        val shape = Path().apply {
-            item.bubble.outline.forEachIndexed { i, point ->
-                val at = fitted.toScreen(item.map(point))
-                if (i == 0) moveTo(at.x, at.y) else lineTo(at.x, at.y)
-            }
-            close()
-        }
-        val src = item.bubble.box
-        val dst = fitted.toScreen(item.target)
-        clipPath(shape) {
-            drawImage(
-                image = image,
-                srcOffset = IntOffset((src.left * image.width).toInt(), (src.top * image.height).toInt()),
-                srcSize = IntSize((src.width * image.width).toInt(), (src.height * image.height).toInt()),
-                dstOffset = IntOffset(dst.left.toInt(), dst.top.toInt()),
-                dstSize = IntSize(dst.width.toInt(), dst.height.toInt()),
-                filterQuality = FilterQuality.High,
-            )
-        }
-        drawPath(shape, BubbleOutlineColor, style = outline)
-    }
+    drawImage(
+        image = image,
+        dstOffset = IntOffset(fitted.left.toInt(), fitted.top.toInt()),
+        dstSize = IntSize(fitted.width.toInt(), fitted.height.toInt()),
+        filterQuality = FilterQuality.High,
+    )
 }
 
 private fun fittedImageRect(image: ImageBitmap, viewport: Size): Rect {
@@ -216,7 +201,3 @@ private fun fittedImageRect(image: ImageBitmap, viewport: Size): Rect {
     val fitted = Size(image.width * scale, image.height * scale)
     return Rect(Offset((viewport.width - fitted.width) / 2f, (viewport.height - fitted.height) / 2f), fitted)
 }
-
-private fun Rect.toScreen(point: Offset) = Offset(left + point.x * width, top + point.y * height)
-
-private fun Rect.toScreen(rect: Rect) = Rect(toScreen(rect.topLeft), toScreen(rect.bottomRight))

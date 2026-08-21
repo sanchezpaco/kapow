@@ -8,8 +8,10 @@ import kotlin.math.min
 
 const val BUBBLE_ENLARGE_SCALE = 1.3f
 val BUBBLE_SCALE_RANGE = 1.1f..2f
-private const val SEPARATION_PASSES = 8
+private const val SEPARATION_PASSES = 16
 private const val MIN_ENLARGE_SCALE = 1.15f
+private val COVERAGE_STEPS = listOf(1f, 0.7f, 0.4f)
+private const val RESIDUAL_PUSH_PASSES = 4
 
 data class EnlargedBubble(val bubble: SpeechBubble, val scale: Float, val target: Rect) {
     fun map(point: Offset): Offset = Offset(
@@ -24,7 +26,7 @@ object BubbleLayout {
         if (bubbles.isEmpty()) return emptyList()
         val floor = min(MIN_ENLARGE_SCALE, scale)
         val spread = bubbles.map { grown(it.box, scale) }.toMutableList()
-        repeat(SEPARATION_PASSES) { pushApart(spread, bubbles) }
+        separate(spread, bubbles)
         val scales = FloatArray(bubbles.size) { scale }
         for (cluster in clusters(spread)) {
             if (cluster.size < 2) continue
@@ -32,8 +34,46 @@ object BubbleLayout {
             cluster.forEach { scales[it] = uniform }
         }
         val targets = bubbles.indices.map { grown(bubbles[it].box, scales[it]) }.toMutableList()
-        repeat(SEPARATION_PASSES) { pushApart(targets, bubbles) }
-        return bubbles.indices.map { EnlargedBubble(bubbles[it], scales[it], targets[it]) }
+        separate(targets, bubbles)
+        shrinkResidualOverlaps(targets, bubbles)
+        return bubbles.indices.map { EnlargedBubble(bubbles[it], targets[it].width / bubbles[it].box.width, targets[it]) }
+    }
+
+    private fun separate(targets: MutableList<Rect>, bubbles: List<SpeechBubble>) {
+        for (coverage in COVERAGE_STEPS) {
+            repeat(SEPARATION_PASSES) { pushApart(targets, bubbles, coverage) }
+            if (overlappingPairs(targets).isEmpty()) return
+        }
+    }
+
+    private fun shrinkResidualOverlaps(targets: MutableList<Rect>, bubbles: List<SpeechBubble>) {
+        val coverage = COVERAGE_STEPS.last()
+        repeat(SEPARATION_PASSES) {
+            val overlapping = overlappingPairs(targets)
+            if (overlapping.isEmpty()) return
+            for ((i, j) in overlapping) {
+                val factor = separatingFactor(targets[i], targets[j])
+                targets[i] = targets[i].shrunk(factor, bubbles[i].box, coverage)
+                targets[j] = targets[j].shrunk(factor, bubbles[j].box, coverage)
+            }
+            repeat(RESIDUAL_PUSH_PASSES) { pushApart(targets, bubbles, coverage) }
+        }
+    }
+
+    private fun overlappingPairs(targets: List<Rect>): List<Pair<Int, Int>> =
+        targets.indices.flatMap { i -> (i + 1 until targets.size).filter { j -> targets[i].overlaps(targets[j]) }.map { i to it } }
+
+    private fun separatingFactor(a: Rect, b: Rect): Float {
+        val gapX = abs(a.center.x - b.center.x) / ((a.width + b.width) / 2f)
+        val gapY = abs(a.center.y - b.center.y) / ((a.height + b.height) / 2f)
+        return max(gapX, gapY).coerceAtMost(1f)
+    }
+
+    private fun Rect.shrunk(factor: Float, box: Rect, coverage: Float): Rect {
+        val width = max(box.width, this.width * factor)
+        val height = max(box.height, this.height * factor)
+        return Rect(center.x - width / 2f, center.y - height / 2f, center.x + width / 2f, center.y + height / 2f)
+            .covering(box, coverage).clampedToPage()
     }
 
     private fun clusters(targets: List<Rect>): Collection<List<Int>> {
@@ -55,7 +95,7 @@ object BubbleLayout {
         return limit
     }
 
-    private fun pushApart(targets: MutableList<Rect>, bubbles: List<SpeechBubble>) {
+    private fun pushApart(targets: MutableList<Rect>, bubbles: List<SpeechBubble>, coverage: Float) {
         for (i in targets.indices) for (j in i + 1 until targets.size) {
             val a = targets[i]
             val b = targets[j]
@@ -67,16 +107,12 @@ object BubbleLayout {
             } else {
                 Offset(0f, if (a.center.y <= b.center.y) -overlapY / 2f else overlapY / 2f)
             }
-            targets[i] = a.translate(shift).covering(bubbles[i].box).clampedToPage()
-            targets[j] = b.translate(-shift).covering(bubbles[j].box).clampedToPage()
+            targets[i] = a.translate(shift).covering(bubbles[i].box, coverage).clampedToPage()
+            targets[j] = b.translate(-shift).covering(bubbles[j].box, coverage).clampedToPage()
         }
     }
 
-    private fun separatingScale(a: Rect, b: Rect, scale: Float): Float {
-        val gapX = abs(a.center.x - b.center.x) / ((a.width + b.width) / 2f)
-        val gapY = abs(a.center.y - b.center.y) / ((a.height + b.height) / 2f)
-        return (max(gapX, gapY) * scale).coerceIn(1f, scale)
-    }
+    private fun separatingScale(a: Rect, b: Rect, scale: Float): Float = (separatingFactor(a, b) * scale).coerceAtLeast(1f)
 
     private fun grown(box: Rect, scale: Float): Rect {
         val width = box.width * scale
@@ -84,9 +120,11 @@ object BubbleLayout {
         return Rect(box.center.x - width / 2f, box.center.y - height / 2f, box.center.x + width / 2f, box.center.y + height / 2f).clampedToPage()
     }
 
-    private fun Rect.covering(box: Rect): Rect {
-        val x = min(box.left, max(left, box.right - width))
-        val y = min(box.top, max(top, box.bottom - height))
+    private fun Rect.covering(box: Rect, coverage: Float): Rect {
+        val slackX = box.width * (1f - coverage)
+        val slackY = box.height * (1f - coverage)
+        val x = left.coerceIn(box.right - width - slackX, box.left + slackX)
+        val y = top.coerceIn(box.bottom - height - slackY, box.top + slackY)
         return Rect(x, y, x + width, y + height)
     }
 
