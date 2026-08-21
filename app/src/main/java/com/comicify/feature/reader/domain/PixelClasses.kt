@@ -12,6 +12,7 @@ private const val MAX_BORDER_CHROMA = 40
 private const val BORDER_LINE_RADIUS = 2
 private const val PAPER_LUMINANCE = 215
 private const val INK_LUMINANCE = 100
+private const val LIGHT_LUMINANCE = 155
 private const val SOLID_DARK_LUMINANCE = 75
 private const val SOLID_DARK_CHROMA = 50
 private const val PAPER_MIN_RED = 235
@@ -27,6 +28,7 @@ class PixelClasses(
     val solidPaper: BooleanArray,
     val solidDark: BooleanArray,
     val ink: BooleanArray,
+    val light: BooleanArray,
     val border: BooleanArray,
 ) {
 
@@ -41,6 +43,7 @@ class PixelClasses(
             val solidPaper = BooleanArray(width * height) { true }
             val solidDark = BooleanArray(width * height) { true }
             val ink = BooleanArray(width * height)
+            val light = BooleanArray(width * height)
             val border = BooleanArray(width * height)
             val borderColor = borderColor(pixels, sourceWidth, sourceHeight)
             for (y in 0 until height * pool) {
@@ -56,11 +59,12 @@ class PixelClasses(
                     if (!whitePixel && !isCream(color)) solidPaper[cell] = false
                     if (luminance > SOLID_DARK_LUMINANCE || chroma > SOLID_DARK_CHROMA) solidDark[cell] = false
                     if (luminance <= INK_LUMINANCE) ink[cell] = true
+                    if (luminance >= LIGHT_LUMINANCE) light[cell] = true
                     if (borderColor != null && near(color, borderColor)) border[cell] = true
                 }
             }
             val thickBorder = if (borderColor == null || isWhite(borderColor)) border else border.opened(width, height, BORDER_LINE_RADIUS)
-            return PixelClasses(width, height, white, solidWhite, solidPaper, solidDark, ink, thickBorder)
+            return PixelClasses(width, height, white, solidWhite, solidPaper, solidDark, ink, light, thickBorder)
         }
 
         private fun isWhite(color: Int) = luminance(color) >= WHITE_LUMINANCE && chroma(color) <= WHITE_CHROMA

@@ -1,12 +1,13 @@
 package com.comicify.feature.reader.domain
 
+import androidx.compose.ui.geometry.Offset
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Image
-import java.awt.Polygon
 import java.awt.RenderingHints
+import java.awt.geom.Path2D
 import java.awt.image.BufferedImage
 import java.io.File
 import java.util.Locale
@@ -14,10 +15,11 @@ import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 
 private const val PAGES_DIR_ENV = "COMICIFY_PANEL_VIZ_DIR"
-private const val ANALYSIS_WIDTH = 1000
+private const val ANALYSIS_SIDE = 1000
 private const val TARGET_WIDTH_PX = 2160
 private const val PREVIEW_WIDTH = 1400
 private const val STUCK_SCALE_EPSILON = 0.02f
+private const val PAPER_SAMPLES_PER_AXIS = 12
 
 class SpeechBubbleVisualizer {
 
@@ -30,7 +32,7 @@ class SpeechBubbleVisualizer {
         dir!!.listFiles { f -> f.extension.lowercase() in setOf("jpg", "jpeg", "png") }!!.sorted().forEach { file ->
             val page = contentCropped(subsampledToAnalysis(ImageIO.read(file)))
             val pixels = page.getRGB(0, 0, page.width, page.height, null, 0, page.width)
-            val pool = maxOf(1, (page.width / ANALYSIS_WIDTH.toFloat()).roundToInt())
+            val pool = maxOf(1, (minOf(page.width, page.height) / ANALYSIS_SIDE.toFloat()).roundToInt())
             val started = System.nanoTime()
             val bubbles = SpeechBubbles.detect(pixels, page.width, page.height, pool)
             val millis = (System.nanoTime() - started) / 1_000_000
@@ -104,7 +106,7 @@ class SpeechBubbleVisualizer {
         g.stroke = BasicStroke(2f)
         bubbles.forEach { bubble ->
             g.color = Color(0, 120, 255)
-            g.drawPolygon(polygon(bubble.outline.map { it }, page.width, page.height))
+            g.draw(shape(bubble.outlines, page.width, page.height) { it })
             g.color = Color(255, 0, 255, 160)
             g.drawRect(
                 (bubble.box.left * page.width).roundToInt(), (bubble.box.top * page.height).roundToInt(),
@@ -120,8 +122,13 @@ class SpeechBubbleVisualizer {
         val g = page.createGraphics()
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-        enlarged.filter { it.scale > 1f }.forEach { item ->
-            val shape = polygon(item.bubble.outline.map(item::map), page.width, page.height)
+        val big = enlarged.filter { it.scale > 1f }
+        big.forEach { item ->
+            g.color = paperColor(source, item.bubble)
+            g.fill(shape(item.bubble.outlines, page.width, page.height) { it })
+        }
+        big.forEach { item ->
+            val shape = shape(item.bubble.outlines, page.width, page.height, item::map)
             val src = item.bubble.box
             val dst = item.target
             g.clip = shape
@@ -136,17 +143,29 @@ class SpeechBubbleVisualizer {
             g.clip = null
             g.color = Color(0, 0, 0, 90)
             g.stroke = BasicStroke(2f)
-            g.drawPolygon(shape)
+            g.draw(shape)
         }
         g.dispose()
         return page
     }
 
-    private fun polygon(points: List<androidx.compose.ui.geometry.Offset>, width: Int, height: Int) = Polygon(
-        IntArray(points.size) { (points[it].x * width).roundToInt() },
-        IntArray(points.size) { (points[it].y * height).roundToInt() },
-        points.size,
-    )
+    private fun paperColor(source: BufferedImage, bubble: SpeechBubble): Color {
+        val samples = bubble.interiorSamples(PAPER_SAMPLES_PER_AXIS).map {
+            source.getRGB((it.x * source.width).toInt().coerceIn(0, source.width - 1), (it.y * source.height).toInt().coerceIn(0, source.height - 1))
+        }
+        val sorted = samples.sortedBy { val r = (it shr 16) and 0xff; val g = (it shr 8) and 0xff; val b = it and 0xff; r * 299 + g * 587 + b * 114 }
+        return Color(sorted[sorted.size / 2])
+    }
+
+    private fun shape(outlines: List<List<Offset>>, width: Int, height: Int, map: (Offset) -> Offset) = Path2D.Float().apply {
+        outlines.forEach { outline ->
+            outline.forEachIndexed { i, point ->
+                val at = map(point)
+                if (i == 0) moveTo(at.x * width, at.y * height) else lineTo(at.x * width, at.y * height)
+            }
+            closePath()
+        }
+    }
 
     private fun copy(image: BufferedImage): BufferedImage {
         val target = BufferedImage(image.width, image.height, BufferedImage.TYPE_INT_RGB)

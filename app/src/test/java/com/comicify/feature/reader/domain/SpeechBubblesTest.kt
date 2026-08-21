@@ -19,7 +19,9 @@ class SpeechBubblesTest {
 
     private fun SyntheticPage.negativeBubble(box: Box, body: Int = BLACK, lettering: Int = WHITE) = apply {
         fill(box, body)
-        for (y in box.top + 7 until box.bottom - 7 step 6) fill(Box(box.left + 7, y, box.right - 7, y + 3), lettering)
+        for (y in box.top + 7 until box.bottom - 7 step 6) {
+            for (x in box.left + 7 until box.right - 7 - WORD_WIDTH step WORD_WIDTH + WORD_GAP) fill(Box(x, y, x + WORD_WIDTH, y + 3), lettering)
+        }
     }
 
     @Test
@@ -29,7 +31,7 @@ class SpeechBubblesTest {
         val found = bubblesOf(page)
         assertEquals(1, found.size)
         assertRoughly(bubble, page.box(found[0].box))
-        assertTrue(found[0].outline.size >= 4)
+        assertTrue(found[0].outlines.single().size >= 4)
     }
 
     @Test
@@ -100,10 +102,16 @@ class SpeechBubblesTest {
     }
 
     @Test
-    fun touchingBubblesMergeIntoOne() {
+    fun touchingBubblesStaySeparate() {
         val page = SyntheticPage(400, 600).fill(panel, RED)
             .textBubble(Box(100, 100, 220, 170)).textBubble(Box(218, 120, 330, 190))
-        assertEquals(1, bubblesOf(page).size)
+        assertEquals(2, bubblesOf(page).size)
+    }
+
+    @Test
+    fun rectangularBubbleOutlineHasFourCorners() {
+        val page = SyntheticPage(400, 600).fill(panel, RED).textBubble(Box(100, 100, 220, 170))
+        assertEquals(4, bubblesOf(page).single().outlines.single().size)
     }
 
     private fun assertRoughly(expected: Box, actual: Box, tolerance: Int = 6) {
@@ -113,3 +121,6 @@ class SpeechBubblesTest {
             kotlin.math.abs(expected.bottom - actual.bottom) <= tolerance)
     }
 }
+
+private const val WORD_WIDTH = 14
+private const val WORD_GAP = 3
