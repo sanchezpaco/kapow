@@ -111,7 +111,13 @@ never act as a bubble and so are not enlarged over the artwork. Steps per tone:
    ink inside with ≥ 75 % of it text-like
    (line/block heights are the larger of the page fraction and a multiple of
    the blob's own median glyph height, so large manga lettering counts like
-   dense Marvel type). Otherwise the text still enlarges: the unit becomes the
+   dense Marvel type). A dark body must also be **lettered**: at least 60 %
+   of the cells in its interior holes are `light` (`minHoleInkShare`, dark
+   tone only). A black bubble's holes are its lettering; an open mouth's holes
+   are a tongue and gums around a row of teeth (19–55 % light on the
+   Venomverse pages versus ≥ 67 % for every real black bubble), and such a
+   body is dropped outright — it never falls back to a padded rect.
+   Otherwise the text still enlarges: the unit becomes the
    block padded by 1.2 × its glyph height (`Blob.filled`, enough to enclose the
    drawn outline of a bubble sitting on a white page margin), provided ≥ 60 %
    of the padding ring is paper (`MIN_MARGIN_PAPER_SHARE` — text must sit on

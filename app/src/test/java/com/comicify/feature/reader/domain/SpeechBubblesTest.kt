@@ -84,6 +84,15 @@ class SpeechBubblesTest {
         assertTrue(bubblesOf(page).isEmpty())
     }
 
+    @Test
+    fun darkShapeWhoseHolesAreMostlyNotLetteringIsNotABubble() {
+        val mouth = Box(60, 100, 170, 220)
+        val teeth = Box(60, 100, 170, 140)
+        val tongue = Box(80, 140, 150, 151)
+        val page = SyntheticPage(400, 600).fill(panel, RED).fill(mouth, BLACK).negativeBubble(teeth).fill(tongue, RED)
+        assertTrue(bubblesOf(page).isEmpty())
+    }
+
     private fun SyntheticPage.largeBubble(outer: Box, textBlock: Box, ink: Int = BLACK) = apply {
         fill(outer, ink)
         fill(Box(outer.left + 2, outer.top + 2, outer.right - 2, outer.bottom - 2), WHITE)

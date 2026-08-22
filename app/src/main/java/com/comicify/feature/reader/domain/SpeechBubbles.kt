@@ -31,8 +31,8 @@ private const val NEGATIVE_BODY_RADIUS = 3
 private const val MIN_LINE_PIXELS = 4
 private const val MIN_WORD_HEIGHT_FRACTION = 0.004f
 private const val MIN_BLOCK_DENSITY = 0.25f
-private val INK_ON_PAPER = BlockRules(minWords = 2, maxDensity = Float.MAX_VALUE, narrowRelativeTo = NarrowRelativeTo.RINGS)
-private val LIGHT_ON_DARK = BlockRules(minWords = 4, maxDensity = 1f, narrowRelativeTo = NarrowRelativeTo.AREA)
+private val INK_ON_PAPER = BlockRules(minWords = 2, maxDensity = Float.MAX_VALUE, minHoleInkShare = 0f, narrowRelativeTo = NarrowRelativeTo.RINGS)
+private val LIGHT_ON_DARK = BlockRules(minWords = 4, maxDensity = 1f, minHoleInkShare = 0.6f, narrowRelativeTo = NarrowRelativeTo.AREA)
 private const val OVERSIZED_WORD_FACTOR = 2
 private const val MAX_OVERSIZED_WORD_SHARE = 0.5f
 private const val MIN_MARGIN_PAPER_SHARE = 0.6f
@@ -105,9 +105,10 @@ object SpeechBubbles {
         val foreignInk = { block: TextBlock, box: Box -> inkHoles.any { it.box !in block.words && it.box.intersectionArea(box) > 0 } }
         val fallback = { block: TextBlock -> paddedText(block, paper, foreignInk, pageSide, width, height) }
         val cutWords = { blob: Blob -> blob.cut(words, holes.labels, width) }
-        val grow = { seed: List<Box> -> container(seed, paper, rules, cutWords, pageMargin, pageArea, pageSide, minSide, width, height) }
+        val isLettered = { blob: Blob -> blob.holeInkShare(ink, width) >= rules.minHoleInkShare }
+        val grow = { seed: List<Box> -> container(seed, paper, isLettered, cutWords, rules.narrowRelativeTo, pageMargin, pageArea, pageSide, minSide, width, height) }
         val contained = blocks.map { block -> Containment(block, grow(block.words)) }
-        val loose = contained.filter { it.container == null }.mapNotNull { fallback(it.block) }
+        val loose = contained.filter { it.container == null && it.lettered }.mapNotNull { fallback(it.block) }
         val whole = mergeSharingPaper(contained.filter { it.container != null }).flatMap { group ->
             val container = group.container!!
             if (cutWords(container).isEmpty()) return@flatMap listOf(container)
@@ -118,20 +119,22 @@ object SpeechBubbles {
     }
 
     private fun rejoined(
-        seed: List<Box>, container: Blob, words: List<Component>, grow: (List<Box>) -> Blob?, cutWords: (Blob) -> List<Component>,
+        seed: List<Box>, container: Blob, words: List<Component>, grow: (List<Box>) -> Candidate, cutWords: (Blob) -> List<Component>,
     ): Blob? {
         var extended = seed
         var current = container
         repeat(MAX_SEED_EXTENSIONS) {
             extended = (extended + words.filter { it.box.intersectionArea(current.box) > 0 }.map { it.box }).distinct()
-            current = grow(extended) ?: return null
+            current = grow(extended).container ?: return null
             if (cutWords(current).isEmpty()) return current
         }
         return null
     }
 
-    private class Containment(val blocks: List<TextBlock>, val container: Blob?) {
-        constructor(block: TextBlock, container: Blob?) : this(listOf(block), container)
+    private class Candidate(val container: Blob?, val lettered: Boolean)
+
+    private class Containment(val blocks: List<TextBlock>, val container: Blob?, val lettered: Boolean = true) {
+        constructor(block: TextBlock, candidate: Candidate) : this(listOf(block), candidate.container, candidate.lettered)
 
         val block: TextBlock get() = blocks.single()
 
@@ -139,16 +142,17 @@ object SpeechBubbles {
     }
 
     private fun container(
-        words: List<Box>, paper: BooleanArray, rules: BlockRules, cutWords: (Blob) -> List<Component>,
+        words: List<Box>, paper: BooleanArray, isLettered: (Blob) -> Boolean, cutWords: (Blob) -> List<Component>, narrowRelativeTo: NarrowRelativeTo,
         pageMargin: Int, pageArea: Int, pageSide: Int, minSide: Int, width: Int, height: Int,
-    ): Blob? {
+    ): Candidate {
         val seed = words.reduce(Box::union)
         val isClean = { blob: Blob -> isCleanContainer(blob, seed, pageArea, pageSide, minSide, width, height) }
-        val near = Blob.grown(words, blockReach(seed, pageMargin, pageSide), paper, rules.narrowRelativeTo, width, height)
-        if (isClean(near.blob) && !near.reachLimited) return near.blob
-        val far = Blob.grown(words, maxReach(pageSide), paper, rules.narrowRelativeTo, width, height).blob
-        if (isClean(far) && cutWords(far).isEmpty()) return far
-        return near.blob.takeIf(isClean)
+        val near = Blob.grown(words, blockReach(seed, pageMargin, pageSide), paper, narrowRelativeTo, width, height)
+        if (!isLettered(near.blob)) return Candidate(null, lettered = false)
+        if (isClean(near.blob) && !near.reachLimited) return Candidate(near.blob, lettered = true)
+        val far = Blob.grown(words, maxReach(pageSide), paper, narrowRelativeTo, width, height).blob
+        if (isClean(far) && cutWords(far).isEmpty()) return Candidate(far, lettered = true)
+        return Candidate(near.blob.takeIf(isClean), lettered = true)
     }
 
     private fun paddedText(
@@ -320,6 +324,18 @@ private class Blob(val box: Box, val cells: BooleanArray) {
             contains(x, y) || other.contains(x, y)
         }
         return Blob(joined, cells)
+    }
+
+    fun holeInkShare(ink: BooleanArray, width: Int): Float {
+        val holes = interiorHoles()
+        var total = 0
+        var inked = 0
+        for (i in holes.indices) {
+            if (!holes[i]) continue
+            total++
+            if (ink[(box.top + i / box.width) * width + box.left + i % box.width]) inked++
+        }
+        return if (total == 0) 0f else inked / total.toFloat()
     }
 
     fun interiorHoles(): BooleanArray {
@@ -542,7 +558,7 @@ private class Blob(val box: Box, val cells: BooleanArray) {
 
 private enum class NarrowRelativeTo { RINGS, AREA }
 
-private class BlockRules(val minWords: Int, val maxDensity: Float, val narrowRelativeTo: NarrowRelativeTo) {
+private class BlockRules(val minWords: Int, val maxDensity: Float, val minHoleInkShare: Float, val narrowRelativeTo: NarrowRelativeTo) {
     fun accept(block: TextBlock) = block.words.size >= minWords && block.density in MIN_BLOCK_DENSITY..maxDensity && block.isTextShaped
 }
 
