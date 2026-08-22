@@ -11,7 +11,7 @@ class BubbleLayoutTest {
 
     private fun bubble(left: Float, top: Float, right: Float, bottom: Float): SpeechBubble {
         val box = Rect(left, top, right, bottom)
-        return SpeechBubble(box, listOf(box.topLeft, box.topRight, box.bottomRight, box.bottomLeft))
+        return SpeechBubble(box, listOf(listOf(box.topLeft, box.topRight, box.bottomRight, box.bottomLeft)))
     }
 
     @Test
@@ -21,6 +21,30 @@ class BubbleLayoutTest {
         assertEquals(Offset(0.5f, 0.45f), enlarged.target.center)
         assertEquals(0.3f, enlarged.target.width, 0.001f)
         assertEquals(Offset(0.35f, 0.375f), enlarged.map(Offset(0.4f, 0.4f)))
+    }
+
+    @Test
+    fun copyStaysInsideTheBubblesPanel() {
+        val panels = listOf(Rect(0f, 0f, 0.5f, 1f), Rect(0.5f, 0f, 1f, 1f))
+        val enlarged = BubbleLayout.enlarge(listOf(bubble(0.3f, 0.4f, 0.48f, 0.5f)), 1.5f, panels).single()
+        assertEquals(1.5f, enlarged.scale, 0.001f)
+        assertEquals(0.5f, enlarged.target.right, 0.001f)
+    }
+
+    @Test
+    fun copyShrinksToFitANarrowPanel() {
+        val panels = listOf(Rect(0f, 0f, 0.3f, 1f), Rect(0.3f, 0f, 1f, 1f))
+        val enlarged = BubbleLayout.enlarge(listOf(bubble(0.02f, 0.4f, 0.26f, 0.5f)), 1.5f, panels).single()
+        assertEquals(1.25f, enlarged.scale, 0.001f)
+        assertTrue(enlarged.target.left >= 0f && enlarged.target.right <= 0.3f)
+    }
+
+    @Test
+    fun overhangingBubbleKeepsItsOwnBoxAsBounds() {
+        val panels = listOf(Rect(0f, 0f, 0.5f, 1f), Rect(0.5f, 0f, 1f, 1f))
+        val enlarged = BubbleLayout.enlarge(listOf(bubble(0.3f, 0.4f, 0.6f, 0.5f)), 1.3f, panels).single()
+        assertEquals(1.3f, enlarged.scale, 0.001f)
+        assertTrue(enlarged.target.right <= 0.6f)
     }
 
     @Test
@@ -40,10 +64,41 @@ class BubbleLayoutTest {
     }
 
     @Test
+    fun stackedCaptionsGrowUniformlyInsteadOfPinningTheMiddleToOne() {
+        val stacked = listOf(
+            bubble(0.3f, 0.40f, 0.7f, 0.46f),
+            bubble(0.3f, 0.47f, 0.7f, 0.53f),
+            bubble(0.3f, 0.54f, 0.7f, 0.60f),
+        )
+        val enlarged = BubbleLayout.enlarge(stacked, 1.3f)
+        assertTrue("every bubble should grow visibly", enlarged.all { it.scale > 1.1f })
+        assertEquals(enlarged[0].scale, enlarged[1].scale, 0.001f)
+        assertEquals(enlarged[1].scale, enlarged[2].scale, 0.001f)
+        enlarged.forEach { assertCovers(it) }
+    }
+
+    @Test
     fun overlappingOriginalsShrinkRatherThanCoverEachOther() {
         val enlarged = BubbleLayout.enlarge(listOf(bubble(0.4f, 0.4f, 0.6f, 0.5f), bubble(0.4f, 0.5f, 0.6f, 0.6f)), 1.3f)
         assertTrue(enlarged.all { it.scale >= 1f })
         enlarged.forEach { assertCovers(it) }
+    }
+
+    @Test
+    fun crowdedClusterEndsWithoutOverlappingCopies() {
+        val crowded = listOf(
+            bubble(0.50f, 0.30f, 0.70f, 0.38f),
+            bubble(0.72f, 0.31f, 0.90f, 0.39f),
+            bubble(0.55f, 0.39f, 0.75f, 0.47f),
+            bubble(0.76f, 0.40f, 0.95f, 0.48f),
+            bubble(0.60f, 0.48f, 0.80f, 0.56f),
+            bubble(0.81f, 0.49f, 0.99f, 0.57f),
+        )
+        val enlarged = BubbleLayout.enlarge(crowded, 1.3f)
+        for (i in enlarged.indices) for (j in i + 1 until enlarged.size) {
+            assertFalse("$i and $j overlap", enlarged[i].target.overlaps(enlarged[j].target))
+        }
+        assertTrue(enlarged.all { it.scale > 1f })
     }
 
     private fun assertCovers(enlarged: EnlargedBubble) {

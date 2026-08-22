@@ -10,6 +10,7 @@ interface LibraryRepository {
     val grouped: Flow<Boolean>
     suspend fun setFolder(treeUri: Uri)
     suspend fun setGrouped(grouped: Boolean)
+    suspend fun seedSampleIfNeeded()
     suspend fun refresh()
     suspend fun generateMissingCovers()
     suspend fun saveProgress(comicId: Long, pageIndex: Int, pageCount: Int)

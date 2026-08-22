@@ -13,7 +13,7 @@ import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 
 private const val PAGES_DIR_ENV = "COMICIFY_PANEL_VIZ_DIR"
-private const val ANALYSIS_WIDTH = 1000
+private const val ANALYSIS_SIDE = 1000
 
 class PanelDetectionVisualizer {
 
@@ -25,7 +25,7 @@ class PanelDetectionVisualizer {
         dir!!.listFiles { f -> f.extension.lowercase() in setOf("jpg", "jpeg", "png") }!!.sorted().forEach { file ->
             val source = ImageIO.read(file)
             val pixels = source.getRGB(0, 0, source.width, source.height, null, 0, source.width)
-            val pool = maxOf(1, (source.width / ANALYSIS_WIDTH.toFloat()).roundToInt())
+            val pool = maxOf(1, (minOf(source.width, source.height) / ANALYSIS_SIDE.toFloat()).roundToInt())
             val started = System.nanoTime()
             val panels = PanelDetection.detect(pixels, source.width, source.height, pool)
             val millis = (System.nanoTime() - started) / 1_000_000

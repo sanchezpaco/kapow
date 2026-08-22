@@ -6,9 +6,10 @@ import com.comicify.feature.reader.domain.PanelDetection
 import com.comicify.feature.reader.domain.SpeechBubble
 import com.comicify.feature.reader.domain.SpeechBubbles
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 
-private const val ANALYSIS_WIDTH = 1000
+private const val ANALYSIS_SIDE = 1000
 
 object PanelDetector {
 
@@ -21,7 +22,7 @@ object PanelDetector {
     private fun <T> analyze(bitmap: Bitmap, detect: (IntArray, Int) -> T): T {
         val pixels = IntArray(bitmap.width * bitmap.height)
         bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-        val pool = max(1, (bitmap.width / ANALYSIS_WIDTH.toFloat()).roundToInt())
+        val pool = max(1, (min(bitmap.width, bitmap.height) / ANALYSIS_SIDE.toFloat()).roundToInt())
         return detect(pixels, pool)
     }
 }

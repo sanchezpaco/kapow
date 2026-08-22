@@ -20,6 +20,8 @@ data class Box(val left: Int, val top: Int, val right: Int, val bottom: Int) {
         return dx * dx + dy * dy
     }
 
+    fun covers(other: Box) = left <= other.left && top <= other.top && right >= other.right && bottom >= other.bottom
+
     fun intersect(other: Box) = Box(max(left, other.left), max(top, other.top), min(right, other.right), min(bottom, other.bottom))
 
     fun union(other: Box) = Box(min(left, other.left), min(top, other.top), max(right, other.right), max(bottom, other.bottom))
