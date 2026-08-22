@@ -59,9 +59,13 @@ never act as a bubble and so are not enlarged over the artwork. Steps per tone:
    axis-aligned white gutter.
 2. **Words.** Non-paper cells enclosed by paper (not reachable from the page
    border) are segmented; a component is a *word* when it is between 0.4 % and
-   4.5 % of the page tall, at least 0.4 % wide, and at least half of it is
-   `ink`. The ink test is what separates lettering from sky showing through
-   clouds or moon texture.
+   4.5 % of the page tall, at least 0.4 % wide, and enough of it is `ink`:
+   40 % for dark lettering on paper, 50 % for light lettering in a dark body
+   (`BlockRules.minWordInkShare`). The ink test is what separates lettering
+   from sky showing through clouds or moon texture. The paper threshold is
+   lower because scanned print (1980s Aliens at 1282 px, 15-px letters) leaves
+   an anti-aliased grey fringe around every stroke, and whole pages of plain
+   white bubbles sat at 0.40-0.49 and were never seen.
 3. **Text blocks.** Words within a word gap horizontally (0.8 % of the page)
    and a line gap vertically (1.2 %) **and sitting on the same connected paper
    region** are clustered (union-find). The paper test is what keeps the texts

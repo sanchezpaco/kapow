@@ -33,8 +33,8 @@ private const val NEGATIVE_BODY_RADIUS = 3
 private const val MIN_LINE_PIXELS = 4
 private const val MIN_WORD_HEIGHT_FRACTION = 0.004f
 private const val MIN_BLOCK_DENSITY = 0.25f
-private val INK_ON_PAPER = BlockRules(minWords = 2, maxDensity = Float.MAX_VALUE, minHoleInkShare = 0f, stripsBorderLines = false, narrowRelativeTo = NarrowRelativeTo.RINGS)
-private val LIGHT_ON_DARK = BlockRules(minWords = 4, maxDensity = 1f, minHoleInkShare = 0.6f, stripsBorderLines = true, narrowRelativeTo = NarrowRelativeTo.AREA)
+private val INK_ON_PAPER = BlockRules(minWords = 2, maxDensity = Float.MAX_VALUE, minWordInkShare = 0.4f, minHoleInkShare = 0f, stripsBorderLines = false, narrowRelativeTo = NarrowRelativeTo.RINGS)
+private val LIGHT_ON_DARK = BlockRules(minWords = 4, maxDensity = 1f, minWordInkShare = 0.5f, minHoleInkShare = 0.6f, stripsBorderLines = true, narrowRelativeTo = NarrowRelativeTo.AREA)
 private const val OVERSIZED_WORD_FACTOR = 2
 private const val MAX_OVERSIZED_WORD_SHARE = 0.5f
 private const val MIN_MARGIN_PAPER_SHARE = 0.6f
@@ -43,7 +43,6 @@ private const val MARGIN_BLOCK_FACTOR = 0.8f
 private const val MAX_MARGIN_CAP_FRACTION = 0.08f
 private const val MIN_GROWTH_SHARE = 0.01f
 private const val MAX_SEED_EXTENSIONS = 5
-private const val MIN_WORD_INK_SHARE = 0.5f
 private const val MIN_OVERLAP_TO_MERGE = 0.15f
 private const val GUTTER_MIN_RUN_FRACTION = 0.3f
 private const val GUTTER_MAX_THICKNESS_FRACTION = 0.012f
@@ -98,7 +97,7 @@ object SpeechBubbles {
         val holes = enclosedHoles(paper, width, height).segment(width, height, MIN_LINE_PIXELS)
         val inkPerHole = inkPerLabel(holes, ink)
         val isLine = { box: Box -> isTextLike(box) && box.height >= minWordHeight && box.width >= box.height * MIN_LINE_ASPECT }
-        val inkHoles = holes.components.filter { inkPerHole[it.label] >= it.pixels * MIN_WORD_INK_SHARE }
+        val inkHoles = holes.components.filter { inkPerHole[it.label] >= it.pixels * rules.minWordInkShare }
         val words = inkHoles.filter { it.box.height in minWordHeight..maxBlockHeight && it.box.width >= minWordHeight }
         val paperLabels = paper.segment(width, height, 1).labels
         val surroundings = words.map { paperLabels[cellAbove(it, holes.labels, width)] }
@@ -596,7 +595,7 @@ private class Blob(val box: Box, val cells: BooleanArray) {
 private enum class NarrowRelativeTo { RINGS, AREA }
 
 private class BlockRules(
-    val minWords: Int, val maxDensity: Float, val minHoleInkShare: Float, val stripsBorderLines: Boolean, val narrowRelativeTo: NarrowRelativeTo,
+    val minWords: Int, val maxDensity: Float, val minWordInkShare: Float, val minHoleInkShare: Float, val stripsBorderLines: Boolean, val narrowRelativeTo: NarrowRelativeTo,
 ) {
     fun accept(block: TextBlock) = block.words.size >= minWords && block.density in MIN_BLOCK_DENSITY..maxDensity && block.isTextShaped
 }

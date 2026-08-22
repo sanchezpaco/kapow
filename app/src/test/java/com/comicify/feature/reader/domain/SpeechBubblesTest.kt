@@ -24,6 +24,24 @@ class SpeechBubblesTest {
         }
     }
 
+    private fun SyntheticPage.scannedTextBubble(box: Box) = apply {
+        fill(box, BLACK)
+        fill(Box(box.left + 2, box.top + 2, box.right - 2, box.bottom - 2), WHITE)
+        for (y in box.top + 7 until box.bottom - 9 step 8) {
+            fill(Box(box.left + 7, y, box.right - 7, y + 5), SCAN_GREY)
+            fill(Box(box.left + 7, y + 1, box.right - 7, y + 3), BLACK)
+        }
+    }
+
+    @Test
+    fun scannedLetteringWithGreyFringeIsStillDetected() {
+        val bubble = Box(100, 100, 220, 170)
+        val page = SyntheticPage(400, 600).fill(panel, RED).scannedTextBubble(bubble)
+        val found = bubblesOf(page)
+        assertEquals(1, found.size)
+        assertRoughly(bubble, page.box(found[0].box))
+    }
+
     @Test
     fun textBubbleOverArtIsDetectedWithItsBox() {
         val bubble = Box(100, 100, 220, 170)
@@ -157,5 +175,6 @@ class SpeechBubblesTest {
 
 private const val OUTLINE_MARGIN = 2
 private const val SKY = 0xFF80A0FF.toInt()
+private const val SCAN_GREY = 0xFF8C8C8C.toInt()
 private const val WORD_WIDTH = 14
 private const val WORD_GAP = 3
