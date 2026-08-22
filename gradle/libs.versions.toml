@@ -16,6 +16,7 @@ coil = "3.5.0"
 palette = "1.0.0"
 coroutines = "1.10.2"
 sevenzip = "Release-16.02-2.03"
+onnxruntime = "1.20.0"
 junit = "4.13.2"
 androidxTestJunit = "1.3.0"
 espresso = "3.7.0"
@@ -54,6 +55,7 @@ androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-com
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 androidx-palette = { module = "androidx.palette:palette-ktx", version.ref = "palette" }
 sevenzip = { module = "com.github.omicronapps:7-Zip-JBinding-4Android", version.ref = "sevenzip" }
+onnxruntime-android = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnxruntime" }
 
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }

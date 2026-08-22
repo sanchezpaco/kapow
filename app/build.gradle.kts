@@ -67,6 +67,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.androidx.palette)
     implementation(libs.sevenzip)
+    implementation(libs.onnxruntime.android)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
