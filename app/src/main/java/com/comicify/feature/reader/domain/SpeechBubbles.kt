@@ -20,6 +20,8 @@ private const val MIN_BLOCK_ASPECT = 0.6f
 private const val MIN_TALL_BLOCK_DENSITY = 0.4f
 private const val MIN_LINE_INK_SHARE = 0.75f
 private const val OUTLINE_MARGIN = 2
+private const val MAX_RIM_FRACTION = 0.015f
+private const val MIN_RIM_INK_SHARE = 0.35f
 private const val OUTLINE_TOLERANCE = 0.75f
 private const val MAX_WORD_GAP_FRACTION = 0.008f
 private const val MAX_LINE_GAP_FRACTION = 0.012f
@@ -116,7 +118,11 @@ object SpeechBubbles {
             val rejoined = rejoined(group.blocks.flatMap { it.words }, container, words, grow, cutWords)
             if (rejoined != null) listOf(rejoined) else group.blocks.mapNotNull(fallback)
         }
-        return (whole + loose).map { blob -> (borderLines?.let { blob.without(it, width) } ?: blob).dilated(OUTLINE_MARGIN, width, height) }
+        val maxRim = (pageSide * MAX_RIM_FRACTION).toInt()
+        return (whole + loose).map { blob ->
+            val trimmed = borderLines?.let { blob.without(it, width) } ?: blob
+            trimmed.dilated(max(OUTLINE_MARGIN, trimmed.rimThickness(ink, maxRim, width, height)), width, height)
+        }
     }
 
     private fun rejoined(
@@ -404,14 +410,28 @@ private class Blob(val box: Box, val cells: BooleanArray) {
 
     fun dilated(margin: Int, width: Int, height: Int): Blob {
         val grown = box.inflate(margin, width, height)
-        val cells = BooleanArray(grown.area) { i ->
-            val x = grown.left + i % grown.width
-            val y = grown.top + i / grown.width
-            (max(box.top, y - margin)..min(box.bottom - 1, y + margin)).any { row ->
-                (max(box.left, x - margin)..min(box.right - 1, x + margin)).any { col -> contains(col, row) }
-            }
-        }
+        var cells = BooleanArray(grown.area) { contains(grown.left + it % grown.width, grown.top + it / grown.width) }
+        repeat(margin) { cells = cells.dilatedByOne(grown.width, grown.height) }
         return Blob(grown, cells)
+    }
+
+    fun rimThickness(ink: BooleanArray, maxRim: Int, width: Int, height: Int): Int {
+        val frame = box.inflate(maxRim, width, height)
+        var current = BooleanArray(frame.area) { contains(frame.left + it % frame.width, frame.top + it / frame.width) }
+        var lastDense = 0
+        for (thickness in 1..maxRim) {
+            val next = current.dilatedByOne(frame.width, frame.height)
+            var ring = 0
+            var inked = 0
+            for (i in next.indices) {
+                if (!next[i] || current[i]) continue
+                ring++
+                if (ink[(frame.top + i / frame.width) * width + frame.left + i % frame.width]) inked++
+            }
+            if (inked >= ring * MIN_RIM_INK_SHARE) lastDense = thickness
+            current = next
+        }
+        return if (lastDense == maxRim) 0 else lastDense
     }
 
     fun toBubble(width: Int, height: Int): SpeechBubble =
@@ -607,6 +627,13 @@ private object TextBlocks {
 
     private fun near(a: Box, b: Box, wordGap: Int, lineGap: Int) =
         a.left <= b.right + wordGap && b.left <= a.right + wordGap && a.top <= b.bottom + lineGap && b.top <= a.bottom + lineGap
+}
+
+private fun BooleanArray.dilatedByOne(w: Int, h: Int): BooleanArray = BooleanArray(size) { i ->
+    val x = i % w
+    this[i] || (x > 0 && this[i - 1]) || (x < w - 1 && this[i + 1]) || (i >= w && this[i - w]) || (i < size - w && this[i + w]) ||
+        (x > 0 && i >= w && this[i - w - 1]) || (x < w - 1 && i >= w && this[i - w + 1]) ||
+        (x > 0 && i < size - w && this[i + w - 1]) || (x < w - 1 && i < size - w && this[i + w + 1])
 }
 
 private inline fun floodFrom(open: BooleanArray, reached: BooleanArray, w: Int, h: Int, isSeed: (Int) -> Boolean) {

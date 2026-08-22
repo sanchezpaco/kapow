@@ -149,7 +149,15 @@ never act as a bubble and so are not enlarged over the artwork. Steps per tone:
    landed as a comb in the white gutter. This is done on the finished blob,
    not on the paper mask, so words and enclosure are unchanged (stripping
    the mask fragmented a recap page's black background into new false
-   containers). The blob is then inflated by 2 cells so the drawn outline stroke is
+   containers). The blob is then inflated by its **rim thickness**, at least 2 cells so the
+   drawn outline stroke is included: the ink density of successive one-cell
+   rings around the blob is measured up to 1.5 % of the page, and the rim is
+   the last ring still ≥ 35 % ink (gaps inside a ragged rim are tolerated — a
+   whisper bubble's rim is a halo of detached fragments with grey between
+   them); a rim that is still dense at the cap is dark art around the bubble,
+   not a rim, and the default margin stands. Without this the copy of a
+   ragged-rim bubble was a plain white blob and the original rim showed around
+   it so the drawn outline stroke is
    included, and the exact contour of each of its connected components is
    traced (crack following along cell edges, corners only) into a polygon
    (`SpeechBubble.outlines`, normalized). The contour is exact on purpose: a

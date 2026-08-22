@@ -85,6 +85,19 @@ class SpeechBubblesTest {
     }
 
     @Test
+    fun raggedRimAroundABubbleIsPartOfItsOutline() {
+        val bubble = Box(200, 200, 360, 300)
+        val page = SyntheticPage(800, 1000).fill(Box(20, 20, 780, 980), SKY).textBubble(bubble)
+        for (y in bubble.top - 8 until bubble.bottom + 8 step 4) for (x in bubble.left - 8 until bubble.right + 8 step 4) {
+            if (!bubble.inflate(2, page.width, page.height).contains(x, y)) page.fill(Box(x, y, x + 3, y + 3), BLACK)
+        }
+        val found = bubblesOf(page)
+        assertEquals(1, found.size)
+        val box = page.box(found[0].box)
+        assertTrue("$box should include the rim around $bubble", box.left <= bubble.left - 6 && box.right >= bubble.right + 6)
+    }
+
+    @Test
     fun blackBubbleLeavesThePanelBorderLineItTouchesOutOfItsOutline() {
         val bubble = Box(110, 120, 210, 190)
         val borderLine = Box(20, 116, 380, 120)
@@ -143,5 +156,6 @@ class SpeechBubblesTest {
 }
 
 private const val OUTLINE_MARGIN = 2
+private const val SKY = 0xFF80A0FF.toInt()
 private const val WORD_WIDTH = 14
 private const val WORD_GAP = 3
