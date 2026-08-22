@@ -85,6 +85,17 @@ class SpeechBubblesTest {
     }
 
     @Test
+    fun blackBubbleLeavesThePanelBorderLineItTouchesOutOfItsOutline() {
+        val bubble = Box(110, 120, 210, 190)
+        val borderLine = Box(20, 116, 380, 120)
+        val page = SyntheticPage(400, 600).fill(panel, RED).negativeBubble(bubble).fill(borderLine, BLACK)
+        val found = bubblesOf(page)
+        assertEquals(1, found.size)
+        val box = page.box(found[0].box)
+        assertTrue("$box should stop at the bubble, not include the border line", box.top >= bubble.top - OUTLINE_MARGIN)
+    }
+
+    @Test
     fun darkShapeWhoseHolesAreMostlyNotLetteringIsNotABubble() {
         val mouth = Box(60, 100, 170, 220)
         val teeth = Box(60, 100, 170, 140)
@@ -131,5 +142,6 @@ class SpeechBubblesTest {
     }
 }
 
+private const val OUTLINE_MARGIN = 2
 private const val WORD_WIDTH = 14
 private const val WORD_GAP = 3

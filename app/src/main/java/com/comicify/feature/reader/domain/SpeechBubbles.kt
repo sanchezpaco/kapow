@@ -31,8 +31,8 @@ private const val NEGATIVE_BODY_RADIUS = 3
 private const val MIN_LINE_PIXELS = 4
 private const val MIN_WORD_HEIGHT_FRACTION = 0.004f
 private const val MIN_BLOCK_DENSITY = 0.25f
-private val INK_ON_PAPER = BlockRules(minWords = 2, maxDensity = Float.MAX_VALUE, minHoleInkShare = 0f, narrowRelativeTo = NarrowRelativeTo.RINGS)
-private val LIGHT_ON_DARK = BlockRules(minWords = 4, maxDensity = 1f, minHoleInkShare = 0.6f, narrowRelativeTo = NarrowRelativeTo.AREA)
+private val INK_ON_PAPER = BlockRules(minWords = 2, maxDensity = Float.MAX_VALUE, minHoleInkShare = 0f, stripsBorderLines = false, narrowRelativeTo = NarrowRelativeTo.RINGS)
+private val LIGHT_ON_DARK = BlockRules(minWords = 4, maxDensity = 1f, minHoleInkShare = 0.6f, stripsBorderLines = true, narrowRelativeTo = NarrowRelativeTo.AREA)
 private const val OVERSIZED_WORD_FACTOR = 2
 private const val MAX_OVERSIZED_WORD_SHARE = 0.5f
 private const val MIN_MARGIN_PAPER_SHARE = 0.6f
@@ -88,6 +88,7 @@ object SpeechBubbles {
         val pageSide = min(width, height)
         val minSide = (pageSide * MIN_BUBBLE_SIDE_FRACTION).toInt()
         val paper = withoutGutters(tone, width, height)
+        val borderLines = if (rules.stripsBorderLines) thinLongBands(tone, width, height) else null
         val maxLineHeight = (pageSide * MAX_LINE_HEIGHT_FRACTION).toInt()
         val maxBlockHeight = (pageSide * MAX_TEXT_BLOCK_HEIGHT_FRACTION).toInt()
         val isTextLike = textLikeHole(maxLineHeight, maxBlockHeight)
@@ -115,7 +116,7 @@ object SpeechBubbles {
             val rejoined = rejoined(group.blocks.flatMap { it.words }, container, words, grow, cutWords)
             if (rejoined != null) listOf(rejoined) else group.blocks.mapNotNull(fallback)
         }
-        return (whole + loose).map { it.dilated(OUTLINE_MARGIN, width, height) }
+        return (whole + loose).map { blob -> (borderLines?.let { blob.without(it, width) } ?: blob).dilated(OUTLINE_MARGIN, width, height) }
     }
 
     private fun rejoined(
@@ -221,6 +222,17 @@ object SpeechBubbles {
         }
     }
 
+    private fun thinLongBands(mask: BooleanArray, width: Int, height: Int): BooleanArray {
+        val horizontalRuns = runLengths(mask, width, height, horizontal = true)
+        val verticalRuns = runLengths(mask, width, height, horizontal = false)
+        val maxThickness = (min(width, height) * GUTTER_MAX_THICKNESS_FRACTION).toInt()
+        val longRows = BooleanArray(mask.size) { horizontalRuns[it] >= (width * GUTTER_MIN_RUN_FRACTION).toInt() }
+        val longColumns = BooleanArray(mask.size) { verticalRuns[it] >= (height * GUTTER_MIN_RUN_FRACTION).toInt() }
+        val rowBands = runLengths(longRows, width, height, horizontal = false)
+        val columnBands = runLengths(longColumns, width, height, horizontal = true)
+        return BooleanArray(mask.size) { (longRows[it] && rowBands[it] <= maxThickness) || (longColumns[it] && columnBands[it] <= maxThickness) }
+    }
+
     private fun runLengths(mask: BooleanArray, width: Int, height: Int, horizontal: Boolean): IntArray {
         val runs = IntArray(mask.size)
         val lines = if (horizontal) height else width
@@ -324,6 +336,11 @@ private class Blob(val box: Box, val cells: BooleanArray) {
             contains(x, y) || other.contains(x, y)
         }
         return Blob(joined, cells)
+    }
+
+    fun without(mask: BooleanArray, width: Int): Blob {
+        val kept = BooleanArray(cells.size) { cells[it] && !mask[(box.top + it / box.width) * width + box.left + it % box.width] }
+        return Blob(box, kept).cropped()
     }
 
     fun holeInkShare(ink: BooleanArray, width: Int): Float {
@@ -558,7 +575,9 @@ private class Blob(val box: Box, val cells: BooleanArray) {
 
 private enum class NarrowRelativeTo { RINGS, AREA }
 
-private class BlockRules(val minWords: Int, val maxDensity: Float, val minHoleInkShare: Float, val narrowRelativeTo: NarrowRelativeTo) {
+private class BlockRules(
+    val minWords: Int, val maxDensity: Float, val minHoleInkShare: Float, val stripsBorderLines: Boolean, val narrowRelativeTo: NarrowRelativeTo,
+) {
     fun accept(block: TextBlock) = block.words.size >= minWords && block.density in MIN_BLOCK_DENSITY..maxDensity && block.isTextShaped
 }
 

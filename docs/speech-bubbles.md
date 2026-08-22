@@ -140,7 +140,16 @@ never act as a bubble and so are not enlarged over the artwork. Steps per tone:
    clean container results, the member blocks fall back to padded rects.
    The check runs after the union on purpose: a link's own container
    legitimately stops at the neck and the neighbour's completes it.
-8. **Outline.** The blob is inflated by 2 cells so the drawn outline stroke is
+8. **Outline.** For the dark tone, cells of the container that belong to a
+   **thin long band** of the tone (a run ≥ 30 % of the page long whose band
+   of such runs is ≤ 1.2 % thick — a panel border line) are removed first: a
+   black caption sitting on a panel's border line is one dark component with
+   it, the gutter stripper keeps the piece of the line above the caption
+   (its paper run continues into the caption), and the copy of that piece
+   landed as a comb in the white gutter. This is done on the finished blob,
+   not on the paper mask, so words and enclosure are unchanged (stripping
+   the mask fragmented a recap page's black background into new false
+   containers). The blob is then inflated by 2 cells so the drawn outline stroke is
    included, and the exact contour of each of its connected components is
    traced (crack following along cell edges, corners only) into a polygon
    (`SpeechBubble.outlines`, normalized). The contour is exact on purpose: a
