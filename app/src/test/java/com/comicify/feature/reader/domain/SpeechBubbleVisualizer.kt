@@ -36,7 +36,8 @@ class SpeechBubbleVisualizer {
             val started = System.nanoTime()
             val bubbles = SpeechBubbles.detect(pixels, page.width, page.height, pool)
             val millis = (System.nanoTime() - started) / 1_000_000
-            val enlarged = BubbleLayout.enlarge(bubbles, BUBBLE_ENLARGE_SCALE)
+            val panels = PanelDetection.detect(pixels, page.width, page.height, pool)
+            val enlarged = BubbleLayout.enlarge(bubbles, BUBBLE_ENLARGE_SCALE, panels)
             val preview = scaled(page, PREVIEW_WIDTH, PREVIEW_WIDTH * page.height / page.width)
             ImageIO.write(withEnlarged(preview, page, enlarged), "png", File(out, file.nameWithoutExtension + "-enlarged.png"))
             ImageIO.write(withOutlines(preview, bubbles), "png", File(out, file.nameWithoutExtension + "-bubbles.png"))

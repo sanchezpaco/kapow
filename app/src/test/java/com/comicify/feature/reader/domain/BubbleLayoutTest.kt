@@ -24,6 +24,30 @@ class BubbleLayoutTest {
     }
 
     @Test
+    fun copyStaysInsideTheBubblesPanel() {
+        val panels = listOf(Rect(0f, 0f, 0.5f, 1f), Rect(0.5f, 0f, 1f, 1f))
+        val enlarged = BubbleLayout.enlarge(listOf(bubble(0.3f, 0.4f, 0.48f, 0.5f)), 1.5f, panels).single()
+        assertEquals(1.5f, enlarged.scale, 0.001f)
+        assertEquals(0.5f, enlarged.target.right, 0.001f)
+    }
+
+    @Test
+    fun copyShrinksToFitANarrowPanel() {
+        val panels = listOf(Rect(0f, 0f, 0.3f, 1f), Rect(0.3f, 0f, 1f, 1f))
+        val enlarged = BubbleLayout.enlarge(listOf(bubble(0.02f, 0.4f, 0.26f, 0.5f)), 1.5f, panels).single()
+        assertEquals(1.25f, enlarged.scale, 0.001f)
+        assertTrue(enlarged.target.left >= 0f && enlarged.target.right <= 0.3f)
+    }
+
+    @Test
+    fun overhangingBubbleKeepsItsOwnBoxAsBounds() {
+        val panels = listOf(Rect(0f, 0f, 0.5f, 1f), Rect(0.5f, 0f, 1f, 1f))
+        val enlarged = BubbleLayout.enlarge(listOf(bubble(0.3f, 0.4f, 0.6f, 0.5f)), 1.3f, panels).single()
+        assertEquals(1.3f, enlarged.scale, 0.001f)
+        assertTrue(enlarged.target.right <= 0.6f)
+    }
+
+    @Test
     fun bubbleAtThePageEdgeStaysInsideThePage() {
         val enlarged = BubbleLayout.enlarge(listOf(bubble(0f, 0f, 0.2f, 0.1f)), 1.5f).single()
         assertEquals(0f, enlarged.target.left, 0.001f)

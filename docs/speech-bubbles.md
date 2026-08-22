@@ -196,14 +196,21 @@ pages are unaffected).
 
 ## Laying out the enlargement (`BubbleLayout`)
 
-`enlarge(bubbles, scale)` scales every bubble by the user's scale (default
+`enlarge(bubbles, scale, panels)` scales every bubble by the user's scale (default
 `BUBBLE_ENLARGE_SCALE` = 1.3×, adjustable 1.1–2.0× with the slider that appears
 under the HUD buttons while the toggle is on; persisted in DataStore as
 `bubble_scale`) around its own centre, then resolves conflicts with the policy **move into gaps
 first, shrink only when moving is not enough** — copies never end up
 overlapping each other:
 
-1. Every box is grown to the full scale, clamped inside the page, and
+0. Every bubble gets **bounds**: the detected panel it overlaps most
+   (`PanelDetector.detect`, the same panels Guided View uses, cached per
+   page), widened to include the bubble's own box so an overhanging bubble is
+   never squeezed; with no panels the page is the bounds. A copy is scaled
+   down to fit its bounds (never below 1×) and every move below clamps it
+   inside them, so copies no longer spill across gutters into neighbouring
+   panels (`BubbleLayoutTest.copyStaysInsideTheBubblesPanel`).
+1. Every box is grown to the full scale, clamped inside its bounds, and
    **pushed apart** (16 passes, along the axis with the smaller overlap, half
    the overlap each). Pushing is staged by how much of the original a copy must
    still cover (`COVERAGE_STEPS` = 1.0, 0.7, 0.4 per axis): copies first
