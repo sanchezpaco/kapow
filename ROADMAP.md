@@ -89,8 +89,9 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
 - [x] Panel detection on bleed-heavy art: black keylines over a full-bleed panel
       now split the page (`PanelFrames` ink-line search). Venomverse: 12 → 8
       full-page fallbacks, p2 1 → 5, p14 1 → 4; Ben Reilly unchanged or better
-- [ ] Panel detection on bleed-heavy art with white gutters crossed by art on
-      every side (Venomverse p21/p24/p26/p27 still fall back to one page)
+- [x] Heuristic detection frozen (2026-08-23): remaining failures (Venomverse
+      p21/p24/p26/p27 gutters crossed by art, manga/painted bubbles) are not
+      separable by pixel rules — see the ML spike below. No more threshold work.
 
 ## Phase 5 — Polish
 
@@ -100,6 +101,10 @@ Goal: the details that make it feel premium.
       ZIP (CBZ, and `.cbr` files that are really ZIP) and RAR4/RAR5 (via
       7-Zip-JBinding) all work. PDF (`PdfRenderer`) still pending.
 - [x] Night tint (amber) toggle
+- [ ] ML spike for panels + bubbles: evaluate a pretrained detector (Magi /
+      YOLO on Manga109-eBDtheque-DCM) on the 9-comic corpus with the existing
+      visualizers, behind `PanelDetector`'s `List<Rect>` interface, on a branch;
+      adopt only if it beats the heuristic with numbers
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails, per-comic settings
