@@ -153,7 +153,20 @@ never act as a bubble and so are not enlarged over the artwork. Steps per tone:
    landed as a comb in the white gutter. This is done on the finished blob,
    not on the paper mask, so words and enclosure are unchanged (stripping
    the mask fragmented a recap page's black background into new false
-   containers). The blob is then inflated by its **rim thickness**, at least 2 cells so the
+   containers). A finished container is then dropped when it is **combed by
+   art**: the short gaps (≤ one glyph height) between its cells along every
+   row and column are filled, and if more than 10 % of that filled shape is
+   ink outside any word (`MAX_GAP_ART_SHARE`, `Blob.gapArtShare`) the shape
+   is not a bubble but paper crawled through art — halo lettering over a
+   building facade grows a clean-looking comb whose fingers follow the window
+   mullions (Attack on Titan p003 "ESTE MUNDO…", and the STOMP slabs), and
+   bead/eye highlights grow a comb through the art lines around them. Real
+   bubbles sit ≤ 4 % (Venom, all 140 containers); a merged pair with a
+   concavity full of art stays under because a wide concavity is not a short
+   gap (Doom "CLARO QUE LO ES" + "HAY MUCHOS PLANOS", 8.5 %). No scalar shape
+   gate separated that comb from real bubbles (box fill 0.46, hull solidity
+   0.66, opened solidity 0.79 all overlap Venom), nor did the ring-growth
+   profile. The blob is then inflated by its **rim thickness**, at least 2 cells so the
    drawn outline stroke is included: the ink density of successive one-cell
    rings around the blob is measured up to 1.5 % of the page, and the rim is
    the last ring still ≥ 35 % ink (gaps inside a ragged rim are tolerated — a

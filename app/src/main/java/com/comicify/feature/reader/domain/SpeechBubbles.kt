@@ -21,6 +21,7 @@ private const val MIN_TALL_BLOCK_DENSITY = 0.4f
 private const val MIN_LINE_INK_SHARE = 0.75f
 private const val OUTLINE_MARGIN = 2
 private const val MAX_RIM_FRACTION = 0.015f
+private const val MAX_GAP_ART_SHARE = 0.1f
 private const val MIN_RIM_INK_SHARE = 0.35f
 private const val OUTLINE_TOLERANCE = 0.75f
 private const val MAX_WORD_GAP_FRACTION = 0.008f
@@ -118,7 +119,9 @@ object SpeechBubbles {
             if (rejoined != null) listOf(rejoined) else group.blocks.mapNotNull(fallback)
         }
         val maxRim = (pageSide * MAX_RIM_FRACTION).toInt()
-        return (whole + loose).map { blob ->
+        val glyphHeight = words.map { it.box.height }.sorted().let { if (it.isEmpty()) 0 else it[it.size / 2] }
+        val artFree = whole.filter { it.gapArtShare(ink, words, glyphHeight, width) <= MAX_GAP_ART_SHARE }
+        return (artFree + loose).map { blob ->
             val trimmed = borderLines?.let { blob.without(it, width) } ?: blob
             trimmed.dilated(max(OUTLINE_MARGIN, trimmed.rimThickness(ink, maxRim, width, height)), width, height)
         }
@@ -358,6 +361,35 @@ private class Blob(val box: Box, val cells: BooleanArray) {
             if (ink[(box.top + i / box.width) * width + box.left + i % box.width]) inked++
         }
         return if (total == 0) 0f else inked / total.toFloat()
+    }
+
+    fun gapArtShare(ink: BooleanArray, words: List<Component>, maxGap: Int, width: Int): Float {
+        val holes = interiorHoles()
+        val inside = BooleanArray(cells.size) { cells[it] || holes[it] }
+        val gap = BooleanArray(cells.size)
+        for (y in 0 until box.height) markShortGaps(inside, gap, y * box.width, 1, box.width, maxGap)
+        for (x in 0 until box.width) markShortGaps(inside, gap, x, box.width, box.height, maxGap)
+        var area = 0
+        var art = 0
+        for (i in inside.indices) {
+            if (!inside[i] && !gap[i]) continue
+            area++
+            if (!gap[i]) continue
+            val x = box.left + i % box.width
+            val y = box.top + i / box.width
+            if (ink[y * width + x] && words.none { it.box.contains(x, y) }) art++
+        }
+        return art / area.toFloat()
+    }
+
+    private fun markShortGaps(inside: BooleanArray, gap: BooleanArray, start: Int, step: Int, count: Int, maxGap: Int) {
+        var last = -1
+        for (k in 0 until count) {
+            val i = start + k * step
+            if (!inside[i]) continue
+            if (last >= 0 && k - last - 1 in 1..maxGap) for (j in last + 1 until k) gap[start + j * step] = true
+            last = k
+        }
     }
 
     fun interiorHoles(): BooleanArray {
