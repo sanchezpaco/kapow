@@ -91,7 +91,6 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       full-page fallbacks, p2 1 → 5, p14 1 → 4; Ben Reilly unchanged or better
 - [ ] Panel detection on bleed-heavy art with white gutters crossed by art on
       every side (Venomverse p21/p24/p26/p27 still fall back to one page)
-- [ ] Manual panel-region override/editor for pages detected poorly
 
 ## Phase 5 — Polish
 

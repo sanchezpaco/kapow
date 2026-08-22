@@ -151,7 +151,9 @@ Annotated PNGs land in `<dir>/out`. Iterate there, then trust the unit tests.
 - The regular page surfaces (`ZoomablePage`) also double-tap zoom around the
   tapped point and clamp panning to the page.
 
-## Manual override
+## When detection falls short
 
-Not implemented yet. A per-page editor would let the user draw/adjust panel
-rectangles; overrides would be stored per comic (Room) keyed by page.
+There is deliberately no manual panel editor: a reader should never have to
+draw rectangles. A page that falls back to one stop, or a merged stop, is read
+with the double-tap zoom around the tapped point and one-finger pan, which work
+on every page. Detection improvements are the only planned fix.
