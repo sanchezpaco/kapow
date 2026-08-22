@@ -51,6 +51,19 @@ robust structural facts rather than a single threshold:
    (too thick) and page margins (art only on one side). Bodies without such a
    line are left whole, so borderless panels are never over-cut. Recursive, so a
    bordered banner over a full-page splash becomes two stops.
+
+   Bleed layouts whose panels are separated only by **black keylines** (a
+   full-bleed panel with framed panels stacked above/below it, no white gutter)
+   get a second, stricter line search over `separator ∪ ink`. An ink line cuts
+   only when it is thin (0.25–2.5 % of the page width, so solid dark areas are
+   not lines), stands out from its flanks (≥ 0.15 more line coverage than the
+   rows beside it, which rejects noise inside black skies), spans a box at
+   least 60 % of the page (an art edge inside one panel never qualifies),
+   leaves both parts ≥ 8 % of the page (caption-box outlines do not), and one
+   of the two parts is bounded by white margin on the sides perpendicular to
+   the cut (a railing or roof line inside a panel that bleeds to the page edge
+   is not a keyline). Line thickness limits are page-relative, not box-relative,
+   so gutters keep splitting inside already-cut boxes.
 5. **Enclosed whites**. `solidWhite` components that do not touch the page
    border, with a compact fill, are bubbles/captions/white panel interiors.
    Each is attached to every panel it overlaps by ≥ 20 % of its area (or the
@@ -86,7 +99,8 @@ shown before its insets.
   (step 4) when the keyline stays a thin, near-continuous line; a bleed that
   covers more than ~15 % of the line, or panels joined with no keyline at all,
   still merge into one larger stop (safe: nothing is clipped, text is just
-  smaller).
+  smaller). Keyline-only cuts also need a white page margin next to one of the
+  parts, so full-bleed pages with black keylines on every side stay merged.
 - Chained bubbles crossing panels grow both panels' frames.
 - Steeply tilted panels that overlap are not split by frames (their keylines are
   not axis-aligned); the reading-band fallback catches the worst of these.

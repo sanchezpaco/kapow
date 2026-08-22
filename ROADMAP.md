@@ -86,9 +86,11 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       redrawn ~1.3× in place over the normal page, pushed apart or shrunk so
       copies never overlap or uncover the original; HUD toggle. See
       `docs/speech-bubbles.md`
-- [ ] Panel detection on bleed-heavy art: Venomverse gets a full-page fallback on
-      12 of 29 pages and under-segments most others (p2: 5 panels → 1). It gates
-      both Guided View and the bubble-copy clipping (`BubbleLayout` bounds)
+- [x] Panel detection on bleed-heavy art: black keylines over a full-bleed panel
+      now split the page (`PanelFrames` ink-line search). Venomverse: 12 → 8
+      full-page fallbacks, p2 1 → 5, p14 1 → 4; Ben Reilly unchanged or better
+- [ ] Panel detection on bleed-heavy art with white gutters crossed by art on
+      every side (Venomverse p21/p24/p26/p27 still fall back to one page)
 - [ ] Manual panel-region override/editor for pages detected poorly
 
 ## Phase 5 — Polish

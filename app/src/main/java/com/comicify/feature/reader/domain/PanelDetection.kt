@@ -49,7 +49,7 @@ object PanelDetection {
         val isFramed = { box: Box -> framedShare(box, art, width, height) >= MIN_FRAMED_RING }
         val isSliver = { box: Box -> min(box.width, box.height) < SLIVER_SIDE_FRACTION * min(width, height) && aspect(box) > SLIVER_ASPECT }
         return PanelBodies(segmentation, width, height, isFramed).merged()
-            .flatMap { PanelFrames.split(it, separator, art, width) }
+            .flatMap { PanelFrames.split(it, separator, classes.ink, art, width) }
             .map { Panel(it, it) }
             .let { PanelLayout.attach(it, enclosed, isPanelWorthy) }
             .let { PanelLayout.absorbContained(it, isFramed) }
