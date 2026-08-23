@@ -15,14 +15,12 @@ import java.nio.FloatBuffer
 import kotlin.math.max
 import kotlin.math.roundToInt
 
-private const val MODEL_ASSET = "models/panels.onnx"
 private const val INPUT_SIDE = 640
 private const val LETTERBOX_GRAY = 114
 private const val ROW_SIZE = 6
-private const val PANEL_CLASS = 0f
-private const val PANEL_CONFIDENCE = 0.35f
+private const val TARGET_CLASS = 0f
 
-class MlPanelDetector(modelPath: String) {
+class OnnxBoxDetector(modelPath: String, private val confidence: Float) {
     private val environment = OrtEnvironment.getEnvironment()
     private val session = environment.createSession(modelPath, OrtSession.SessionOptions())
 
@@ -31,7 +29,7 @@ class MlPanelDetector(modelPath: String) {
         val output = run(frame)
         return (0 until output.size / ROW_SIZE)
             .map { it * ROW_SIZE }
-            .filter { output[it + 4] >= PANEL_CONFIDENCE && output[it + 5] == PANEL_CLASS }
+            .filter { output[it + 4] >= confidence && output[it + 5] == TARGET_CLASS }
             .map { frame.toPage(output[it], output[it + 1], output[it + 2], output[it + 3]) }
     }
 
@@ -94,20 +92,19 @@ class MlPanelDetector(modelPath: String) {
     }
 
     companion object {
-        @Volatile
-        private var shared: MlPanelDetector? = null
+        private val shared = HashMap<String, OnnxBoxDetector>()
 
-        fun shared(context: Context): MlPanelDetector = shared ?: synchronized(this) {
-            shared ?: MlPanelDetector(installedModel(context).path).also { shared = it }
+        fun shared(context: Context, asset: String, confidence: Float): OnnxBoxDetector = synchronized(shared) {
+            shared.getOrPut(asset) { OnnxBoxDetector(installedModel(context, asset).path, confidence) }
         }
 
-        private fun installedModel(context: Context): File {
-            val target = File(context.filesDir, MODEL_ASSET)
-            context.assets.openFd(MODEL_ASSET).use { asset ->
-                if (target.length() == asset.length) return target
+        private fun installedModel(context: Context, asset: String): File {
+            val target = File(context.filesDir, asset)
+            context.assets.openFd(asset).use { fd ->
+                if (target.length() == fd.length) return target
             }
             target.parentFile!!.mkdirs()
-            context.assets.open(MODEL_ASSET).use { input -> target.outputStream().use { input.copyTo(it) } }
+            context.assets.open(asset).use { input -> target.outputStream().use { input.copyTo(it) } }
             return target
         }
     }

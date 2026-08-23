@@ -9,19 +9,56 @@ not a navigation mode.
 ## Pipeline
 
 ```
-page bitmap ──▶ PanelDetector.bubbles (data) ──▶ SpeechBubbles (domain, pure) ──▶ List<SpeechBubble> ──▶ cache
-                                                                                             │
-                     BubbleLayout.enlarge (domain, pure) ──▶ List<EnlargedBubble> ──▶ ZoomablePage overlay ◀─┘
+page bitmap ──▶ PanelDetector.bubbles (data) ──▶ OnnxBoxDetector (ML boxes) ──▶ SpeechBubbles.outlined (domain) ──▶ List<SpeechBubble> ──▶ cache
+                                                                                                                              │
+                                          BubbleLayout.enlarge (domain, pure) ──▶ List<EnlargedBubble> ──▶ ZoomablePage overlay ◀─┘
 ```
 
-`PanelDetector.bubbles` only reads pixels (same pooling as panel detection:
-the page is pooled so its **shorter** side is ~1000 cells, so a double-page
-spread keeps the same cell size as a single page and its small bubbles survive);
-`SpeechBubbles` and `BubbleLayout` are pure Kotlin in `feature/reader/domain`,
-unit-tested on synthetic pages. Detection is ~50–200 ms per page off the main
-thread and cached per page in `PageLoader` (only when the toggle is used).
+`PanelDetector.bubbles` asks the ML model *where* the bubbles are and the pixel
+heuristic *what shape* they have: `OnnxBoxDetector` returns normalized boxes,
+`SpeechBubbles.outlined` turns each box into a `SpeechBubble` with outlines.
+Pixels are pooled as for panel detection (the page's **shorter** side becomes
+~1000 cells, so a double-page spread keeps the same cell size as a single page
+and its small bubbles survive). `SpeechBubbles` and `BubbleLayout` are pure
+Kotlin in `feature/reader/domain`, unit-tested on synthetic pages. Detection
+runs off the main thread and is cached per page in `PageLoader` (only when the
+toggle is used).
 
-## Detecting bubbles (`SpeechBubbles`)
+## ML boxes (`OnnxBoxDetector`)
+
+The model is `ogkalu/comic-speech-bubble-detector-yolov8m`, exported with
+ultralytics (`format=onnx imgsz=640 nms=True`, so the graph ends in
+NonMaxSuppression and outputs `[1, 300, 6]` like the panel model) and then
+**weight-only int8 quantized**: every Conv weight is stored as per-channel
+int8 + scale with a `DequantizeLinear` in front, activations stay fp32.
+That cuts 99 MB to 26 MB (`assets/models/bubbles.onnx`, uncompressed) with
+identical detections; the int8 activation paths (`ConvInteger`, QDQ static)
+either do not load on ORT mobile or destroyed accuracy. Boxes with
+score ≥ 0.25 are kept (the threshold baked into the exported NMS).
+
+On the 77-page ground truth bubble F1 is 0.96 (device) vs 0.78 for the
+heuristic alone; the only comics under 0.9 are manga where the ground truth
+itself under-counts. A page where the model finds nothing yields no bubbles:
+falling back to the heuristic there was tried and only added false positives
+(manga pages without bubbles). Cost: ~280 ms per page on a laptop CPU, ~1.4 s
+on the software-rendered Fold emulator (25× the panel model; XNNPACK made no
+difference).
+
+## Outlining a box (`SpeechBubbles.outlined`)
+
+For each ML box the detector looks for the bubble body inside it: the
+connected component of `solidPaper` (white or cream) or of the solid dark mask
+(negative bubbles) that owns most cells of the box, searched in a frame grown
+by 1 % of the page side so the rim is connected. The component is clipped to
+the box, dilated by the rim thickness like heuristic bubbles (so the black
+border is part of the shape), and traced into outlines. If no body covers at
+least a quarter of the box (lettering straight over art, sound effects) the
+box itself becomes the bubble.
+
+## Detecting bubbles without the model (`SpeechBubbles.detect`)
+
+Still used by `SpeechBubbleVisualizer` when no box file is given and kept as
+the reference pixel pipeline; the app no longer calls it.
 
 Built on `PixelClasses` (see `guided-view.md`), plus four extra classes:
 
@@ -275,6 +312,13 @@ COMICIFY_PANEL_VIZ_DIR=/path/to/pages ./gradlew :app:testDebugUnitTest \
 It also writes `out/metrics.json` (per page: count, scale, box and target of
 every bubble), which makes recall regressions measurable: keep the file from
 before a change and match boxes by IoU afterwards.
+
+With a `boxes.json` in the folder (the `.claude/ml-spike-kit` dump format:
+`[{"file": ..., "bubbles": [[l, t, r, b], ...]}, ...]`, normalized to the
+uncropped page) the visualizer runs `SpeechBubbles.outlined` on those boxes
+instead of the heuristic, which is how the ML path is checked offline.
+`MlDetectorBenchmark` (androidTest) dumps ML panels and bubble boxes plus
+timings from the device into `files/mlspike/device.json` for `score.py`.
 
 The ground truth is the device, not the source JPEGs: Android decodes and
 subsamples differently, marginal ink shares shift, and the reader shows

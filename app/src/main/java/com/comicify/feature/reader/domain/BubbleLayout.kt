@@ -145,8 +145,10 @@ object BubbleLayout {
     private fun Rect.covering(box: Rect, coverage: Float): Rect {
         val slackX = box.width * (1f - coverage)
         val slackY = box.height * (1f - coverage)
-        val x = left.coerceIn(box.right - width - slackX, box.left + slackX)
-        val y = top.coerceIn(box.bottom - height - slackY, box.top + slackY)
+        val x = left.between(box.right - width - slackX, box.left + slackX)
+        val y = top.between(box.bottom - height - slackY, box.top + slackY)
         return Rect(x, y, x + width, y + height)
     }
+
+    private fun Float.between(a: Float, b: Float) = coerceIn(min(a, b), max(a, b))
 }

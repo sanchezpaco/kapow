@@ -105,10 +105,10 @@ Goal: the details that make it feel premium.
       the default `PanelDetector` path, heuristic kept as fallback. 77-page
       ground truth: F1 0.93 vs 0.77, 54/77 exact pages vs 29, ~100 ms vs
       ~540 ms on the emulator; +27 MB APK. See `docs/guided-view.md`
-- [ ] ML speech bubbles: YOLOv8m (`ogkalu`) scores F1 0.96 vs 0.78 but weighs
-      99 MB fp32 (int8/fp16 exports failed on ORT mobile) and gives boxes, not
-      the outlines the enlarge renderer needs. Goal: ≤30 MB extra (nano model
-      or LiteRT int8), contour extraction seeded by the ML box
+- [x] ML speech bubbles: YOLOv8m (`ogkalu`) weight-only int8 ONNX (26 MB)
+      gives the boxes, the pixel heuristic extracts the outline inside each
+      box. Bubble F1 0.96 vs 0.78 on the 77-page ground truth. See
+      `docs/speech-bubbles.md`
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails, per-comic settings

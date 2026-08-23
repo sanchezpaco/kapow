@@ -1,6 +1,7 @@
 package com.comicify.feature.reader.domain
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.awt.BasicStroke
@@ -20,6 +21,7 @@ private const val TARGET_WIDTH_PX = 2160
 private const val PREVIEW_WIDTH = 1400
 private const val STUCK_SCALE_EPSILON = 0.02f
 private const val PAPER_SAMPLES_PER_AXIS = 12
+private const val ML_BOXES_FILE = "boxes.json"
 
 class SpeechBubbleVisualizer {
 
@@ -29,14 +31,19 @@ class SpeechBubbleVisualizer {
         assumeTrue(dir != null && dir.isDirectory)
         val out = File(dir, "out").apply { mkdirs() }
         val pages = ArrayList<String>()
-        dir!!.listFiles { f -> f.extension.lowercase() in setOf("jpg", "jpeg", "png") }!!.sorted().forEach { file ->
-            val page = contentCropped(subsampledToAnalysis(ImageIO.read(file)))
+        val mlBoxes = mlBoxes(File(dir!!, ML_BOXES_FILE))
+        dir.listFiles { f -> f.extension.lowercase() in setOf("jpg", "jpeg", "png") }!!.sorted().forEach { file ->
+            val full = subsampledToAnalysis(ImageIO.read(file))
+            val content = content(full)
+            val page = cropped(full, content)
             val pixels = page.getRGB(0, 0, page.width, page.height, null, 0, page.width)
             val pool = maxOf(1, (minOf(page.width, page.height) / ANALYSIS_SIDE.toFloat()).roundToInt())
             val started = System.nanoTime()
-            val bubbles = SpeechBubbles.detect(pixels, page.width, page.height, pool)
+            val classes = PixelClasses.classify(pixels, page.width, page.height, pool)
+            val boxes = mlBoxes[file.name]?.map { inContent(it, content) }
+            val bubbles = boxes?.let { SpeechBubbles.outlined(classes, it) } ?: SpeechBubbles.detect(classes)
             val millis = (System.nanoTime() - started) / 1_000_000
-            val panels = PanelDetection.detect(pixels, page.width, page.height, pool)
+            val panels = PanelDetection.detect(classes)
             val enlarged = BubbleLayout.enlarge(bubbles, BUBBLE_ENLARGE_SCALE, panels)
             val preview = scaled(page, PREVIEW_WIDTH, PREVIEW_WIDTH * page.height / page.width)
             ImageIO.write(withEnlarged(preview, page, enlarged), "png", File(out, file.nameWithoutExtension + "-enlarged.png"))
@@ -80,9 +87,30 @@ class SpeechBubbleVisualizer {
         return sample
     }
 
-    private fun contentCropped(image: BufferedImage): BufferedImage {
+    private fun mlBoxes(file: File): Map<String, List<Rect>> {
+        if (!file.isFile) return emptyMap()
+        val entry = Regex("""\"file\":\s*\"([^\"]+)\".*?\"bubbles\":\s*\[(.*?)\]\s*\}""", RegexOption.DOT_MATCHES_ALL)
+        val box = Regex("""\[([\d.]+),\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)\]""")
+        return entry.findAll(file.readText()).associate { page ->
+            page.groupValues[1] to box.findAll(page.groupValues[2]).map { b ->
+                Rect(b.groupValues[1].toFloat(), b.groupValues[2].toFloat(), b.groupValues[3].toFloat(), b.groupValues[4].toFloat())
+            }.toList()
+        }
+    }
+
+    private fun inContent(box: Rect, content: Rect) = Rect(
+        ((box.left - content.left) / content.width).coerceIn(0f, 1f),
+        ((box.top - content.top) / content.height).coerceIn(0f, 1f),
+        ((box.right - content.left) / content.width).coerceIn(0f, 1f),
+        ((box.bottom - content.top) / content.height).coerceIn(0f, 1f),
+    )
+
+    private fun content(image: BufferedImage): Rect {
         val pixels = image.getRGB(0, 0, image.width, image.height, null, 0, image.width)
-        val content = MarginCrop.detect(pixels, image.width, image.height)
+        return MarginCrop.detect(pixels, image.width, image.height)
+    }
+
+    private fun cropped(image: BufferedImage, content: Rect): BufferedImage {
         if (content == FullPage) return image
         return image.getSubimage(
             (content.left * image.width).roundToInt(),

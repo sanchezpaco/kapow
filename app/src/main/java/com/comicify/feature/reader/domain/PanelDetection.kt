@@ -23,8 +23,10 @@ val FullPagePanel = Rect(0f, 0f, 1f, 1f)
 
 object PanelDetection {
 
-    fun detect(pixels: IntArray, sourceWidth: Int, sourceHeight: Int, pool: Int): List<Rect> {
-        val classes = PixelClasses.classify(pixels, sourceWidth, sourceHeight, pool)
+    fun detect(pixels: IntArray, sourceWidth: Int, sourceHeight: Int, pool: Int): List<Rect> =
+        detect(PixelClasses.classify(pixels, sourceWidth, sourceHeight, pool))
+
+    fun detect(classes: PixelClasses): List<Rect> {
         val width = classes.width
         val height = classes.height
         val enclosed = enclosedWhites(classes)

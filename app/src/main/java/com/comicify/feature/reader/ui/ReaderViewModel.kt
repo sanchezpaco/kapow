@@ -13,7 +13,6 @@ import com.comicify.domain.model.ReadingPosition
 import com.comicify.feature.reader.data.ComicSource
 import com.comicify.feature.reader.data.ComicSourceException
 import com.comicify.feature.reader.data.ComicSourceFactory
-import com.comicify.feature.reader.data.MlPanelDetector
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.data.PanelDetector
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
@@ -51,7 +50,7 @@ class ReaderViewModel(
             runCatching { ComicSourceFactory.open(getApplication(), uri) }
                 .onSuccess { opened ->
                     source = opened
-                    pageLoader = PageLoader(opened, viewModelScope, PanelDetector(MlPanelDetector.shared(getApplication())))
+                    pageLoader = PageLoader(opened, viewModelScope, PanelDetector.forContext(getApplication()))
                     _state.update { it.copy(loading = false, pageCount = opened.pageCount) }
                 }
                 .onFailure { throwable ->

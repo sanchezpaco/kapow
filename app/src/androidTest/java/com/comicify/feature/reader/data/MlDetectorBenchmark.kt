@@ -26,7 +26,7 @@ class MlDetectorBenchmark {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val dir = File(context.filesDir, PAGES_DIR)
         assumeTrue(dir.isDirectory)
-        val detector = PanelDetector(MlPanelDetector.shared(context))
+        val detector = PanelDetector.forContext(context)
         val pages = dir.listFiles { f -> f.extension == "jpg" }!!.sorted()
         repeat(WARMUP_RUNS) { detector.detect(BitmapFactory.decodeFile(pages.first().path)) }
         val rows = pages.map { file ->
@@ -37,9 +37,12 @@ class MlDetectorBenchmark {
             val heuristicStart = System.nanoTime()
             val heuristicPanels = heuristicPanels(bitmap)
             val heuristicMs = (System.nanoTime() - heuristicStart) / 1_000_000
+            val bubbleStart = System.nanoTime()
+            val bubbles = detector.bubbles(bitmap)
+            val bubbleMs = (System.nanoTime() - bubbleStart) / 1_000_000
             "{\"file\": \"${file.name}\", \"width\": ${bitmap.width}, \"height\": ${bitmap.height}, " +
-                "\"panels_ms\": $mlMs, \"heuristic_panels_ms\": $heuristicMs, " +
-                "\"panels\": ${rects(panels)}, \"heuristic_panels\": ${rects(heuristicPanels)}}"
+                "\"panels_ms\": $mlMs, \"heuristic_panels_ms\": $heuristicMs, \"bubbles_ms\": $bubbleMs, " +
+                "\"panels\": ${rects(panels)}, \"heuristic_panels\": ${rects(heuristicPanels)}, \"bubbles\": ${rects(bubbles.map { it.box })}}"
         }
         File(dir, "device.json").writeText(rows.joinToString(",\n", "[\n", "\n]\n"))
     }

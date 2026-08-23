@@ -8,7 +8,7 @@ ViewCarousel button in the HUD (`ReaderUiState.guided`).
 ## Pipeline
 
 ```
-page bitmap ──▶ PanelDetector (data) ──▶ MlPanelDetector (ONNX) ──▶ PanelLayout.readingOrder ──▶ List<Rect> ──▶ cache
+page bitmap ──▶ PanelDetector (data) ──▶ OnnxBoxDetector (ONNX) ──▶ PanelLayout.readingOrder ──▶ List<Rect> ──▶ cache
                       │ no boxes                                                                      │
                       └──▶ PanelDetection (domain, pure heuristic) ──────────────────────────────────▶┤
                      tap ──▶ GuidedReader animates the focus rect to the next panel ◀────────────────┘
@@ -20,7 +20,7 @@ pure Kotlin in `feature/reader/domain` and unit-tested on synthetic pages.
 
 ## ML panel detection (default path)
 
-`MlPanelDetector` runs a YOLO26n detector fine-tuned on manga frames
+`OnnxBoxDetector` (shared with speech bubbles, one session per model asset) runs a YOLO26n detector fine-tuned on manga frames
 (`leoxs22/manga-panel-detector-yolo26n`, exported to ONNX, 9 MB in
 `assets/models/panels.onnx`, stored uncompressed) through ONNX Runtime Mobile.
 The page is letterboxed to 640×640 on a grey canvas, the end-to-end output

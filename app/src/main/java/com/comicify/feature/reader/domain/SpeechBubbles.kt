@@ -47,6 +47,8 @@ private const val MAX_SEED_EXTENSIONS = 5
 private const val MIN_OVERLAP_TO_MERGE = 0.15f
 private const val GUTTER_MIN_RUN_FRACTION = 0.3f
 private const val GUTTER_MAX_THICKNESS_FRACTION = 0.012f
+private const val BOX_RIM_MARGIN_FRACTION = 0.01f
+private const val MIN_BOX_BODY_SHARE = 0.25f
 
 data class SpeechBubble(val box: Rect, val outlines: List<List<Offset>>) {
     fun interiorSamples(perAxis: Int): List<Offset> =
@@ -84,6 +86,47 @@ object SpeechBubbles {
         val negatives = silhouettes(darkBody, classes.light, LIGHT_ON_DARK, classes.width, classes.height)
         return mergeOverlapping(white + captions + negatives).map { it.toBubble(classes.width, classes.height) }
     }
+
+    fun outlined(classes: PixelClasses, boxes: List<Rect>): List<SpeechBubble> {
+        val tones = listOf(classes.solidPaper, withSolidCore(classes.solidDark, classes.width, classes.height))
+        return boxes.map { outlined(classes, tones, it) }
+    }
+
+    private fun outlined(classes: PixelClasses, tones: List<BooleanArray>, box: Rect): SpeechBubble {
+        val width = classes.width
+        val height = classes.height
+        val pageSide = min(width, height)
+        val inner = toBox(box, width, height)
+        val frame = inner.inflate((pageSide * BOX_RIM_MARGIN_FRACTION).toInt(), width, height)
+        val body = tones.mapNotNull { tone -> bodyWithin(tone, inner, frame, width) }.maxByOrNull { it.insidePixels }
+        if (body == null || body.insidePixels < inner.area * MIN_BOX_BODY_SHARE) return Blob.filled(inner).toBubble(width, height)
+        val maxRim = (pageSide * MAX_RIM_FRACTION).toInt()
+        val blob = body.blob
+        return blob.dilated(max(OUTLINE_MARGIN, blob.rimThickness(classes.ink, maxRim, width, height)), width, height).toBubble(width, height)
+    }
+
+    private class Body(val blob: Blob, val insidePixels: Int)
+
+    private fun bodyWithin(tone: BooleanArray, inner: Box, frame: Box, width: Int): Body? {
+        val cells = BooleanArray(frame.area) { tone[(frame.top + it / frame.width) * width + frame.left + it % frame.width] }
+        val parts = cells.segment(frame.width, frame.height, 1)
+        if (parts.components.isEmpty()) return null
+        val insidePixels = IntArray(parts.components.size)
+        for (y in inner.top until inner.bottom) for (x in inner.left until inner.right) {
+            val label = parts.labels[(y - frame.top) * frame.width + x - frame.left]
+            if (label != NO_LABEL) insidePixels[label]++
+        }
+        val best = parts.components.maxBy { insidePixels[it.label] }
+        val clipped = BooleanArray(inner.area) { parts.labels[(inner.top - frame.top + it / inner.width) * frame.width + inner.left - frame.left + it % inner.width] == best.label }
+        return Body(Blob(inner, clipped), insidePixels[best.label])
+    }
+
+    private fun toBox(rect: Rect, width: Int, height: Int) = Box(
+        (rect.left * width).toInt().coerceIn(0, width - 1),
+        (rect.top * height).toInt().coerceIn(0, height - 1),
+        (rect.right * width).toInt().coerceIn(1, width),
+        (rect.bottom * height).toInt().coerceIn(1, height),
+    )
 
     private fun silhouettes(tone: BooleanArray, ink: BooleanArray, rules: BlockRules, width: Int, height: Int): List<Blob> {
         val pageArea = width * height
