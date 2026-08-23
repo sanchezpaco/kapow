@@ -8,15 +8,22 @@ ViewCarousel button in the HUD (`ReaderUiState.guided`).
 ## Pipeline
 
 ```
-page bitmap ──▶ PanelDetector (data) ──▶ OnnxBoxDetector (ONNX) ──▶ PanelLayout.readingOrder ──▶ List<Rect> ──▶ cache
-                      │ no boxes                                                                      │
-                      └──▶ PanelDetection (domain, pure heuristic) ──────────────────────────────────▶┤
-                     tap ──▶ GuidedReader animates the focus rect to the next panel ◀────────────────┘
+page bitmap ──▶ PanelDetector (data) ──▶ OnnxBoxDetector (ONNX) ──────▶ PanelLayout.complemented ──▶ readingOrder ──▶ List<Rect> ──▶ cache
+                      │                                                          ▲                                        │
+                      └──▶ PanelDetection (domain, pure heuristic) ──────────────┘                                        │
+                     tap ──▶ GuidedReader animates the focus rect to the next panel ◀────────────────────────────────────┘
 ```
 
-`PanelDetector` (data layer) asks the ML model first and only falls back to the
-pixel heuristic when the model returns no panel. Everything after the boxes is
-pure Kotlin in `feature/reader/domain` and unit-tested on synthetic pages.
+`PanelDetector` (data layer) runs both detectors on every page: the ML boxes
+are the primary answer and `PanelLayout.complemented` adds the heuristic panels
+that overlap no ML box by more than 30 % of their own area. This covers what
+the manga-trained model structurally misses — borderless panels on Western
+pages, where it returns only the framed neighbours — while heuristic panels
+that merge or loosely duplicate an ML box are discarded. With no ML boxes the
+page is just the heuristic result. On the 77-page ground truth the union is
+neutral (F1 0.931 → 0.934, recall +2 points, precision −1); the gain shows on
+open-panel pages the ground truth barely contains. Everything after the boxes
+is pure Kotlin in `feature/reader/domain` and unit-tested on synthetic pages.
 
 ## ML panel detection (default path)
 

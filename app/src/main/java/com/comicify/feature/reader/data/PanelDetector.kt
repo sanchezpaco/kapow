@@ -23,9 +23,9 @@ private const val BUBBLE_CONFIDENCE = 0.25f
 class PanelDetector(private val panelModel: OnnxBoxDetector, private val bubbleModel: OnnxBoxDetector) {
 
     fun detect(bitmap: Bitmap): List<Rect> {
-        val panels = panelModel.detect(bitmap)
-        if (panels.isEmpty()) return heuristicPanels(bitmap)
-        return PanelLayout.readingOrder(panels.map(::toBox)).map { it.toRect(ORDERING_GRID, ORDERING_GRID) }
+        val detected = panelModel.detect(bitmap).map(::toBox)
+        val heuristic = heuristicPanels(bitmap).map(::toBox)
+        return PanelLayout.readingOrder(PanelLayout.complemented(detected, heuristic)).map { it.toRect(ORDERING_GRID, ORDERING_GRID) }
     }
 
     fun bubbles(bitmap: Bitmap): List<SpeechBubble> {

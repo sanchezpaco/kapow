@@ -99,3 +99,27 @@ class PanelLayoutTest {
         assertEquals(0.5f, PanelLayout.coverage(listOf(Box(0, 0, 5, 5)), content, 10))
     }
 }
+
+class PanelComplementTest {
+
+    @Test
+    fun candidatesAwayFromDetectedPanelsAreAdded() {
+        val detected = listOf(Box(0, 0, 500, 500), Box(500, 0, 1000, 500))
+        val open = Box(0, 520, 1000, 1000)
+        assertEquals(detected + open, PanelLayout.complemented(detected, listOf(open)))
+    }
+
+    @Test
+    fun candidatesCoveringDetectedPanelsAreDropped() {
+        val detected = listOf(Box(0, 0, 500, 500), Box(500, 0, 1000, 500))
+        val merged = Box(0, 0, 1000, 500)
+        val slightlyLoose = Box(0, 0, 560, 560)
+        assertEquals(detected, PanelLayout.complemented(detected, listOf(merged, slightlyLoose)))
+    }
+
+    @Test
+    fun nothingDetectedKeepsEveryCandidate() {
+        val candidates = listOf(Box(0, 0, 500, 500), Box(0, 500, 500, 1000))
+        assertEquals(candidates, PanelLayout.complemented(emptyList(), candidates))
+    }
+}

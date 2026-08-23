@@ -6,6 +6,7 @@ import kotlin.math.min
 private const val CONTAINMENT = 0.8f
 private const val SHARED_REGION_OVERLAP = 0.2f
 private const val REDUNDANT_CONTAINER_COVERAGE = 0.75f
+private const val MAX_COMPLEMENT_OVERLAP = 0.3f
 
 data class Panel(val body: Box, val frame: Box) {
     fun grown(region: Box) = Panel(body, frame.union(region))
@@ -58,6 +59,11 @@ object PanelLayout {
         val covered = boxes.filter { it !== host && contains(host, it) }.sumOf { host.intersectionArea(it) }
         covered < REDUNDANT_CONTAINER_COVERAGE * host.area
     }
+
+    fun complemented(detected: List<Box>, candidates: List<Box>): List<Box> =
+        detected + candidates.filter { candidate ->
+            detected.all { it.intersectionArea(candidate) < candidate.area * MAX_COMPLEMENT_OVERLAP }
+        }
 
     fun readingOrder(boxes: List<Box>): List<Box> {
         val containers = boxes.filter { host -> boxes.any { it !== host && contains(host, it) } }
