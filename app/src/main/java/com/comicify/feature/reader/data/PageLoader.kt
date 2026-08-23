@@ -26,6 +26,7 @@ private const val PARALLEL_DETECTIONS = 2
 class PageLoader(
     private val source: ComicSource,
     private val scope: CoroutineScope,
+    private val panelDetector: PanelDetector,
 ) {
     private val cache = LruCache<Int, PageArt>(CACHE_SIZE)
     private val thumbCache = LruCache<Int, ImageBitmap>(THUMB_CACHE_SIZE)
@@ -67,7 +68,7 @@ class PageLoader(
     suspend fun panels(index: Int): List<Rect> {
         panelCache[index]?.let { return it }
         val art = load(index)
-        return withContext(Dispatchers.Default) { PanelDetector.detect(art.image.asAndroidBitmap()) }
+        return withContext(Dispatchers.Default) { panelDetector.detect(art.image.asAndroidBitmap()) }
             .also { panelCache.put(index, it) }
     }
 
@@ -75,7 +76,7 @@ class PageLoader(
         bubbleCache[index]?.let { return it }
         val art = load(index)
         return detectionSlots.withPermit {
-            bubbleCache[index] ?: withContext(Dispatchers.Default) { PanelDetector.bubbles(art.image.asAndroidBitmap()) }
+            bubbleCache[index] ?: withContext(Dispatchers.Default) { panelDetector.bubbles(art.image.asAndroidBitmap()) }
         }.also { bubbleCache.put(index, it) }
     }
 

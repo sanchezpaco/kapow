@@ -8,15 +8,35 @@ ViewCarousel button in the HUD (`ReaderUiState.guided`).
 ## Pipeline
 
 ```
-page bitmap ──▶ PanelDetector (data) ──▶ PanelDetection (domain, pure) ──▶ List<Rect> ──▶ cache
-                                                                                     │
-                     tap ──▶ GuidedReader animates the focus rect to the next panel ◀─┘
+page bitmap ──▶ PanelDetector (data) ──▶ MlPanelDetector (ONNX) ──▶ PanelLayout.readingOrder ──▶ List<Rect> ──▶ cache
+                      │ no boxes                                                                      │
+                      └──▶ PanelDetection (domain, pure heuristic) ──────────────────────────────────▶┤
+                     tap ──▶ GuidedReader animates the focus rect to the next panel ◀────────────────┘
 ```
 
-`PanelDetector` (data layer) only reads the bitmap pixels; everything else is
+`PanelDetector` (data layer) asks the ML model first and only falls back to the
+pixel heuristic when the model returns no panel. Everything after the boxes is
 pure Kotlin in `feature/reader/domain` and unit-tested on synthetic pages.
 
-## Panel detection
+## ML panel detection (default path)
+
+`MlPanelDetector` runs a YOLO26n detector fine-tuned on manga frames
+(`leoxs22/manga-panel-detector-yolo26n`, exported to ONNX, 9 MB in
+`assets/models/panels.onnx`, stored uncompressed) through ONNX Runtime Mobile.
+The page is letterboxed to 640×640 on a grey canvas, the end-to-end output
+(`[1, 300, 6]` = x1, y1, x2, y2, score, class) is filtered to class `frame`
+with score ≥ 0.35, and boxes are mapped back to normalized page coordinates.
+The session is created once per process from a copy of the asset in
+`filesDir` (ONNX Runtime needs a real file).
+
+Measured on the 77-page sample of the 11-comic corpus (`.claude/ml-spike-kit`
+holds the ground truth, scorer and dumps): panel F1 0.93 vs 0.77 for the
+heuristic, 54/77 pages exact vs 29, ~100 ms per page on the Fold emulator vs
+~540 ms. Largest wins on bleed-heavy and manga pages (Venomverse 7/7 exact);
+the only regression is clean Marvel grids where the heuristic was already
+near-perfect (Ben Reilly #01 0.94 → 0.79, boxes slightly loose or merged).
+
+## Heuristic panel detection (fallback)
 
 Real `.cbr`/`.cbz` files carry no panel metadata, so panels are detected from
 pixels. Marvel-style pages mix clean grids, tilted gutters, bleeds, insets and
@@ -81,8 +101,10 @@ robust structural facts rather than a single threshold:
    auto-crops margins on splashes.
 
 Output: `List<Rect>` in normalized page coordinates (0..1), cached per page in
-`PageLoader` (only computed when Guided View is used). Detection takes
-~100–250 ms per page off the main thread.
+`PageLoader` (only computed when Guided View is used). The heuristic takes
+~100–250 ms per page on the JVM and is frozen since 2026-08-23: the remaining
+failures are not separable by pixel rules, which is why the ML model is the
+default path.
 
 ### Reading order
 
@@ -157,3 +179,9 @@ There is deliberately no manual panel editor: a reader should never have to
 draw rectangles. A page that falls back to one stop, or a merged stop, is read
 with the double-tap zoom around the tapped point and one-finger pan, which work
 on every page. Detection improvements are the only planned fix.
+
+`MlDetectorBenchmark` (androidTest, skipped unless `filesDir/mlspike/*.jpg`
+exist — copy pages in with `adb push` to `/data/local/tmp` and
+`run-as com.comicify.debug cp`) dumps ML and heuristic rects plus timings to
+`device.json`; `HeuristicRectsDump` (unit test, `COMICIFY_RECTS_DUMP_DIR`) does
+the same on the JVM. Both JSONs are scored by `.claude/ml-spike-kit/score.py`.

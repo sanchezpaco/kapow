@@ -101,10 +101,14 @@ Goal: the details that make it feel premium.
       ZIP (CBZ, and `.cbr` files that are really ZIP) and RAR4/RAR5 (via
       7-Zip-JBinding) all work. PDF (`PdfRenderer`) still pending.
 - [x] Night tint (amber) toggle
-- [ ] ML spike for panels + bubbles: evaluate a pretrained detector (Magi /
-      YOLO on Manga109-eBDtheque-DCM) on the 9-comic corpus with the existing
-      visualizers, behind `PanelDetector`'s `List<Rect>` interface, on a branch;
-      adopt only if it beats the heuristic with numbers
+- [x] ML panel detection: YOLO26n (manga-frame fine-tune) via ONNX Runtime is
+      the default `PanelDetector` path, heuristic kept as fallback. 77-page
+      ground truth: F1 0.93 vs 0.77, 54/77 exact pages vs 29, ~100 ms vs
+      ~540 ms on the emulator; +27 MB APK. See `docs/guided-view.md`
+- [ ] ML speech bubbles: YOLOv8m (`ogkalu`) scores F1 0.96 vs 0.78 but weighs
+      99 MB fp32 (int8/fp16 exports failed on ORT mobile) and gives boxes, not
+      the outlines the enlarge renderer needs. Goal: ≤30 MB extra (nano model
+      or LiteRT int8), contour extraction seeded by the ML box
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails, per-comic settings
