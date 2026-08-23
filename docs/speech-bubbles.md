@@ -246,39 +246,36 @@ pages are unaffected).
 
 ## Laying out the enlargement (`BubbleLayout`)
 
-`enlarge(bubbles, scale, panels)` scales every bubble by the user's scale (default
+`enlarge(bubbles, scale)` scales every bubble by the user's scale (default
 `BUBBLE_ENLARGE_SCALE` = 1.3×, adjustable 1.1–2.0× with the slider that appears
 under the HUD buttons while the toggle is on; persisted in DataStore as
-`bubble_scale`) around its own centre, then resolves conflicts with the policy **move into gaps
-first, shrink only when moving is not enough** — copies never end up
-overlapping each other:
+`bubble_scale`). The policy is **grow in place, move as little as possible,
+and give up scale only for the pair that actually collides** — copies never
+end up overlapping each other:
 
-0. Every bubble gets **bounds**: the detected panel it overlaps most
-   (`PanelDetector.detect`, the same panels Guided View uses, cached per
-   page), widened to include the bubble's own box so an overhanging bubble is
-   never squeezed; with no panels the page is the bounds. A copy is scaled
-   down to fit its bounds (never below 1×) and every move below clamps it
-   inside them, so copies no longer spill across gutters into neighbouring
-   panels (`BubbleLayoutTest.copyStaysInsideTheBubblesPanel`).
-1. Every box is grown to the full scale, clamped inside its bounds, and
-   **pushed apart** (16 passes, along the axis with the smaller overlap, half
-   the overlap each). Pushing is staged by how much of the original a copy must
-   still cover (`COVERAGE_STEPS` = 1.0, 0.7, 0.4 per axis): copies first
-   separate without uncovering their original at all, and only the pairs that
-   still collide are allowed to slide further off it — so most bubbles stay
-   put and only crowded ones move into neighbouring gaps.
-2. Boxes that still overlap after pushing form a **cluster**. The whole cluster
-   is scaled by one **uniform** factor — the tightest pairwise separating scale
-   in the cluster — so a caption sandwiched between two others grows the same
-   as its neighbours instead of being pinned to 1× by the pairwise minimum,
-   floored at `MIN_ENLARGE_SCALE` (1.15×, capped at the requested scale).
-3. Members are re-grown at their assigned scale and pushed apart again with the
-   same staging.
-4. **Residual overlaps** are then resolved pair by pair: each still-colliding
-   pair is shrunk about its current centres by the factor that makes them just
-   touch (never below 1×), followed by a few more push passes, until no copy
-   overlaps another (`BubbleLayoutTest.crowdedClusterEndsWithoutOverlappingCopies`).
-   Anything a copy uncovers by sliding is repainted at render time (below).
+1. Bubbles whose grown copies would touch are grouped. A **compact group**
+   (union no larger than 30 % of the page side — stacked captions, a pair of
+   balloons from one speaker) is scaled as one unit about the group's centre,
+   so its members spread apart like a zoom of that region and keep the full
+   scale; if the zoomed group would leave the page its scale is reduced. Every
+   other bubble grows about its own centre, bounded by the page only: a bubble
+   at a panel edge grows over the gutter instead of sliding inward.
+2. Colliding copies are **pushed apart** (16 passes, along the axis with the
+   smaller overlap, half the overlap each), first without uncovering their
+   original at all and then uncovering at most 15 % per axis
+   (`COVERAGE_STEPS` = 1.0, 0.85). Panels play no part: the bubble mode no
+   longer needs panel detection.
+3. Pairs that still collide are **re-centred on their originals and shrunk**
+   to the largest scale at which they just touch (never below 1×); the scale
+   only ever decreases, so this converges
+   (`BubbleLayoutTest.crowdedClusterEndsWithoutOverlappingCopies`). Two
+   bubbles whose originals touch therefore stay at 1× rather than being moved
+   across the page.
+
+On the 77-page sample at 1.3× this moves 130 of 636 copies by more than 20 %
+of their size (280 with the previous move-first policy) and leaves 155 at 1×
+(95 before): less motion, at the price of more untouched pairs. Anything a
+copy uncovers is repainted at render time (below).
 
 ## Rendering
 
