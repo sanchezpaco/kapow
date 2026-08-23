@@ -44,10 +44,24 @@ and is unit-tested independently of any file IO.
 - Read with **7-Zip-JBinding** (`com.github.omicronapps:7-Zip-JBinding-4Android`,
   via JitPack), which ships native `.so` per ABI and handles both RAR4 and RAR5.
   `junrar` was dropped because it cannot read RAR5.
-- The archive is opened once over a `RandomAccessFileInStream`; each page is
-  extracted on demand by item index through an `IArchiveExtractCallback`.
-- 7-Zip-JBinding is not thread-safe, so extraction is serialized behind a
-  `Mutex`.
+- The archive is opened once over a `RandomAccessFileInStream` and then
+  **extracted once, sequentially, in the background** into a per-comic
+  directory next to the cached archive (`<cache>_pages/<itemIndex>`), through a
+  single `extract(allIndices, …)` call whose `IArchiveExtractCallback` streams
+  each item to its own file.
+- Why: real `.cbr` files are usually *solid* RAR archives, so extracting a
+  single item makes 7-Zip decompress the whole solid block from the start up to
+  that item. Per-page extraction therefore costs O(N) for page N and page turns
+  get progressively slower through the comic (O(N²) overall, multiplied by the
+  thumbnail strip). One sequential pass is O(total).
+- `decodePage(index)` awaits a per-item `CompletableDeferred` that is completed
+  when that item's file is fully written, then reads the file and decodes it.
+  Items come out in archive order, so the first pages become readable almost
+  immediately while the rest is still extracting. Extraction failures complete
+  the pending deferreds with `ComicSourceException.ReadFailure`.
+- The extraction directory is wiped before extracting and deleted on `close()`.
+  Closing while extraction is still running aborts it at the next item, and the
+  archive, cache file and directory are released from the extraction thread.
 - Same image filtering/natural sorting as CBZ, behind the same `ComicSource`.
 - The bundled native library loads on 16 KB-page devices (verified on the
   API 37.1 foldable emulator).
