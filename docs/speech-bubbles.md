@@ -26,23 +26,32 @@ toggle is used).
 
 ## ML boxes (`OnnxBoxDetector`)
 
-The model is `ogkalu/comic-speech-bubble-detector-yolov8m`, exported with
-ultralytics (`format=onnx imgsz=640 nms=True`, so the graph ends in
-NonMaxSuppression and outputs `[1, 300, 6]` like the panel model) and then
-**weight-only int8 quantized**: every Conv weight is stored as per-channel
-int8 + scale with a `DequantizeLinear` in front, activations stay fp32.
-That cuts 99 MB to 26 MB (`assets/models/bubbles.onnx`, uncompressed) with
-identical detections; the int8 activation paths (`ConvInteger`, QDQ static)
-either do not load on ORT mobile or destroyed accuracy. Boxes with
-score ≥ 0.25 are kept (the threshold baked into the exported NMS).
+The model is a **YOLO26n distilled from `ogkalu/comic-speech-bubble-detector-yolov8m`**.
+The YOLOv8m teacher (F1 0.96, but 99 MB fp32 / 26 MB weight-only int8 and
+~1.4 s per page on the Fold emulator) was run over ~1,750 pages of the
+11-comic corpus (capped at 300 pages per comic, Marvel pages oversampled ×3,
+the 77 ground-truth pages excluded) and its boxes used as labels to train
+YOLO26n for 60 epochs at 640 px (`.claude/ml-spike-kit/build.py`,
+`label.py`). Exported with ultralytics (`format=onnx imgsz=640 nms=True`, so
+the graph ends in NonMaxSuppression and outputs `[1, 300, 6]` like the panel
+model) it is 9.4 MB in `assets/models/bubbles.onnx` (stored uncompressed).
+Boxes with score ≥ 0.25 are kept (the threshold baked into the exported NMS).
 
-On the 77-page ground truth bubble F1 is 0.96 (device) vs 0.78 for the
-heuristic alone; the only comics under 0.9 are manga where the ground truth
-itself under-counts. A page where the model finds nothing yields no bubbles:
-falling back to the heuristic there was tried and only added false positives
-(manga pages without bubbles). Cost: ~280 ms per page on a laptop CPU, ~1.4 s
-on the software-rendered Fold emulator (25× the panel model; XNNPACK made no
-difference).
+On the 77-page ground truth the student scores bubble F1 0.96 — the same as
+the teacher, 0.78 for the pixel heuristic alone — at ~35 ms per page on a
+laptop CPU and ~450 ms including outline extraction on the software-rendered
+Fold emulator (the teacher needed ~1.4 s). It has only seen these 11 comics;
+on new styles the teacher is the reference to re-distil from. The only
+comics under 0.9 are manga where the ground truth itself under-counts. A page
+where the model finds nothing yields no bubbles: falling back to the heuristic
+there was tried and only added false positives (manga pages without bubbles).
+
+Compression of the teacher, for the record: weight-only int8 (per-channel
+int8 Conv weights + `DequantizeLinear`, fp32 activations,
+`.claude/ml-spike-kit/quant_wo.py`) kept identical detections at 26 MB and
+loads on ORT mobile; `ConvInteger` dynamic quantization does not load there
+and QDQ static quantization destroyed accuracy; XNNPACK made no speed
+difference.
 
 ## Outlining a box (`SpeechBubbles.outlined`)
 

@@ -105,10 +105,10 @@ Goal: the details that make it feel premium.
       the default `PanelDetector` path, heuristic kept as fallback. 77-page
       ground truth: F1 0.93 vs 0.77, 54/77 exact pages vs 29, ~100 ms vs
       ~540 ms on the emulator; +27 MB APK. See `docs/guided-view.md`
-- [x] ML speech bubbles: YOLOv8m (`ogkalu`) weight-only int8 ONNX (26 MB)
-      gives the boxes, the pixel heuristic extracts the outline inside each
-      box. Bubble F1 0.96 vs 0.78 on the 77-page ground truth. See
-      `docs/speech-bubbles.md`
+- [x] ML speech bubbles: YOLO26n distilled from `ogkalu`'s YOLOv8m on the
+      own corpus (9 MB, ~35 ms/page) gives the boxes, the pixel heuristic
+      extracts the outline inside each box. Bubble F1 0.96 vs 0.78 on the
+      77-page ground truth. See `docs/speech-bubbles.md`
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails, per-comic settings
