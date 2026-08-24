@@ -28,23 +28,30 @@ toggle is used).
 
 The model is a **YOLO26n distilled from `ogkalu/comic-speech-bubble-detector-yolov8m`**.
 The YOLOv8m teacher (F1 0.96, but 99 MB fp32 / 26 MB weight-only int8 and
-~1.4 s per page on the Fold emulator) was run over ~1,750 pages of the
-11-comic corpus (capped at 300 pages per comic, Marvel pages oversampled ×3,
-the 77 ground-truth pages excluded) and its boxes used as labels to train
-YOLO26n for 60 epochs at 640 px (`.claude/ml-spike-kit/build.py`,
-`label.py`). Exported with ultralytics (`format=onnx imgsz=640 nms=True`, so
-the graph ends in NonMaxSuppression and outputs `[1, 300, 6]` like the panel
-model) it is 9.4 MB in `assets/models/bubbles.onnx` (stored uncompressed).
-Boxes with score ≥ 0.25 are kept (the threshold baked into the exported NMS).
+~1.4 s per page on the Fold emulator) was run over ~2,500 pages of the
+16-comic corpus (capped at 250 pages per series, the 98 ground-truth pages
+excluded) and its boxes used as labels to train YOLO26n for 60 epochs at
+640 px (`.claude/ml-spike-kit/build.py`, `label.py`). The current student was
+fine-tuned from the first one (11 comics, 300 pages each, Marvel ×3) after the
+corpus grew with 1970s halftone (Defensores), 1990s scans (Spiderman 2099,
+Gambito) and modern digital Marvel (4F, Capitana Marvel). Exported with
+ultralytics (`format=onnx imgsz=640 nms=True`, so the graph ends in
+NonMaxSuppression and outputs `[1, 300, 6]` like the panel model) it is 9.4 MB
+in `assets/models/bubbles.onnx` (stored uncompressed). Boxes with score ≥ 0.25
+are kept (the threshold baked into the exported NMS).
 
-On the 77-page ground truth the student scores bubble F1 0.96 — the same as
-the teacher, 0.78 for the pixel heuristic alone — at ~35 ms per page on a
-laptop CPU and ~450 ms including outline extraction on the software-rendered
-Fold emulator (the teacher needed ~1.4 s). It has only seen these 11 comics;
-on new styles the teacher is the reference to re-distil from. The only
-comics under 0.9 are manga where the ground truth itself under-counts. A page
-where the model finds nothing yields no bubbles: falling back to the heuristic
-there was tried and only added false positives (manga pages without bubbles).
+On the 98-page ground truth (14 series × 7 pages) the student scores bubble
+F1 0.96 — the same as the teacher, up from 0.94 for the first student, 0.78
+for the pixel heuristic alone — at ~35 ms per page on a laptop CPU and
+~365 ms including outline extraction on the software-rendered Fold emulator
+(the teacher needed ~1.4 s). New styles get 4F 0.99, Spiderman 2099 0.99,
+Defensores 0.88 (the teacher itself only reaches 0.90 there: it misses some
+1970s narration captions, and the student inherits that). On new styles the
+teacher is the reference to re-distil from; re-distilling is a fine-tune from
+the previous student. The only comics under 0.9 are Defensores and manga
+where the ground truth itself under-counts. A page where the model finds
+nothing yields no bubbles: falling back to the heuristic there was tried and
+only added false positives (manga pages without bubbles).
 
 Compression of the teacher, for the record: weight-only int8 (per-channel
 int8 Conv weights + `DequantizeLinear`, fp32 activations,

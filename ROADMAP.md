@@ -108,7 +108,10 @@ Goal: the details that make it feel premium.
 - [x] ML speech bubbles: YOLO26n distilled from `ogkalu`'s YOLOv8m on the
       own corpus (9 MB, ~35 ms/page) gives the boxes, the pixel heuristic
       extracts the outline inside each box. Bubble F1 0.96 vs 0.78 on the
-      77-page ground truth. See `docs/speech-bubbles.md`
+      98-page ground truth. See `docs/speech-bubbles.md`
+- [x] Re-distil the bubble student when the corpus grows (done once: 1970s
+      halftone, 1990s scans and modern digital Marvel added, 0.94 → 0.96);
+      measure on the held-out ground truth, not only on pseudo-label val mAP
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails, per-comic settings
