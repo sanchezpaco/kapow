@@ -299,11 +299,16 @@ copy uncovers is repainted at render time (below).
 ## Rendering
 
 `ZoomablePage` shows a small spinner in the page corner while its bubbles are
-being detected (at most two pages detect concurrently — `PageLoader` gates
-detection with a semaphore so the visible page is not slowed by its
-neighbours), draws the page as before and, in a `drawWithContent` after the
-zoom/pan `graphicsLayer` (so the overlay pans and zooms with the page), draws
-in two passes. First every enlarged bubble's **original footprint** (its
+being detected (one page at a time — `PageLoader` gates detection with a
+semaphore and serves the visible page before its neighbours, so a page turn
+never competes with several detections for the cores), draws the page as
+before and, in a `drawWithContent` after the zoom/pan `graphicsLayer` (so the
+overlay pans and zooms with the page), draws in two passes straight into the
+Compose `DrawScope` (`BubbleOverlay.drawBubbles`). Nothing is rasterised in
+between: an earlier version rendered a full-page ARGB overlay bitmap per page
+and per slider step, which on a 2953 × 4528 scan meant 53 MB allocations and
+page turns at ~10 fps. The only precomputed part is `BubbleOverlay.plan`: the
+paper colour of each enlarged bubble. First every enlarged bubble's **original footprint** (its
 outline polygons) is repainted with the bubble's paper colour — the median
 luminance of samples taken **inside the silhouette** (`SpeechBubble.interiorSamples`,
 never the bounding box, which would pick up surrounding art and paint a grey

@@ -1,69 +1,62 @@
 package com.comicify.feature.reader.ui
 
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.RectF
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import com.comicify.feature.reader.domain.EnlargedBubble
 import com.comicify.feature.reader.domain.SpeechBubble
+import kotlin.math.roundToInt
 
 private const val PAPER_SAMPLES_PER_AXIS = 12
 private const val OUTLINE_WIDTH_FRACTION = 0.0007f
 private const val OUTLINE_ALPHA = 0.35f
 
+data class PaintedBubble(val enlarged: EnlargedBubble, val paper: Color)
+
 object BubbleOverlay {
 
-    fun render(page: ImageBitmap, bubbles: List<EnlargedBubble>): ImageBitmap {
-        val source = page.asAndroidBitmap()
-        val overlay = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(overlay)
-        val enlarged = bubbles.filter { it.scale > 1f }
-        val fill = Paint(Paint.ANTI_ALIAS_FLAG)
-        enlarged.forEach { item ->
-            fill.color = paperColor(page, item.bubble).toArgb()
-            canvas.drawPath(path(item.bubble.outlines, page) { it }, fill)
+    fun plan(page: ImageBitmap, bubbles: List<EnlargedBubble>): List<PaintedBubble> =
+        bubbles.filter { it.scale > 1f }.map { PaintedBubble(it, paperColor(page, it.bubble)) }
+
+    fun DrawScope.drawBubbles(page: ImageBitmap, area: Rect, bubbles: List<PaintedBubble>) {
+        bubbles.forEach { item -> drawPath(path(item.enlarged.bubble.outlines, area) { it }, item.paper) }
+        val outline = Stroke(width = minOf(area.width, area.height) * OUTLINE_WIDTH_FRACTION)
+        val outlineColor = Color.Black.copy(alpha = OUTLINE_ALPHA)
+        bubbles.forEach { item ->
+            val shape = path(item.enlarged.bubble.outlines, area, item.enlarged::map)
+            val src = item.enlarged.bubble.box
+            val dst = item.enlarged.target
+            clipPath(shape) {
+                drawImage(
+                    image = page,
+                    srcOffset = IntOffset((src.left * page.width).toInt(), (src.top * page.height).toInt()),
+                    srcSize = IntSize((src.width * page.width).toInt(), (src.height * page.height).toInt()),
+                    dstOffset = IntOffset((area.left + dst.left * area.width).roundToInt(), (area.top + dst.top * area.height).roundToInt()),
+                    dstSize = IntSize((dst.width * area.width).roundToInt(), (dst.height * area.height).roundToInt()),
+                    filterQuality = FilterQuality.High,
+                )
+            }
+            drawPath(shape, outlineColor, style = outline)
         }
-        val copy = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
-        val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeWidth = minOf(page.width, page.height) * OUTLINE_WIDTH_FRACTION
-            color = Color.Black.copy(alpha = OUTLINE_ALPHA).toArgb()
-        }
-        enlarged.forEach { item ->
-            val shape = path(item.bubble.outlines, page, item::map)
-            val src = item.bubble.box
-            val dst = item.target
-            canvas.save()
-            canvas.clipPath(shape)
-            canvas.drawBitmap(
-                source,
-                android.graphics.Rect(
-                    (src.left * page.width).toInt(), (src.top * page.height).toInt(),
-                    (src.right * page.width).toInt(), (src.bottom * page.height).toInt(),
-                ),
-                RectF(dst.left * page.width, dst.top * page.height, dst.right * page.width, dst.bottom * page.height),
-                copy,
-            )
-            canvas.restore()
-            canvas.drawPath(shape, outline)
-        }
-        return overlay.asImageBitmap()
     }
 
-    private fun path(outlines: List<List<Offset>>, page: ImageBitmap, map: (Offset) -> Offset) = Path().apply {
+    private fun path(outlines: List<List<Offset>>, area: Rect, map: (Offset) -> Offset) = Path().apply {
         outlines.forEach { outline ->
             outline.forEachIndexed { i, point ->
                 val at = map(point)
-                if (i == 0) moveTo(at.x * page.width, at.y * page.height) else lineTo(at.x * page.width, at.y * page.height)
+                val x = area.left + at.x * area.width
+                val y = area.top + at.y * area.height
+                if (i == 0) moveTo(x, y) else lineTo(x, y)
             }
             close()
         }
