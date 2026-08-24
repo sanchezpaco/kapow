@@ -116,7 +116,7 @@ private fun SinglePageReader(
     LaunchedEffect(pagerState.currentPage) {
         val logicalPage = PageOrder.logicalIndex(direction, pagerState.currentPage, pageCount)
         onPageChanged(logicalPage)
-        loader.preload((logicalPage - 1)..(logicalPage + 2))
+        loader.preload(logicalPage, (logicalPage - 1)..(logicalPage + 2), withBubbles = bubbleScale != null)
         runCatching { loader.load(logicalPage) }.getOrNull()?.let { onAmbient(it.ambient) }
     }
 
@@ -184,7 +184,7 @@ private fun SpreadReader(
     LaunchedEffect(pagerState.currentPage) {
         val firstPage = PageOrder.logicalIndex(direction, pagerState.currentPage, spreadCount) * 2
         onPageChanged(firstPage)
-        loader.preload((firstPage - 1)..(firstPage + 3))
+        loader.preload(firstPage, (firstPage - 1)..(firstPage + 3), withBubbles = bubbleScale != null)
         runCatching { loader.load(firstPage) }.getOrNull()?.let { onAmbient(it.ambient) }
     }
 
@@ -260,7 +260,7 @@ private fun TabletopReader(
     LaunchedEffect(pagerState.currentPage) {
         val logicalPage = PageOrder.logicalIndex(direction, pagerState.currentPage, pageCount)
         onPageChanged(logicalPage)
-        loader.preload((logicalPage - 1)..(logicalPage + 2))
+        loader.preload(logicalPage, (logicalPage - 1)..(logicalPage + 2), withBubbles = bubbleScale != null)
         runCatching { loader.load(logicalPage) }.getOrNull()?.let { onAmbient(it.ambient) }
     }
 

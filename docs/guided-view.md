@@ -50,8 +50,10 @@ pixels. Marvel-style pages mix clean grids, tilted gutters, bleeds, insets and
 speech bubbles that overhang gutters, so the detector is built around a few
 robust structural facts rather than a single threshold:
 
-1. **Pixel classes** (`PixelClasses`). Classified at source resolution and
-   max-pooled to ~1000 px wide, so hairline gutters survive downscaling:
+1. **Pixel classes** (`PixelClasses`). The page is first scaled with a
+   filtered resize so its shorter side is ~1000 px (`PanelDetector`;
+   classifying the 13 MP of a high-resolution scan cost ~800 ms per page and
+   changed nothing on the ground truth), then every pixel is classified:
    - `white`: near-white, low chroma (any source pixel in the cell) — gutters,
      bubble interiors, page margins.
    - `solidWhite`: every source pixel in the cell is white — used to find

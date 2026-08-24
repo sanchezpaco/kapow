@@ -17,9 +17,9 @@ page bitmap ──▶ PanelDetector.bubbles (data) ──▶ OnnxBoxDetector (ML
 `PanelDetector.bubbles` asks the ML model *where* the bubbles are and the pixel
 heuristic *what shape* they have: `OnnxBoxDetector` returns normalized boxes,
 `SpeechBubbles.outlined` turns each box into a `SpeechBubble` with outlines.
-Pixels are pooled as for panel detection (the page's **shorter** side becomes
-~1000 cells, so a double-page spread keeps the same cell size as a single page
-and its small bubbles survive). `SpeechBubbles` and `BubbleLayout` are pure
+Pixels are classified at the analysis size shared with panel detection (the
+page is scaled so its **shorter** side is ~1000 px, so a double-page spread
+keeps the same cell size as a single page and its small bubbles survive). `SpeechBubbles` and `BubbleLayout` are pure
 Kotlin in `feature/reader/domain`, unit-tested on synthetic pages. Detection
 runs off the main thread and is cached per page in `PageLoader` (only when the
 toggle is used).
@@ -43,8 +43,11 @@ are kept (the threshold baked into the exported NMS).
 On the 98-page ground truth (14 series × 7 pages) the student scores bubble
 F1 0.96 — the same as the teacher, up from 0.94 for the first student, 0.78
 for the pixel heuristic alone — at ~35 ms per page on a laptop CPU and
-~365 ms including outline extraction on the software-rendered Fold emulator
-(the teacher needed ~1.4 s). New styles get 4F 0.99, Spiderman 2099 0.99,
+~235 ms including outline extraction on the software-rendered Fold emulator
+(the teacher needed ~1.4 s; a 2953 × 4528 scan took 650–900 ms before the
+page was scaled to the analysis size first). While bubbles are enlarged,
+`PageLoader.preload` also detects the neighbouring pages, nearest first, so a
+page turn normally finds its bubbles already cached. New styles get 4F 0.99, Spiderman 2099 0.99,
 Defensores 0.88 (the teacher itself only reaches 0.90 there: it misses some
 1970s narration captions, and the student inherits that). On new styles the
 teacher is the reference to re-distil from; re-distilling is a fine-tune from

@@ -112,7 +112,7 @@ fun GuidedReader(
         val stops = if (detected.size > 1) listOf(FullPagePanel) + detected else detected
         panels = stops
         panelIndex = if (panelIndex == LAST_PANEL) stops.lastIndex else panelIndex.coerceIn(0, stops.lastIndex)
-        loader.preload((page - 1)..(page + 2))
+        loader.preload(page, (page - 1)..(page + 2), withBubbles = false)
         if (spread) {
             val sibling = spreadStart(page) + 1 - page % 2
             if (sibling in 0 until loader.pageCount) runCatching { loader.load(sibling) }.getOrNull()?.let { arts = arts + (sibling to it) }

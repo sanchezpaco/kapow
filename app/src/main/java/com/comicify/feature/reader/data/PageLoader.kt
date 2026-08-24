@@ -15,6 +15,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 
 private const val TARGET_WIDTH_PX = 2160
 private const val THUMB_WIDTH_PX = 180
@@ -35,6 +36,7 @@ class PageLoader(
     private val detectionSlots = Semaphore(PARALLEL_DETECTIONS)
     private val locks = HashMap<Int, Mutex>()
     private val thumbLocks = HashMap<Int, Mutex>()
+    private val bubbleLocks = HashMap<Int, Mutex>()
 
     val pageCount: Int get() = source.pageCount
 
@@ -74,14 +76,22 @@ class PageLoader(
 
     suspend fun bubbles(index: Int): List<SpeechBubble> {
         bubbleCache[index]?.let { return it }
-        val art = load(index)
-        return detectionSlots.withPermit {
-            bubbleCache[index] ?: withContext(Dispatchers.Default) { panelDetector.bubbles(art.image.asAndroidBitmap()) }
-        }.also { bubbleCache.put(index, it) }
+        val mutex = synchronized(bubbleLocks) { bubbleLocks.getOrPut(index) { Mutex() } }
+        return mutex.withLock {
+            bubbleCache[index] ?: detectBubbles(index).also { bubbleCache.put(index, it) }
+        }
     }
 
-    fun preload(indices: Iterable<Int>) {
-        indices.filter { it in 0 until source.pageCount && cache[it] == null }
-            .forEach { index -> scope.launch { runCatching { load(index) } } }
+    private suspend fun detectBubbles(index: Int): List<SpeechBubble> {
+        val art = load(index)
+        return detectionSlots.withPermit {
+            withContext(Dispatchers.Default) { panelDetector.bubbles(art.image.asAndroidBitmap()) }
+        }
+    }
+
+    fun preload(around: Int, indices: Iterable<Int>, withBubbles: Boolean) {
+        indices.filter { it in 0 until source.pageCount }
+            .sortedBy { abs(it - around) }
+            .forEach { index -> scope.launch { runCatching { if (withBubbles) bubbles(index) else load(index) } } }
     }
 }
