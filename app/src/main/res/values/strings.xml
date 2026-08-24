@@ -13,6 +13,7 @@
     <string name="library_action_open_file">Open file</string>
     <string name="library_scanning">Scanning folder…</string>
     <string name="library_scan_error">Couldn\'t read that folder. Try choosing it again.</string>
+    <string name="library_debug_badge">DEBUG</string>
     <string name="library_count">%1$d comics</string>
     <string name="library_shelf_eyebrow">Shelf</string>
     <string name="library_resume_eyebrow">Resume</string>

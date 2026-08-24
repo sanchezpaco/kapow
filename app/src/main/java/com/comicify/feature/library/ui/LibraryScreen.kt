@@ -1,6 +1,7 @@
 package com.comicify.feature.library.ui
 
 import android.net.Uri
+import com.comicify.BuildConfig
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -295,6 +296,21 @@ private fun SeriesHeader(title: String, subtitle: String, onBack: () -> Unit) {
 }
 
 @Composable
+private fun DebugBadge() {
+    Text(
+        text = stringResource(R.string.library_debug_badge),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        color = Color.White,
+        modifier = Modifier
+            .padding(bottom = 6.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(Accent)
+            .padding(horizontal = 7.dp, vertical = 2.dp),
+    )
+}
+
+@Composable
 private fun LibraryHeader(
     comicCount: Int,
     scanning: Boolean,
@@ -320,6 +336,7 @@ private fun LibraryHeader(
                 color = InkFaint,
                 modifier = Modifier.padding(bottom = 6.dp),
             )
+            if (BuildConfig.DEBUG) DebugBadge()
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             PrimaryAction(icon = Icons.Filled.CreateNewFolder, label = stringResource(R.string.library_pick_folder), onClick = onPickFolder)
