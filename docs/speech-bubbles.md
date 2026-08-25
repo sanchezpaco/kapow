@@ -43,16 +43,33 @@ are kept (the threshold baked into the exported NMS).
 On the 98-page ground truth (14 series × 7 pages) the student scores bubble
 F1 0.96 — the same as the teacher, up from 0.94 for the first student, 0.78
 for the pixel heuristic alone — at ~35 ms per page on a laptop CPU and
-~235 ms including outline extraction on the software-rendered Fold emulator
+~230 ms including outline extraction on the software-rendered Fold emulator
 (the teacher needed ~1.4 s; a 2953 × 4528 scan took 650–900 ms before the
 page was scaled to the analysis size first). While bubbles are enlarged,
 `PageLoader.preload` also detects the neighbouring pages, nearest first, so a
 page turn normally finds its bubbles already cached. New styles get 4F 0.99, Spiderman 2099 0.99,
-Defensores 0.88 (the teacher itself only reaches 0.90 there: it misses some
-1970s narration captions, and the student inherits that). On new styles the
-teacher is the reference to re-distil from; re-distilling is a fine-tune from
-the previous student. The only comics under 0.9 are Defensores and manga
-where the ground truth itself under-counts. A page where the model finds
+Defensores 0.90 (up from 0.88; see below — the teacher itself only reaches
+0.90 there). On new styles the teacher is the reference to re-distil from;
+re-distilling is a fine-tune from the previous student. The only comics under
+0.9 are manga where the ground truth itself under-counts.
+
+Defensores was the one series where the student inherited a teacher mistake:
+1970s reprints carry a page-wide yellow recap caption ("EPISODIO ANTERIOR…")
+that the teacher's pseudo-labels routinely missed, capping the student at the
+teacher's own 0.90. Beyond-the-teacher correction: 120 of Defensores'
+~230 training pages (stratified across its four source volumes) were rendered
+with their existing pseudo-label boxes overlaid and reviewed by vision
+subagents told to report only *missed* bubbles/captions — 7 boxes added
+across 6 pages, mostly that recap caption. Fine-tuning from the previous
+student for 60 epochs on the corrected set moved Defensores 0.88 → 0.90–0.91
+depending on seed, with no consistent cost elsewhere (a second run with a
+different seed served as a check against training noise, since a handful of
+corrected pages barely shifts 60 epochs over 2,500). A parallel YOLO26s
+fine-tune on the same corrected data reached bubble F1 0.97 overall but did
+not fix Defensores itself (0.898, unchanged) and cost 4× the model size
+(36 MB vs 9.4 MB) and ~2.75× the inference time — rejected, since detection
+speed was already not the bottleneck and the series that motivated the
+exercise didn't benefit. A page where the model finds
 nothing yields no bubbles: falling back to the heuristic there was tried and
 only added false positives (manga pages without bubbles).
 

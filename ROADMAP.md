@@ -112,9 +112,12 @@ Goal: the details that make it feel premium.
 - [x] Re-distil the bubble student when the corpus grows (done once: 1970s
       halftone, 1990s scans and modern digital Marvel added, 0.94 → 0.96);
       measure on the held-out ground truth, not only on pseudo-label val mAP
-- [ ] Bubble student beyond the teacher: hand-corrected labels for the
-      styles where the teacher itself misses (1970s narration captions,
-      Defensores F1 0.88 vs teacher 0.90), then try YOLO26s
+- [x] Bubble student beyond the teacher: hand-corrected 7 missed 1970s
+      narration captions across 120 reviewed Defensores training pages,
+      re-fine-tuned; Defensores F1 0.88 → 0.90–0.91, now at/above the
+      teacher (0.90). A YOLO26s fine-tune on the same data reached 0.97
+      overall but left Defensores unchanged at 4× the model size and
+      ~2.75× the inference time — rejected, kept YOLO26n
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails, per-comic settings
