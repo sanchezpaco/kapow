@@ -112,6 +112,9 @@ Goal: the details that make it feel premium.
 - [x] Re-distil the bubble student when the corpus grows (done once: 1970s
       halftone, 1990s scans and modern digital Marvel added, 0.94 → 0.96);
       measure on the held-out ground truth, not only on pseudo-label val mAP
+- [ ] Bubble student beyond the teacher: hand-corrected labels for the
+      styles where the teacher itself misses (1970s narration captions,
+      Defensores F1 0.88 vs teacher 0.90), then try YOLO26s
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails, per-comic settings
