@@ -268,9 +268,9 @@ pages are unaffected).
 `enlarge(bubbles, scale)` scales every bubble by the user's scale (default
 `BUBBLE_ENLARGE_SCALE` = 1.3×, adjustable 1.1–2.0× with the slider that appears
 under the HUD buttons while the toggle is on; persisted in DataStore as
-`bubble_scale`). The policy is **grow in place, move as little as possible,
-and give up scale only for the pair that actually collides** — copies never
-end up overlapping each other:
+`bubble_scale`). The policy is **keep the full scale, move as far as needed,
+and give up scale only as a last resort** — copies never end up overlapping
+each other:
 
 1. Bubbles whose grown copies would touch are grouped. A **compact group**
    (union no larger than 30 % of the page side — stacked captions, a pair of
@@ -281,19 +281,22 @@ end up overlapping each other:
    at a panel edge grows over the gutter instead of sliding inward.
 2. Colliding copies are **pushed apart** (16 passes, along the axis with the
    smaller overlap, half the overlap each), first without uncovering their
-   original at all and then uncovering at most 15 % per axis
-   (`COVERAGE_STEPS` = 1.0, 0.85). Panels play no part: the bubble mode no
-   longer needs panel detection.
-3. Pairs that still collide are **re-centred on their originals and shrunk**
-   to the largest scale at which they just touch (never below 1×); the scale
+   original at all, then uncovering at most 15 %, 50 % and finally the whole
+   original per axis (`COVERAGE_STEPS` = 1.0, 0.85, 0.5, 0): a copy may end
+   up beside its original but never farther than one box away from it.
+   Panels play no part: the bubble mode no longer needs panel detection.
+3. Pairs that still collide are **shrunk by 10 % about their current centre**
+   (never below 1×) and pushed apart again, until nothing collides; the scale
    only ever decreases, so this converges
    (`BubbleLayoutTest.crowdedClusterEndsWithoutOverlappingCopies`). Two
-   bubbles whose originals touch therefore stay at 1× rather than being moved
-   across the page.
+   bubbles whose originals touch are moved apart, not left at 1×: the earlier
+   policy reset colliding pairs to their original position at the scale where
+   they just touched, which for touching originals is 1×.
 
-On the 77-page sample at 1.3× this moves 130 of 636 copies by more than 20 %
-of their size (280 with the previous move-first policy) and leaves 155 at 1×
-(95 before): less motion, at the price of more untouched pairs. Anything a
+On the 98-page ground truth at 1.3× (873 bubbles) this leaves 32 at 1× and
+138 below the full scale (241 and 304 with the move-little policy), at the
+price of moving 330 copies by more than 20 % of their size (104 before). The
+user prefers size over stillness. Anything a
 copy uncovers is repainted at render time (below).
 
 ## Rendering

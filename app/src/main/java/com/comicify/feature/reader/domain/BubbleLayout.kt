@@ -2,16 +2,16 @@ package com.comicify.feature.reader.domain
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
 const val BUBBLE_ENLARGE_SCALE = 1.3f
 val BUBBLE_SCALE_RANGE = 1.1f..2f
 private const val SEPARATION_PASSES = 16
-private val COVERAGE_STEPS = listOf(1f, 0.85f)
+private val COVERAGE_STEPS = listOf(1f, 0.85f, 0.5f, 0f)
 private const val OVERLAP_EPSILON = 1e-4f
 private const val MAX_GROUP_SIDE = 0.3f
+private const val SHRINK_STEP = 0.9f
 
 data class EnlargedBubble(val bubble: SpeechBubble, val scale: Float, val target: Rect) {
     fun map(point: Offset): Offset = Offset(
@@ -85,19 +85,17 @@ object BubbleLayout {
             val overlapping = overlappingPairs(targets)
             if (overlapping.isEmpty()) return
             for ((i, j) in overlapping) {
-                val limit = separatingScale(placed[i].box, placed[j].box)
-                targets[i] = placed[i].grown(min(scaleOf(targets[i], placed[i]), limit))
-                targets[j] = placed[j].grown(min(scaleOf(targets[j], placed[j]), limit))
+                targets[i] = targets[i].reduced(placed[i])
+                targets[j] = targets[j].reduced(placed[j])
             }
+            pushApart(targets, placed, 0f)
         }
     }
 
-    private fun scaleOf(target: Rect, placed: Placed) = target.width / placed.box.width
-
-    private fun separatingScale(a: Rect, b: Rect): Float {
-        val gapX = abs(a.center.x - b.center.x) / ((a.width + b.width) / 2f)
-        val gapY = abs(a.center.y - b.center.y) / ((a.height + b.height) / 2f)
-        return max(gapX, gapY).coerceAtLeast(1f)
+    private fun Rect.reduced(placed: Placed): Rect {
+        val current = width / placed.box.width
+        val next = max(1f, current * SHRINK_STEP)
+        return with(placed) { scaledAbout(center, next / current).clamped() }
     }
 
     private fun overlappingPairs(targets: List<Rect>): List<Pair<Int, Int>> =

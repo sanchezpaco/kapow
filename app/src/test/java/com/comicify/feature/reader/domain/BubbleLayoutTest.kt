@@ -63,10 +63,11 @@ class BubbleLayoutTest {
     }
 
     @Test
-    fun overlappingOriginalsShrinkRatherThanCoverEachOther() {
+    fun touchingOriginalsMoveApartAndKeepTheirScale() {
         val enlarged = BubbleLayout.enlarge(listOf(bubble(0.4f, 0.4f, 0.6f, 0.5f), bubble(0.4f, 0.5f, 0.6f, 0.6f)), 1.3f)
-        assertTrue(enlarged.all { it.scale >= 1f })
-        enlarged.forEach { assertCovers(it) }
+        assertTrue(enlarged.all { it.scale > 1.29f })
+        assertFalse(collide(enlarged[0], enlarged[1]))
+        enlarged.forEach { assertStaysAdjacent(it) }
     }
 
     @Test
@@ -83,13 +84,20 @@ class BubbleLayoutTest {
         for (i in enlarged.indices) for (j in i + 1 until enlarged.size) {
             assertFalse("$i and $j overlap", collide(enlarged[i], enlarged[j]))
         }
-        assertTrue(enlarged.all { it.scale >= 1f })
-        enlarged.forEach { assertCovers(it) }
+        assertTrue("copies should keep growing by moving instead of shrinking", enlarged.all { it.scale > 1.2f })
+        enlarged.forEach { assertStaysAdjacent(it) }
     }
 
     private fun collide(a: EnlargedBubble, b: EnlargedBubble): Boolean {
         val overlap = a.target.intersect(b.target)
         return overlap.width > EPSILON && overlap.height > EPSILON
+    }
+
+    private fun assertStaysAdjacent(enlarged: EnlargedBubble) {
+        val box = enlarged.bubble.box
+        val target = enlarged.target
+        assertTrue("$target should stay next to $box", target.left <= box.right + EPSILON && target.right >= box.left - EPSILON &&
+            target.top <= box.bottom + EPSILON && target.bottom >= box.top - EPSILON)
     }
 
     private fun assertCovers(enlarged: EnlargedBubble) {
