@@ -303,16 +303,22 @@ to a floor before sliding, and slide only when nothing else fits.
 1. Every bubble grows about its own centre, bounded by the page only: a bubble
    at a panel edge grows over the gutter instead of sliding inward.
 2. Two copies **collide** when their silhouettes intrude into each other more
-   than the originals already did. Each outline is resampled to 48 points
-   along its perimeter; a point of one copy intrudes when it lands inside the
-   other copy's silhouette shrunk to its text body (`TEXT_BODY_SHARE` = 90 %,
-   so rims may touch or overlap by a few pixels, as stacked balloons do in the
-   art). The count is compared with the same count on the originals: ML boxes
-   of neighbours overlap routinely (tails, a caption over a balloon, a tail
-   drawn across the next balloon) and reproducing that overlap is not a
-   collision. Box-based collision was tried first and failed both ways — it
-   either forbade placements the art itself uses or, with a box-overlap
-   allowance, let one copy cover the neighbour's text.
+   than the originals already did. Each bubble's outlines are resampled to 48
+   points spread along their total perimeter (per bubble, not per outline: a
+   leaked fragment of the neighbour must not get 48 points of its own); a
+   point of one copy intrudes when it lands inside the other copy's silhouette
+   shrunk to its text body (`TEXT_BODY_SHARE` = 90 %, so rims may touch or
+   overlap by a few pixels, as stacked balloons do in the art), and the
+   intrusion is the sum of each such point's distance to the host outline,
+   relative to the host copy's size. That sum is compared with the same sum on
+   the originals: ML boxes of neighbours overlap routinely (tails, a caption
+   over a balloon, a tail drawn across the next balloon) and reproducing that
+   overlap is not a collision, while pushing a tail deeper into the neighbour
+   is. Counting intruding points instead of summing depths missed exactly
+   that case (Ben Reilly #01 p.17, "PERO SI PUEDO" over "BUENO"). Box-based
+   collision was tried first and failed both ways — it either forbade
+   placements the art itself uses or, with a box-overlap allowance, let one
+   copy cover the neighbour's text.
 3. Colliding copies are pushed apart (16 passes, along the axis with the
    smaller overlap, a quarter of the overlap each) **without uncovering their
    original**, and each colliding pair then searches the 3 × 3 grid of
@@ -331,11 +337,13 @@ to a floor before sliding, and slide only when nothing else fits.
 Measured with the uncovered-area metric in `SpeechBubbleVisualizer`
 (`metrics.json`: per bubble and per page, as a share of the page; original
 silhouette minus the union of all copies). Ben Reilly #01 (24 pages, 271
-bubbles): 0.2005 → 0.0254 page-areas summed, no bubble uncovering more than
+bubbles): 0.2005 → 0.0265 page-areas summed, no bubble uncovering more than
 0.2 % of the page (26 before); the 98-page corpus (873 bubbles): 0.840 →
-0.213, 1 bubble stuck at 1× (32 before) and 149 below the full scale (138
+0.224, 1 bubble stuck at 1× (32 before) and 163 below the full scale (138
 before, now all ≥ 1.15× unless the coverage steps ran out). Layout costs
-≈20 ms per page on the JVM, 0.5 s worst case on a 19-bubble Defensores page.
+≈50 ms per page on the JVM, 0.8 s worst case on a 19-bubble Defensores page,
+and runs on `Dispatchers.Default` (`ZoomablePage`) — it used to run on the
+main thread.
 The earlier "compact group zoom" step (scale a cluster about the group's
 centre) was removed: it uncovered a strip on every outer member by
 construction and the contained-anchor search covers its cases.

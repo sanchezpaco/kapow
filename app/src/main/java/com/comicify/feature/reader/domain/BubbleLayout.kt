@@ -17,6 +17,7 @@ private const val SHRINK_STEP = 0.9f
 private const val PUSH_SHARE = 0.25f
 private val ANCHOR_SHARES = listOf(0f, 0.5f, 1f)
 private const val COLLISION_OUTLINE_VERTICES = 48
+private const val INTRUSION_EPSILON = 1e-3f
 
 data class EnlargedBubble(val bubble: SpeechBubble, val scale: Float, val target: Rect) {
     fun map(point: Offset): Offset = Offset(
@@ -55,24 +56,30 @@ object BubbleLayout {
     }
 
     private class Silhouettes(detected: List<SpeechBubble>) {
-        private val bubbles = detected.map { it.copy(outlines = it.outlines.map(::sampled)) }
-        private val original = bubbles.indices.map { i -> bubbles.indices.map { j -> if (i < j) mutualIntrusions(i, bubbles[i].box, j, bubbles[j].box) else 0 } }
+        private val bubbles = detected.map { bubble ->
+            val step = bubble.outlines.sumOf { perimeter(it).toDouble() }.toFloat() / COLLISION_OUTLINE_VERTICES
+            bubble.copy(outlines = bubble.outlines.map { sampled(it, step) })
+        }
+        private val original = bubbles.indices.map { i -> bubbles.indices.map { j -> if (i < j) mutualIntrusion(i, bubbles[i].box, j, bubbles[j].box) else 0f } }
 
-        fun collide(i: Int, j: Int, a: Rect, b: Rect): Boolean = a.collides(b) && mutualIntrusions(i, a, j, b) > original[min(i, j)][max(i, j)]
+        fun collide(i: Int, j: Int, a: Rect, b: Rect): Boolean =
+            a.collides(b) && mutualIntrusion(i, a, j, b) > original[min(i, j)][max(i, j)] + INTRUSION_EPSILON
 
-        private fun mutualIntrusions(i: Int, a: Rect, j: Int, b: Rect): Int = intrusions(j, b, i, a) + intrusions(i, a, j, b)
+        private fun mutualIntrusion(i: Int, a: Rect, j: Int, b: Rect): Float = intrusion(j, b, i, a) + intrusion(i, a, j, b)
 
-        private fun sampled(outline: List<Offset>): List<Offset> {
-            val edges = outline.indices.map { outline[it] to outline[(it + 1) % outline.size] }
-            val lengths = edges.map { (a, b) -> (b - a).getDistance() }
-            val step = lengths.sum() / COLLISION_OUTLINE_VERTICES
+        private fun edges(outline: List<Offset>) = outline.indices.map { outline[it] to outline[(it + 1) % outline.size] }
+
+        private fun perimeter(outline: List<Offset>) = edges(outline).sumOf { (a, b) -> (b - a).getDistance().toDouble() }.toFloat()
+
+        private fun sampled(outline: List<Offset>, step: Float): List<Offset> {
             if (step <= 0f) return outline
+            val edges = edges(outline)
             val points = ArrayList<Offset>(COLLISION_OUTLINE_VERTICES)
             var next = 0f
             var walked = 0f
-            edges.forEachIndexed { index, (a, b) ->
-                val length = lengths[index]
-                while (next < walked + length && points.size < COLLISION_OUTLINE_VERTICES) {
+            edges.forEach { (a, b) ->
+                val length = (b - a).getDistance()
+                while (next < walked + length) {
                     val t = (next - walked) / length
                     points.add(Offset(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t))
                     next += step
@@ -82,18 +89,24 @@ object BubbleLayout {
             return points
         }
 
-        private fun intrusions(from: Int, at: Rect, into: Int, target: Rect): Int {
+        private fun intrusion(from: Int, at: Rect, into: Int, target: Rect): Float {
             val source = bubbles[from]
             val host = bubbles[into]
             val outScale = at.width / source.box.width
             val inScale = host.box.width / target.width / TEXT_BODY_SHARE
             val body = target.scaledAbout(target.center, TEXT_BODY_SHARE)
-            return source.outlines.sumOf { outline ->
-                outline.count { point ->
+            val hostScale = target.width / host.box.width
+            val hostOutline = host.outlines.flatten().map { Offset(target.left + (it.x - host.box.left) * hostScale, target.top + (it.y - host.box.top) * hostScale) }
+            val size = min(target.width, target.height)
+            var depth = 0f
+            source.outlines.forEach { outline ->
+                outline.forEach { point ->
                     val onPage = Offset(at.left + (point.x - source.box.left) * outScale, at.top + (point.y - source.box.top) * outScale)
-                    body.contains(onPage) && host.contains(Offset(host.box.left + (onPage.x - body.left) * inScale, host.box.top + (onPage.y - body.top) * inScale))
+                    val inside = body.contains(onPage) && host.contains(Offset(host.box.left + (onPage.x - body.left) * inScale, host.box.top + (onPage.y - body.top) * inScale))
+                    if (inside) depth += hostOutline.minOf { (it - onPage).getDistance() } / size
                 }
             }
+            return depth
         }
     }
 

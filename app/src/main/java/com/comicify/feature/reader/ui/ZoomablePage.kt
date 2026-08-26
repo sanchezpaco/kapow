@@ -90,8 +90,7 @@ fun ZoomablePage(
         if (bubbleScale == null || page == null) { overlay = BubbleOverlayState.None; return@LaunchedEffect }
         overlay = BubbleOverlayState.Loading
         val bubbles = runCatching { loader.bubbles(index) }.getOrDefault(emptyList())
-        val enlarged = BubbleLayout.enlarge(bubbles, bubbleScale)
-        overlay = BubbleOverlayState.Ready(withContext(Dispatchers.Default) { BubbleOverlay.plan(page.image, enlarged) })
+        overlay = BubbleOverlayState.Ready(withContext(Dispatchers.Default) { BubbleOverlay.plan(page.image, BubbleLayout.enlarge(bubbles, bubbleScale)) })
     }
     LaunchedEffect(scale) { onZoomedChange(scale > 1.01f) }
 
