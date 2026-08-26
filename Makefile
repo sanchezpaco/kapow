@@ -9,6 +9,7 @@ RELEASE_APK := app/build/outputs/apk/release/app-release-signed.apk
 DEBUG_KEYSTORE := $(HOME)/.android/debug.keystore
 APP_ID := com.comicify.debug
 DEFAULT_DEVICE := R3GL60C82WD
+BUILD_LABEL := $(shell date +'%Y-%m-%d %H:%M') $(shell git rev-parse --short HEAD)
 
 export JAVA_HOME
 
@@ -30,7 +31,7 @@ help:
 	@echo "  make install DEVICE=$(DEFAULT_DEVICE)"
 
 build:
-	$(GRADLEW) :app:assembleDebug
+	$(GRADLEW) :app:assembleDebug -PbuildLabel="$(BUILD_LABEL)"
 
 install: build
 	@serial=$$($(MAKE) -s pick-device); \
@@ -45,7 +46,7 @@ run:
 deploy: install run
 
 release:
-	$(GRADLEW) :app:assembleRelease
+	$(GRADLEW) :app:assembleRelease -PbuildLabel="$(BUILD_LABEL)"
 	"$(BUILD_TOOLS)/zipalign" -f -p 4 "$(RELEASE_UNSIGNED)" "$(RELEASE_UNSIGNED).aligned"
 	"$(BUILD_TOOLS)/apksigner" sign \
 		--ks "$(DEBUG_KEYSTORE)" --ks-key-alias androiddebugkey \

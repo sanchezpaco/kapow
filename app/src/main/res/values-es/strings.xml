@@ -13,7 +13,7 @@
     <string name="library_action_open_file">Abrir archivo</string>
     <string name="library_scanning">Escaneando carpeta…</string>
     <string name="library_scan_error">No se pudo leer esa carpeta. Prueba a elegirla de nuevo.</string>
-    <string name="library_debug_badge">DEBUG</string>
+    <string name="library_debug_badge">DEBUG %1$s</string>
     <string name="library_count">%1$d cómics</string>
     <string name="library_shelf_eyebrow">Estante</string>
     <string name="library_resume_eyebrow">Retomar</string>

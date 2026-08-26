@@ -1,8 +1,24 @@
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+}
+
+val buildLabel = (findProperty("buildLabel") as String?) ?: run {
+    val gitSha = try {
+        providers.exec {
+            commandLine("git", "rev-parse", "--short", "HEAD")
+            workingDir = rootDir
+        }.standardOutput.asText.get().trim()
+    } catch (e: Exception) {
+        "unknown"
+    }
+    val time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+    "$time $gitSha"
 }
 
 android {
@@ -16,6 +32,8 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "BUILD_LABEL", "\"$buildLabel\"")
 
         ndk {
             abiFilters += "arm64-v8a"

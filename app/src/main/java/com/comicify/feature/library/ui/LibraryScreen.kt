@@ -298,7 +298,7 @@ private fun SeriesHeader(title: String, subtitle: String, onBack: () -> Unit) {
 @Composable
 private fun DebugBadge() {
     Text(
-        text = stringResource(R.string.library_debug_badge),
+        text = stringResource(R.string.library_debug_badge, BuildConfig.BUILD_LABEL),
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.Bold,
         color = Color.White,
