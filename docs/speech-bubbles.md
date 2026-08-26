@@ -80,6 +80,15 @@ loads on ORT mobile; `ConvInteger` dynamic quantization does not load there
 and QDQ static quantization destroyed accuracy; XNNPACK made no speed
 difference.
 
+Occasionally the exported NMS lets two near-identical boxes for the same
+physical bubble through (observed IoU 0.99 on a real page). Each got outlined
+and enlarged independently, and `BubbleLayout.enlarge` — seeing two distinct
+bubbles that collide once grown — pushed them apart instead of recognising
+them as one, rendering the same balloon twice, side by side. `detect()` now
+merges boxes with IoU ≥ 0.5 (their union) before returning, for both the
+panel and bubble models. Diagnosed by reproducing on-device (`Muerte by
+ALHma[CRG]`, Marvel Saga 14 "Swing Shift") and dumping raw box coordinates.
+
 ## Outlining a box (`SpeechBubbles.outlined`)
 
 For each ML box the detector looks for the bubble body inside it: the

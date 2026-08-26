@@ -118,16 +118,16 @@ Goal: the details that make it feel premium.
       teacher (0.90). A YOLO26s fine-tune on the same data reached 0.97
       overall but left Defensores unchanged at 4× the model size and
       ~2.75× the inference time — rejected, kept YOLO26n
-- [ ] Bubble render cleanup: on-device screenshots after the v3 install show
-      (1) the same balloon enlarged twice, side by side, near-identical text —
-      likely two ML boxes for one physical bubble surviving NMS, which the
-      collision layout then dutifully pushes apart as if they were a real
-      pair; (2) a bubble relocated with no apparent forced collision, leaving
-      its repainted (flat paper-colour) original spot reading as a blank
-      patch. Verify both root causes on the actual device pages before
-      changing anything. Prioritized ahead of reading stats at the user's
-      request (2026-08-26) — the bubble feature reads as "nearly done" and
-      this is what stands between it and done
+- [x] Bubble render cleanup: on-device screenshots after the v3 install showed
+      the same balloon enlarged twice, side by side, near-identical text.
+      Root-caused on-device (`Muerte by ALHma[CRG]` p.20, Marvel Saga 14
+      "Swing Shift" p.14): two ML boxes for one physical bubble survived the
+      exported NMS at IoU 0.99, and `BubbleLayout.enlarge` pushed them apart
+      as if they were a real colliding pair instead of recognising the
+      duplicate. Fixed by merging boxes with IoU ≥ 0.5 in
+      `OnnxBoxDetector.detect()` before they reach outlining/layout, for both
+      the panel and bubble models. Verified fixed on both pages on the Fold.
+      See `docs/speech-bubbles.md`
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails, per-comic settings

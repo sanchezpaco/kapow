@@ -13,12 +13,14 @@ import androidx.compose.ui.geometry.Rect
 import java.io.File
 import java.nio.FloatBuffer
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 private const val INPUT_SIDE = 640
 private const val LETTERBOX_GRAY = 114
 private const val ROW_SIZE = 6
 private const val TARGET_CLASS = 0f
+private const val DUPLICATE_IOU = 0.5f
 
 class OnnxBoxDetector(modelPath: String, private val confidence: Float) {
     private val environment = OrtEnvironment.getEnvironment()
@@ -27,10 +29,30 @@ class OnnxBoxDetector(modelPath: String, private val confidence: Float) {
     fun detect(bitmap: Bitmap): List<Rect> {
         val frame = Letterbox(bitmap)
         val output = run(frame)
-        return (0 until output.size / ROW_SIZE)
+        val boxes = (0 until output.size / ROW_SIZE)
             .map { it * ROW_SIZE }
             .filter { output[it + 4] >= confidence && output[it + 5] == TARGET_CLASS }
             .map { frame.toPage(output[it], output[it + 1], output[it + 2], output[it + 3]) }
+        return mergedDuplicates(boxes)
+    }
+
+    private fun mergedDuplicates(boxes: List<Rect>): List<Rect> {
+        val parent = IntArray(boxes.size) { it }
+        fun root(i: Int): Int = if (parent[i] == i) i else root(parent[i]).also { parent[i] = it }
+        for (i in boxes.indices) for (j in i + 1 until boxes.size) {
+            if (iou(boxes[i], boxes[j]) >= DUPLICATE_IOU) parent[root(i)] = root(j)
+        }
+        return boxes.indices.groupBy { root(it) }.values.map { members -> members.map { boxes[it] }.reduce(::union) }
+    }
+
+    private fun union(a: Rect, b: Rect) =
+        Rect(min(a.left, b.left), min(a.top, b.top), max(a.right, b.right), max(a.bottom, b.bottom))
+
+    private fun iou(a: Rect, b: Rect): Float {
+        val intersection = max(0f, min(a.right, b.right) - max(a.left, b.left)) *
+            max(0f, min(a.bottom, b.bottom) - max(a.top, b.top))
+        val union = a.width * a.height + b.width * b.height - intersection
+        return if (union <= 0f) 0f else intersection / union
     }
 
     private fun run(frame: Letterbox): FloatArray {
