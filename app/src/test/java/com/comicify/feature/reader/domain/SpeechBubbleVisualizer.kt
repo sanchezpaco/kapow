@@ -8,6 +8,7 @@ import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Image
 import java.awt.RenderingHints
+import java.awt.geom.Area
 import java.awt.geom.Path2D
 import java.awt.image.BufferedImage
 import java.io.File
@@ -43,29 +44,53 @@ class SpeechBubbleVisualizer {
             val boxes = mlBoxes[file.name]?.map { inContent(it, content) }
             val bubbles = boxes?.let { SpeechBubbles.outlined(classes, it) } ?: SpeechBubbles.detect(classes)
             val millis = (System.nanoTime() - started) / 1_000_000
+            val layoutStarted = System.nanoTime()
             val enlarged = BubbleLayout.enlarge(bubbles, BUBBLE_ENLARGE_SCALE)
+            val layoutMillis = (System.nanoTime() - layoutStarted) / 1_000_000
             val preview = scaled(page, PREVIEW_WIDTH, PREVIEW_WIDTH * page.height / page.width)
             ImageIO.write(withEnlarged(preview, page, enlarged), "png", File(out, file.nameWithoutExtension + "-enlarged.png"))
             ImageIO.write(withOutlines(preview, bubbles), "png", File(out, file.nameWithoutExtension + "-bubbles.png"))
             ImageIO.write(page, "png", File(out, file.nameWithoutExtension + "-page.png"))
-            pages.add(pageMetrics(file.name, page.width, page.height, pool, millis, enlarged))
-            println("${file.name}: ${bubbles.size} bubbles in ${millis}ms")
+            pages.add(pageMetrics(file.name, page.width, page.height, pool, millis, layoutMillis, enlarged))
+            println("${file.name}: ${bubbles.size} bubbles in ${millis}ms, layout ${layoutMillis}ms")
         }
         File(out, "metrics.json").writeText(pages.joinToString(",\n", "[\n", "\n]\n"))
     }
 
-    private fun pageMetrics(name: String, width: Int, height: Int, pool: Int, millis: Long, enlarged: List<EnlargedBubble>): String {
+    private fun pageMetrics(name: String, width: Int, height: Int, pool: Int, millis: Long, layoutMillis: Long, enlarged: List<EnlargedBubble>): String {
         val stuck = enlarged.count { it.scale <= 1f + STUCK_SCALE_EPSILON }
         val constrained = enlarged.count { it.scale < BUBBLE_ENLARGE_SCALE - STUCK_SCALE_EPSILON }
-        val bubbles = enlarged.joinToString(", ") { b ->
+        val uncovered = uncoveredAreas(enlarged, width, height)
+        val bubbles = enlarged.mapIndexed { i, b ->
             val box = b.bubble.box
             val t = b.target
             "{\"scale\": ${f(b.scale)}, \"box\": [${f(box.left)}, ${f(box.top)}, ${f(box.right)}, ${f(box.bottom)}], " +
                 "\"target\": [${f(t.left)}, ${f(t.top)}, ${f(t.right)}, ${f(t.bottom)}], \"coversOriginal\": ${covers(b)}, " +
-                "\"outlines\": ${outlines(b.bubble)}}"
+                "\"uncovered\": ${f(uncovered[i])}, \"outlines\": ${outlines(b.bubble)}}"
+        }.joinToString(", ")
+        return "  {\"page\": \"$name\", \"width\": $width, \"height\": $height, \"pool\": $pool, \"ms\": $millis, \"layoutMs\": $layoutMillis, " +
+            "\"count\": ${enlarged.size}, \"stuckAtOne\": $stuck, \"constrained\": $constrained, " +
+            "\"uncovered\": ${f(uncovered.sum())}, \"bubbles\": [$bubbles]}"
+    }
+
+    private fun uncoveredAreas(enlarged: List<EnlargedBubble>, width: Int, height: Int): List<Float> {
+        val copies = Area()
+        enlarged.filter { it.scale > 1f }.forEach { copies.add(Area(shape(it.bubble.outlines, width, height, it::map))) }
+        val pageArea = width.toFloat() * height
+        return enlarged.map { item ->
+            if (item.scale <= 1f) return@map 0f
+            val hole = Area(shape(item.bubble.outlines, width, height) { it }).apply { subtract(copies) }
+            rasterArea(hole, width, height) / pageArea
         }
-        return "  {\"page\": \"$name\", \"width\": $width, \"height\": $height, \"pool\": $pool, \"ms\": $millis, " +
-            "\"count\": ${enlarged.size}, \"stuckAtOne\": $stuck, \"constrained\": $constrained, \"bubbles\": [$bubbles]}"
+    }
+
+    private fun rasterArea(area: Area, width: Int, height: Int): Int {
+        val mask = BufferedImage(width, height, BufferedImage.TYPE_BYTE_BINARY)
+        mask.createGraphics().apply { color = Color.WHITE; fill(area); dispose() }
+        val raster = mask.raster
+        var count = 0
+        for (y in 0 until height) for (x in 0 until width) if (raster.getSample(x, y, 0) != 0) count++
+        return count
     }
 
     private fun covers(b: EnlargedBubble): Boolean {

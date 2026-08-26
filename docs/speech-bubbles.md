@@ -294,36 +294,51 @@ pages are unaffected).
 `enlarge(bubbles, scale)` scales every bubble by the user's scale (default
 `BUBBLE_ENLARGE_SCALE` = 1.3×, adjustable 1.1–2.0× with the slider that appears
 under the HUD buttons while the toggle is on; persisted in DataStore as
-`bubble_scale`). The policy is **keep the full scale, move as far as needed,
-and give up scale only as a last resort** — copies never end up overlapping
-each other:
+`bubble_scale`). The whole original silhouette is repainted flat at render
+time, so whatever the copy does not cover shows as a paper-coloured hole the
+size of the displacement. The policy is therefore **leave the smallest
+possible uncovered area**: keep the copy over its original, give up scale down
+to a floor before sliding, and slide only when nothing else fits.
 
-1. Bubbles whose grown copies would touch are grouped. A **compact group**
-   (union no larger than 30 % of the page side — stacked captions, a pair of
-   balloons from one speaker) is scaled as one unit about the group's centre,
-   so its members spread apart like a zoom of that region and keep the full
-   scale; if the zoomed group would leave the page its scale is reduced. Every
-   other bubble grows about its own centre, bounded by the page only: a bubble
+1. Every bubble grows about its own centre, bounded by the page only: a bubble
    at a panel edge grows over the gutter instead of sliding inward.
-2. Colliding copies are **pushed apart** (16 passes, along the axis with the
-   smaller overlap, half the overlap each), first without uncovering their
-   original at all, then uncovering at most 15 %, 50 % and finally the whole
-   original per axis (`COVERAGE_STEPS` = 1.0, 0.85, 0.5, 0): a copy may end
-   up beside its original but never farther than one box away from it.
-   Panels play no part: the bubble mode no longer needs panel detection.
-3. Pairs that still collide are **shrunk by 10 % about their current centre**
-   (never below 1×) and pushed apart again, until nothing collides; the scale
-   only ever decreases, so this converges
-   (`BubbleLayoutTest.crowdedClusterEndsWithoutOverlappingCopies`). Two
-   bubbles whose originals touch are moved apart, not left at 1×: the earlier
-   policy reset colliding pairs to their original position at the scale where
-   they just touched, which for touching originals is 1×.
+2. Two copies **collide** when their silhouettes intrude into each other more
+   than the originals already did. Each outline is resampled to 48 points
+   along its perimeter; a point of one copy intrudes when it lands inside the
+   other copy's silhouette shrunk to its text body (`TEXT_BODY_SHARE` = 90 %,
+   so rims may touch or overlap by a few pixels, as stacked balloons do in the
+   art). The count is compared with the same count on the originals: ML boxes
+   of neighbours overlap routinely (tails, a caption over a balloon, a tail
+   drawn across the next balloon) and reproducing that overlap is not a
+   collision. Box-based collision was tried first and failed both ways — it
+   either forbade placements the art itself uses or, with a box-overlap
+   allowance, let one copy cover the neighbour's text.
+3. Colliding copies are pushed apart (16 passes, along the axis with the
+   smaller overlap, a quarter of the overlap each) **without uncovering their
+   original**, and each colliding pair then searches the 3 × 3 grid of
+   positions in which both copies still contain their originals for the one
+   with the fewest collisions against every neighbour. The joint pair search
+   matters: a chain such as caption → balloon → balloon on Ben Reilly #01
+   p.17 has two valid contained arrangements out of 729 and a per-bubble
+   greedy search finds neither.
+4. Pairs that still collide are **shrunk by 10 % steps down to
+   `CONTAINED_SCALE_FLOOR` = 1.15×**, pushed and re-anchored again.
+5. Only then do the coverage steps relax (`COVERAGE_STEPS` = 1.0, 0.85, 0.5,
+   0): a copy may uncover up to 15 %, 50 % and finally the whole original per
+   axis, never farther than one box away; what still collides is shrunk
+   towards 1× (`BubbleLayoutTest.crowdedClusterEndsWithoutOverlappingCopies`).
 
-On the 98-page ground truth at 1.3× (873 bubbles) this leaves 32 at 1× and
-138 below the full scale (241 and 304 with the move-little policy), at the
-price of moving 330 copies by more than 20 % of their size (104 before). The
-user prefers size over stillness. Anything a
-copy uncovers is repainted at render time (below).
+Measured with the uncovered-area metric in `SpeechBubbleVisualizer`
+(`metrics.json`: per bubble and per page, as a share of the page; original
+silhouette minus the union of all copies). Ben Reilly #01 (24 pages, 271
+bubbles): 0.2005 → 0.0254 page-areas summed, no bubble uncovering more than
+0.2 % of the page (26 before); the 98-page corpus (873 bubbles): 0.840 →
+0.213, 1 bubble stuck at 1× (32 before) and 149 below the full scale (138
+before, now all ≥ 1.15× unless the coverage steps ran out). Layout costs
+≈20 ms per page on the JVM, 0.5 s worst case on a 19-bubble Defensores page.
+The earlier "compact group zoom" step (scale a cluster about the group's
+centre) was removed: it uncovered a strip on every outer member by
+construction and the contained-anchor search covers its cases.
 
 ## Rendering
 

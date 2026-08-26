@@ -6,6 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.min
 
 class BubbleLayoutTest {
 
@@ -49,7 +50,7 @@ class BubbleLayoutTest {
     }
 
     @Test
-    fun stackedCaptionsKeepTheirScaleAndMoveLittle() {
+    fun stackedCaptionsKeepTheirScaleAndCoverTheirOriginals() {
         val stacked = listOf(
             bubble(0.3f, 0.40f, 0.7f, 0.46f),
             bubble(0.3f, 0.47f, 0.7f, 0.53f),
@@ -58,8 +59,16 @@ class BubbleLayoutTest {
         val enlarged = BubbleLayout.enlarge(stacked, 1.3f)
         assertTrue("every bubble should keep the full scale", enlarged.all { it.scale > 1.29f })
         for (i in enlarged.indices) for (j in i + 1 until enlarged.size) assertFalse(collide(enlarged[i], enlarged[j]))
-        assertEquals(enlarged[1].bubble.box.center.y, enlarged[1].target.center.y, EPSILON)
-        enlarged.forEach { assertTrue((it.target.center - it.bubble.box.center).getDistance() < it.bubble.box.height) }
+        enlarged.forEach { assertCovers(it) }
+    }
+
+    @Test
+    fun copyContainsTheOriginalWhenItFits() {
+        val neighbours = listOf(bubble(0.3f, 0.40f, 0.5f, 0.46f), bubble(0.3f, 0.47f, 0.5f, 0.53f))
+        val enlarged = BubbleLayout.enlarge(neighbours, 1.3f)
+        assertTrue(enlarged.all { it.scale > 1.29f })
+        assertFalse(collide(enlarged[0], enlarged[1]))
+        enlarged.forEach { assertContains(it) }
     }
 
     @Test
@@ -84,13 +93,15 @@ class BubbleLayoutTest {
         for (i in enlarged.indices) for (j in i + 1 until enlarged.size) {
             assertFalse("$i and $j overlap", collide(enlarged[i], enlarged[j]))
         }
-        assertTrue("copies should keep growing by moving instead of shrinking", enlarged.all { it.scale > 1.2f })
-        enlarged.forEach { assertStaysAdjacent(it) }
+        assertTrue("copies shrink no further than the contained floor", enlarged.all { it.scale >= CONTAINED_SCALE_FLOOR - EPSILON })
+        enlarged.forEach { assertCovers(it) }
     }
 
     private fun collide(a: EnlargedBubble, b: EnlargedBubble): Boolean {
         val overlap = a.target.intersect(b.target)
-        return overlap.width > EPSILON && overlap.height > EPSILON
+        val rimX = min(a.target.width, b.target.width) * RIM_SHARE + EPSILON
+        val rimY = min(a.target.height, b.target.height) * RIM_SHARE + EPSILON
+        return overlap.width > rimX && overlap.height > rimY
     }
 
     private fun assertStaysAdjacent(enlarged: EnlargedBubble) {
@@ -98,6 +109,13 @@ class BubbleLayoutTest {
         val target = enlarged.target
         assertTrue("$target should stay next to $box", target.left <= box.right + EPSILON && target.right >= box.left - EPSILON &&
             target.top <= box.bottom + EPSILON && target.bottom >= box.top - EPSILON)
+    }
+
+    private fun assertContains(enlarged: EnlargedBubble) {
+        val box = enlarged.bubble.box
+        val target = enlarged.target
+        assertTrue("$target should contain $box", target.left <= box.left + EPSILON && target.top <= box.top + EPSILON &&
+            target.right >= box.right - EPSILON && target.bottom >= box.bottom - EPSILON)
     }
 
     private fun assertCovers(enlarged: EnlargedBubble) {
@@ -111,5 +129,6 @@ class BubbleLayoutTest {
 }
 
 private const val EPSILON = 0.001f
+private const val RIM_SHARE = (1f - TEXT_BODY_SHARE) / 2f
 
 private const val MAX_UNCOVERED_SHARE = 0.15f

@@ -128,7 +128,7 @@ Goal: the details that make it feel premium.
       `OnnxBoxDetector.detect()` before they reach outlining/layout, for both
       the panel and bubble models. Verified fixed on both pages on the Fold.
       See `docs/speech-bubbles.md`
-- [ ] Bubble enlarge: minimise the vacated area. When a copy is pushed away
+- [x] Bubble enlarge: minimise the vacated area. When a copy is pushed away
       from its original, the whole original silhouette is repainted flat and
       the part the copy no longer covers reads as a white blob the size of the
       displacement (Ben Reilly #01 p.17: "DOCTOR LIU" up-left, "¿Y QUÉ?"
@@ -136,7 +136,11 @@ Goal: the details that make it feel premium.
       possible uncovered area first — anchoring, coverage steps, shrink-vs-move
       trade-off — before deciding how to fill what remains. On
       `feature/bubble-inpainting-polish`, prioritised ahead of reading stats
-      (2026-08-26)
+      (2026-08-26). Done on `feature/bubble-minimise-vacated-area`
+      (2026-08-26): silhouette-based collisions relative to the originals,
+      contained-anchor pair search, shrink to 1.15× before sliding, group zoom
+      removed; uncovered area −87 % on Ben Reilly #01 and −75 % on the
+      98-page corpus (see `docs/speech-bubbles.md`)
 - [ ] Bubble enlarge: fill the residual vacated area. LaMa spike (2026-08-26)
       proved ML inpainting blends the hole into the art (≈90 % judged good on
       138 real bubbles, six styles) but costs ≈4 s per 512² crop on the Fold

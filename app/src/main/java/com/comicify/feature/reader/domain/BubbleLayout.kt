@@ -7,11 +7,16 @@ import kotlin.math.min
 
 const val BUBBLE_ENLARGE_SCALE = 1.3f
 val BUBBLE_SCALE_RANGE = 1.1f..2f
+internal const val CONTAINED_SCALE_FLOOR = 1.15f
+internal const val TEXT_BODY_SHARE = 0.9f
 private const val SEPARATION_PASSES = 16
-private val COVERAGE_STEPS = listOf(1f, 0.85f, 0.5f, 0f)
+private const val FULL_COVERAGE = 1f
+private val COVERAGE_STEPS = listOf(FULL_COVERAGE, 0.85f, 0.5f, 0f)
 private const val OVERLAP_EPSILON = 1e-4f
-private const val MAX_GROUP_SIDE = 0.3f
 private const val SHRINK_STEP = 0.9f
+private const val PUSH_SHARE = 0.25f
+private val ANCHOR_SHARES = listOf(0f, 0.5f, 1f)
+private const val COLLISION_OUTLINE_VERTICES = 48
 
 data class EnlargedBubble(val bubble: SpeechBubble, val scale: Float, val target: Rect) {
     fun map(point: Offset): Offset = Offset(
@@ -24,47 +29,23 @@ object BubbleLayout {
 
     fun enlarge(bubbles: List<SpeechBubble>, scale: Float): List<EnlargedBubble> {
         if (bubbles.isEmpty()) return emptyList()
-        val boxes = bubbles.map { it.box }
-        val anchors = groupAnchors(boxes, scale)
-        val placed = boxes.indices.map { Placed(boxes[it], anchors[it]) }
+        val placed = bubbles.map { Placed(it.box) }
         val targets = placed.map { it.grown(scale) }.toMutableList()
-        separate(targets, placed)
-        shrinkResidualOverlaps(targets, placed)
+        val silhouettes = Silhouettes(bubbles)
+        separate(targets, placed, silhouettes)
+        shrinkOverlapping(targets, placed, silhouettes, floor = 1f, coverage = 0f)
         return bubbles.indices.map { EnlargedBubble(bubbles[it], targets[it].width / bubbles[it].box.width, targets[it]) }
     }
-
-    private fun groupAnchors(boxes: List<Rect>, scale: Float): List<Anchor> {
-        val grown = boxes.map { it.scaledAbout(it.center, scale) }
-        val parent = IntArray(boxes.size) { it }
-        fun root(i: Int): Int = if (parent[i] == i) i else root(parent[i]).also { parent[i] = it }
-        for (i in boxes.indices) for (j in i + 1 until boxes.size) {
-            if (grown[i].collides(grown[j])) parent[root(i)] = root(j)
-        }
-        val anchors = boxes.indices.groupBy { root(it) }.mapValues { (_, members) ->
-            val union = members.map { boxes[it] }.reduce { union, box -> Rect(min(union.left, box.left), min(union.top, box.top), max(union.right, box.right), max(union.bottom, box.bottom)) }
-            if (members.size > 1 && max(union.width, union.height) <= MAX_GROUP_SIDE) Anchor(union.center, union.fittingScale()) else null
-        }
-        return boxes.indices.map { anchors[root(it)] ?: Anchor(boxes[it].center, Float.MAX_VALUE) }
-    }
-
-    private fun Rect.fittingScale(): Float = minOf(
-        center.x / max(center.x - left, Float.MIN_VALUE),
-        (1f - center.x) / max(right - center.x, Float.MIN_VALUE),
-        center.y / max(center.y - top, Float.MIN_VALUE),
-        (1f - center.y) / max(bottom - center.y, Float.MIN_VALUE),
-    ).coerceAtLeast(1f)
-
-    private class Anchor(val centre: Offset, val fit: Float)
 
     private fun Rect.scaledAbout(anchor: Offset, scale: Float) = Rect(
         anchor.x + (left - anchor.x) * scale, anchor.y + (top - anchor.y) * scale,
         anchor.x + (right - anchor.x) * scale, anchor.y + (bottom - anchor.y) * scale,
     )
 
-    private class Placed(val box: Rect, private val anchor: Anchor) {
+    private class Placed(val box: Rect) {
         val bounds: Rect = Rect(min(0f, box.left), min(0f, box.top), max(1f, box.right), max(1f, box.bottom))
 
-        fun grown(scale: Float): Rect = box.scaledAbout(anchor.centre, min(scale, anchor.fit).coerceAtLeast(1f)).clamped()
+        fun grown(scale: Float): Rect = box.scaledAbout(box.center, scale.coerceAtLeast(1f)).clamped()
 
         fun Rect.clamped(): Rect {
             val x = left.coerceIn(bounds.left, max(bounds.left, bounds.right - width))
@@ -73,49 +54,136 @@ object BubbleLayout {
         }
     }
 
-    private fun separate(targets: MutableList<Rect>, placed: List<Placed>) {
-        for (coverage in COVERAGE_STEPS) {
-            repeat(SEPARATION_PASSES) { pushApart(targets, placed, coverage) }
-            if (overlappingPairs(targets).isEmpty()) return
+    private class Silhouettes(detected: List<SpeechBubble>) {
+        private val bubbles = detected.map { it.copy(outlines = it.outlines.map(::sampled)) }
+        private val original = bubbles.indices.map { i -> bubbles.indices.map { j -> if (i < j) mutualIntrusions(i, bubbles[i].box, j, bubbles[j].box) else 0 } }
+
+        fun collide(i: Int, j: Int, a: Rect, b: Rect): Boolean = a.collides(b) && mutualIntrusions(i, a, j, b) > original[min(i, j)][max(i, j)]
+
+        private fun mutualIntrusions(i: Int, a: Rect, j: Int, b: Rect): Int = intrusions(j, b, i, a) + intrusions(i, a, j, b)
+
+        private fun sampled(outline: List<Offset>): List<Offset> {
+            val edges = outline.indices.map { outline[it] to outline[(it + 1) % outline.size] }
+            val lengths = edges.map { (a, b) -> (b - a).getDistance() }
+            val step = lengths.sum() / COLLISION_OUTLINE_VERTICES
+            if (step <= 0f) return outline
+            val points = ArrayList<Offset>(COLLISION_OUTLINE_VERTICES)
+            var next = 0f
+            var walked = 0f
+            edges.forEachIndexed { index, (a, b) ->
+                val length = lengths[index]
+                while (next < walked + length && points.size < COLLISION_OUTLINE_VERTICES) {
+                    val t = (next - walked) / length
+                    points.add(Offset(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t))
+                    next += step
+                }
+                walked += length
+            }
+            return points
+        }
+
+        private fun intrusions(from: Int, at: Rect, into: Int, target: Rect): Int {
+            val source = bubbles[from]
+            val host = bubbles[into]
+            val outScale = at.width / source.box.width
+            val inScale = host.box.width / target.width / TEXT_BODY_SHARE
+            val body = target.scaledAbout(target.center, TEXT_BODY_SHARE)
+            return source.outlines.sumOf { outline ->
+                outline.count { point ->
+                    val onPage = Offset(at.left + (point.x - source.box.left) * outScale, at.top + (point.y - source.box.top) * outScale)
+                    body.contains(onPage) && host.contains(Offset(host.box.left + (onPage.x - body.left) * inScale, host.box.top + (onPage.y - body.top) * inScale))
+                }
+            }
         }
     }
 
-    private fun shrinkResidualOverlaps(targets: MutableList<Rect>, placed: List<Placed>) {
+    private fun separate(targets: MutableList<Rect>, placed: List<Placed>, silhouettes: Silhouettes) {
+        for (coverage in COVERAGE_STEPS) {
+            repeat(SEPARATION_PASSES) {
+                pushApart(targets, placed, silhouettes, coverage)
+                if (coverage == FULL_COVERAGE) reanchorColliding(targets, placed, silhouettes)
+            }
+            if (overlappingPairs(targets, silhouettes).isEmpty()) return
+            if (coverage == FULL_COVERAGE) shrinkOverlapping(targets, placed, silhouettes, CONTAINED_SCALE_FLOOR, coverage)
+            if (overlappingPairs(targets, silhouettes).isEmpty()) return
+        }
+    }
+
+    private fun shrinkOverlapping(targets: MutableList<Rect>, placed: List<Placed>, silhouettes: Silhouettes, floor: Float, coverage: Float) {
         repeat(SEPARATION_PASSES) {
-            val overlapping = overlappingPairs(targets)
+            val overlapping = overlappingPairs(targets, silhouettes)
             if (overlapping.isEmpty()) return
             for ((i, j) in overlapping) {
-                targets[i] = targets[i].reduced(placed[i])
-                targets[j] = targets[j].reduced(placed[j])
+                targets[i] = targets[i].reduced(placed[i], floor)
+                targets[j] = targets[j].reduced(placed[j], floor)
             }
-            pushApart(targets, placed, 0f)
+            pushApart(targets, placed, silhouettes, coverage)
+            if (coverage == FULL_COVERAGE) reanchorColliding(targets, placed, silhouettes)
         }
     }
 
-    private fun Rect.reduced(placed: Placed): Rect {
+    private fun reanchorColliding(targets: MutableList<Rect>, placed: List<Placed>, silhouettes: Silhouettes) {
+        for ((i, j) in overlappingPairs(targets, silhouettes)) reanchorPair(i, j, targets, placed, silhouettes)
+    }
+
+    private fun reanchorPair(i: Int, j: Int, targets: MutableList<Rect>, placed: List<Placed>, silhouettes: Silhouettes) {
+        var bestCost = pairCost(i, j, targets, silhouettes)
+        var best: Pair<Rect, Rect>? = null
+        for (a in containedPositions(targets[i], placed[i])) for (b in containedPositions(targets[j], placed[j])) {
+            val trial = targets.toMutableList().apply { set(i, a); set(j, b) }
+            val cost = pairCost(i, j, trial, silhouettes)
+            if (cost < bestCost) {
+                bestCost = cost
+                best = a to b
+            }
+        }
+        best?.let { (a, b) ->
+            targets[i] = a
+            targets[j] = b
+        }
+    }
+
+    private fun pairCost(i: Int, j: Int, targets: List<Rect>, silhouettes: Silhouettes): Int =
+        collisions(i, targets, silhouettes) + collisions(j, targets, silhouettes)
+
+    private fun containedPositions(current: Rect, placed: Placed): List<Rect> {
+        val box = placed.box
+        return ANCHOR_SHARES.flatMap { sx ->
+            ANCHOR_SHARES.map { sy ->
+                val x = box.left - (current.width - box.width) * sx
+                val y = box.top - (current.height - box.height) * sy
+                with(placed) { Rect(x, y, x + current.width, y + current.height).clamped() }
+            }
+        }
+    }
+
+    private fun collisions(k: Int, targets: List<Rect>, silhouettes: Silhouettes): Int =
+        targets.indices.count { other -> other != k && silhouettes.collide(k, other, targets[k], targets[other]) }
+
+    private fun Rect.reduced(placed: Placed, floor: Float): Rect {
         val current = width / placed.box.width
-        val next = max(1f, current * SHRINK_STEP)
+        val next = max(floor, current * SHRINK_STEP)
         return with(placed) { scaledAbout(center, next / current).clamped() }
     }
 
-    private fun overlappingPairs(targets: List<Rect>): List<Pair<Int, Int>> =
-        targets.indices.flatMap { i -> (i + 1 until targets.size).filter { j -> targets[i].collides(targets[j]) }.map { i to it } }
+    private fun overlappingPairs(targets: List<Rect>, silhouettes: Silhouettes): List<Pair<Int, Int>> =
+        targets.indices.flatMap { i -> (i + 1 until targets.size).filter { j -> silhouettes.collide(i, j, targets[i], targets[j]) }.map { i to it } }
 
     private fun Rect.collides(other: Rect): Boolean =
         right > other.left + OVERLAP_EPSILON && other.right > left + OVERLAP_EPSILON &&
             bottom > other.top + OVERLAP_EPSILON && other.bottom > top + OVERLAP_EPSILON
 
-    private fun pushApart(targets: MutableList<Rect>, placed: List<Placed>, coverage: Float) {
+    private fun pushApart(targets: MutableList<Rect>, placed: List<Placed>, silhouettes: Silhouettes, coverage: Float) {
         for (i in targets.indices) for (j in i + 1 until targets.size) {
             val a = targets[i]
             val b = targets[j]
-            if (!a.collides(b)) continue
+            if (!silhouettes.collide(i, j, a, b)) continue
             val overlapX = min(a.right, b.right) - max(a.left, b.left)
             val overlapY = min(a.bottom, b.bottom) - max(a.top, b.top)
             val shift = if (overlapX < overlapY) {
-                Offset(if (a.center.x <= b.center.x) -overlapX / 2f else overlapX / 2f, 0f)
+                Offset(if (a.center.x <= b.center.x) -overlapX * PUSH_SHARE else overlapX * PUSH_SHARE, 0f)
             } else {
-                Offset(0f, if (a.center.y <= b.center.y) -overlapY / 2f else overlapY / 2f)
+                Offset(0f, if (a.center.y <= b.center.y) -overlapY * PUSH_SHARE else overlapY * PUSH_SHARE)
             }
             targets[i] = with(placed[i]) { a.translate(shift).covering(box, coverage).clamped() }
             targets[j] = with(placed[j]) { b.translate(-shift).covering(box, coverage).clamped() }
