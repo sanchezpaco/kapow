@@ -47,6 +47,7 @@ class SpeechBubbleVisualizer {
             val preview = scaled(page, PREVIEW_WIDTH, PREVIEW_WIDTH * page.height / page.width)
             ImageIO.write(withEnlarged(preview, page, enlarged), "png", File(out, file.nameWithoutExtension + "-enlarged.png"))
             ImageIO.write(withOutlines(preview, bubbles), "png", File(out, file.nameWithoutExtension + "-bubbles.png"))
+            ImageIO.write(page, "png", File(out, file.nameWithoutExtension + "-page.png"))
             pages.add(pageMetrics(file.name, page.width, page.height, pool, millis, enlarged))
             println("${file.name}: ${bubbles.size} bubbles in ${millis}ms")
         }
@@ -60,7 +61,8 @@ class SpeechBubbleVisualizer {
             val box = b.bubble.box
             val t = b.target
             "{\"scale\": ${f(b.scale)}, \"box\": [${f(box.left)}, ${f(box.top)}, ${f(box.right)}, ${f(box.bottom)}], " +
-                "\"target\": [${f(t.left)}, ${f(t.top)}, ${f(t.right)}, ${f(t.bottom)}], \"coversOriginal\": ${covers(b)}}"
+                "\"target\": [${f(t.left)}, ${f(t.top)}, ${f(t.right)}, ${f(t.bottom)}], \"coversOriginal\": ${covers(b)}, " +
+                "\"outlines\": ${outlines(b.bubble)}}"
         }
         return "  {\"page\": \"$name\", \"width\": $width, \"height\": $height, \"pool\": $pool, \"ms\": $millis, " +
             "\"count\": ${enlarged.size}, \"stuckAtOne\": $stuck, \"constrained\": $constrained, \"bubbles\": [$bubbles]}"
@@ -70,6 +72,10 @@ class SpeechBubbleVisualizer {
         val box = b.bubble.box
         val t = b.target
         return t.left <= box.left + 1e-3f && t.top <= box.top + 1e-3f && t.right >= box.right - 1e-3f && t.bottom >= box.bottom - 1e-3f
+    }
+
+    private fun outlines(bubble: SpeechBubble) = bubble.outlines.joinToString(", ", "[", "]") { outline ->
+        outline.joinToString(", ", "[", "]") { "[${f(it.x)}, ${f(it.y)}]" }
     }
 
     private fun f(value: Float) = String.format(Locale.US, "%.4f", value)
