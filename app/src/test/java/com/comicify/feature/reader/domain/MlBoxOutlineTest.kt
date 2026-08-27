@@ -10,6 +10,7 @@ import org.junit.Test
 class MlBoxOutlineTest {
 
     private val panel = Box(20, 20, 380, 580)
+    private val shade = 0xFFDCDCDC.toInt()
 
     private fun outlined(page: SyntheticPage, box: Box): SpeechBubble =
         SpeechBubbles.outlined(PixelClasses.classify(page.pixels, page.width, page.height, 1), listOf(box.toRect(page.width, page.height))).single()
@@ -56,5 +57,21 @@ class MlBoxOutlineTest {
         val bubble = outlined(page, Box(100, 100, 220, 170))
         assertTrue(bubble.box.left * 400 >= 90f)
         assertTrue(bubble.box.right * 400 <= 230f)
+    }
+
+    @Test
+    fun shadedBandEnclosedByTheRimBelongsToTheBubble() {
+        val page = SyntheticPage(400, 600).fill(panel, RED)
+            .fill(Box(96, 96, 224, 174), BLACK).fill(Box(100, 100, 220, 170), WHITE).fill(Box(100, 150, 220, 170), shade)
+        val bubble = outlined(page, Box(92, 92, 228, 178))
+        assertTrue(bubble.contains(Offset(160f / 400, 160f / 600)))
+    }
+
+    @Test
+    fun shadingNotEnclosedByInkIsLeftOut() {
+        val page = SyntheticPage(400, 600).fill(panel, RED).fill(Box(100, 100, 220, 150), WHITE).fill(Box(100, 150, 220, 178), shade)
+        val bubble = outlined(page, Box(92, 92, 228, 178))
+        assertTrue(bubble.contains(Offset(160f / 400, 120f / 600)))
+        assertFalse(bubble.contains(Offset(160f / 400, 170f / 600)))
     }
 }

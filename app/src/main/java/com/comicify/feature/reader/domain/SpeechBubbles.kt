@@ -49,6 +49,8 @@ private const val GUTTER_MIN_RUN_FRACTION = 0.3f
 private const val GUTTER_MAX_THICKNESS_FRACTION = 0.012f
 private const val BOX_RIM_MARGIN_FRACTION = 0.01f
 private const val MIN_BOX_BODY_SHARE = 0.25f
+private const val SHORT_SIDE_MARGIN_FACTOR = 2
+private const val SHORT_SIDE_MARGIN_SLACK = 2
 
 data class SpeechBubble(val box: Rect, val outlines: List<List<Offset>>) {
     fun interiorSamples(perAxis: Int): List<Offset> =
@@ -88,24 +90,32 @@ object SpeechBubbles {
     }
 
     fun outlined(classes: PixelClasses, boxes: List<Rect>): List<SpeechBubble> {
-        val tones = listOf(classes.solidPaper, withSolidCore(classes.solidDark, classes.width, classes.height))
-        return boxes.map { outlined(classes, tones, it) }
+        val darkCore = withSolidCore(classes.solidDark, classes.width, classes.height)
+        return boxes.map { outlined(classes, darkCore, it) }
     }
 
-    private fun outlined(classes: PixelClasses, tones: List<BooleanArray>, box: Rect): SpeechBubble {
+    private fun outlined(classes: PixelClasses, darkCore: BooleanArray, box: Rect): SpeechBubble {
         val width = classes.width
         val height = classes.height
         val pageSide = min(width, height)
         val inner = toBox(box, width, height)
         val frame = inner.inflate((pageSide * BOX_RIM_MARGIN_FRACTION).toInt(), width, height)
-        val body = tones.mapNotNull { tone -> bodyWithin(tone, inner, frame, width) }.maxByOrNull { it.insidePixels }
-        if (body == null || body.insidePixels < inner.area * MIN_BOX_BODY_SHARE) return Blob.filled(inner).toBubble(width, height)
+        val paper = bodyWithin(classes.solidPaper, inner, frame, width)?.credibleWithin(inner)?.grownTowardsShortSides(classes.solidPale, width)
+        val dark = bodyWithin(darkCore, inner, frame, width)?.credibleWithin(inner)
+        val body = listOfNotNull(paper, dark).maxByOrNull { it.insidePixels } ?: return Blob.filled(inner).toBubble(width, height)
         val maxRim = (pageSide * MAX_RIM_FRACTION).toInt()
         val blob = body.blob
         return blob.dilated(max(OUTLINE_MARGIN, blob.rimThickness(classes.ink, maxRim, width, height)), width, height).toBubble(width, height)
     }
 
-    private class Body(val blob: Blob, val insidePixels: Int)
+    private class Body(val blob: Blob, val insidePixels: Int) {
+        fun credibleWithin(inner: Box): Body? = takeIf { insidePixels >= inner.area * MIN_BOX_BODY_SHARE }
+
+        fun grownTowardsShortSides(pale: BooleanArray, width: Int): Body {
+            val grown = blob.grownTowardsShortSides(pale, width)
+            return if (grown === blob) this else Body(grown, grown.pixels)
+        }
+    }
 
     private fun bodyWithin(tone: BooleanArray, inner: Box, frame: Box, width: Int): Body? {
         val cells = BooleanArray(frame.area) { tone[(frame.top + it / frame.width) * width + frame.left + it % frame.width] }
@@ -364,6 +374,34 @@ private class Blob(val box: Box, val cells: BooleanArray) {
     val fill: Float get() = pixels / box.area.toFloat()
 
     fun touchesBorder(width: Int, height: Int) = box.left == 0 || box.top == 0 || box.right == width || box.bottom == height
+
+    fun grownTowardsShortSides(pale: BooleanArray, width: Int): Blob {
+        val body = cropped().box
+        val margins = intArrayOf(body.top - box.top, box.bottom - body.bottom, body.left - box.left, box.right - body.right)
+        val short = BooleanArray(margins.size) { side -> isShortSide(margins, side) }
+        if (short.none { it }) return this
+        val passable = BooleanArray(box.area) { i ->
+            val x = box.left + i % box.width
+            val y = box.top + i / box.width
+            val beyondBody = short[0] && y < body.top || short[1] && y >= body.bottom || short[2] && x < body.left || short[3] && x >= body.right
+            cells[i] || beyondBody && pale[y * width + x]
+        }
+        val reached = BooleanArray(box.area)
+        floodFrom(passable, reached, box.width, box.height) { cells[it] }
+        val escapes = reached.indices.any { reached[it] && !cells[it] && onEdge(it) }
+        return if (escapes) this else Blob(box, reached)
+    }
+
+    private fun isShortSide(margins: IntArray, side: Int): Boolean {
+        val others = margins.filterIndexed { i, margin -> i != side && margin > 0 }
+        return others.isNotEmpty() && margins[side] > SHORT_SIDE_MARGIN_FACTOR * others.min() + SHORT_SIDE_MARGIN_SLACK
+    }
+
+    private fun onEdge(i: Int): Boolean {
+        val x = i % box.width
+        val y = i / box.width
+        return x == 0 || y == 0 || x == box.width - 1 || y == box.height - 1
+    }
 
     fun contains(x: Int, y: Int) = box.contains(x, y) && cells[(y - box.top) * box.width + (x - box.left)]
 

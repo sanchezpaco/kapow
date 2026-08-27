@@ -141,14 +141,24 @@ Goal: the details that make it feel premium.
       contained-anchor pair search, shrink to 1.15× before sliding, group zoom
       removed; uncovered area −87 % on Ben Reilly #01 and −75 % on the
       98-page corpus (see `docs/speech-bubbles.md`)
+- [x] Doom's green-bordered square captions lose their last text line when
+      enlarged (2026-08-27, Z Fold, black-hole arc). Reproduced offline on
+      Doom #9: the ML box covers the whole caption, but the caption's
+      white-to-grey gradient drops under the paper threshold, so the
+      silhouette stopped at the last line and the repaint ate it. Fixed in
+      outlining, not in the model: the paper body grows through pale cells
+      towards the short side of its box (see `docs/speech-bubbles.md`)
+- [ ] Silhouette ground truth: hand-annotate ~50 bubble outlines (polygons) on
+      5-6 series (digital Marvel, manga, 1970s halftone, 1990s scans, Doom
+      captions) and add a silhouette IoU to `SpeechBubbleVisualizer` /
+      `metrics.json`. Outlining changes are validated by eye today; the
+      uncovered-area metric and box F1 cannot see a silhouette that stops a
+      text line short. Prerequisite for the outlining work in
+      `IMPROVEMENT_IDEAS.md`
 - [ ] Bubble student v4: retrain on every comic in `comics/` (now 20 entries,
       incl. the new Doctor Doom #5-#9) and add Doom pages to the ground
-      truth. Trigger (2026-08-27, Z Fold): on Doom's black-hole arc the
-      green-bordered square captions lose their last text line when
-      enlarged — the box/silhouette stops one line short, the flat repaint
-      eats the line and the copy shows garbled text — while round balloons
-      are fine. Reproduce offline first, then decide between box margin,
-      outlining fix and retraining
+      truth. No longer urgent — the Doom defect above was an outlining bug —
+      but student v3 has never seen Doom's caption style
 - [ ] Bubble enlarge: fill the residual vacated area. LaMa spike (2026-08-26)
       proved ML inpainting blends the hole into the art (≈90 % judged good on
       138 real bubbles, six styles) but costs ≈4 s per 512² crop on the Fold
