@@ -141,6 +141,14 @@ Goal: the details that make it feel premium.
       contained-anchor pair search, shrink to 1.15× before sliding, group zoom
       removed; uncovered area −87 % on Ben Reilly #01 and −75 % on the
       98-page corpus (see `docs/speech-bubbles.md`)
+- [ ] Bubble student v4: retrain on every comic in `comics/` (now 20 entries,
+      incl. the new Doctor Doom #5-#9) and add Doom pages to the ground
+      truth. Trigger (2026-08-27, Z Fold): on Doom's black-hole arc the
+      green-bordered square captions lose their last text line when
+      enlarged — the box/silhouette stops one line short, the flat repaint
+      eats the line and the copy shows garbled text — while round balloons
+      are fine. Reproduce offline first, then decide between box margin,
+      outlining fix and retraining
 - [ ] Bubble enlarge: fill the residual vacated area. LaMa spike (2026-08-26)
       proved ML inpainting blends the hole into the art (≈90 % judged good on
       138 real bubbles, six styles) but costs ≈4 s per 512² crop on the Fold
