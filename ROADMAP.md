@@ -147,7 +147,11 @@ Goal: the details that make it feel premium.
       white-to-grey gradient drops under the paper threshold, so the
       silhouette stopped at the last line and the repaint ate it. Fixed in
       outlining, not in the model: the paper body grows through pale cells
-      towards the short side of its box (see `docs/speech-bubbles.md`)
+      towards the short side of its box (see `docs/speech-bubbles.md`).
+      Second round on the Z Fold (pp. 5-8 still cut): the growth now judges
+      "beyond the body" per column/row, not by bounding box; reproduced
+      only with the device's own analysed bitmaps (`BubbleOutlineDump` →
+      `DeviceOutlineRepro`)
 - [x] Silhouette ground truth (2026-08-27): 115 validated bubble outlines on
       six series in `.claude/ml-spike-kit/gt/silhouettes.json`, scored by
       `SpeechBubbleVisualizer` (`out/silhouettes.json`: mean IoU, share

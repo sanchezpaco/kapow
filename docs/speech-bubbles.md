@@ -111,7 +111,15 @@ side exceeds twice the smallest margin on the other sides plus two cells
 2-6 cells from the box on three sides and 11-37 on the fourth), the body is
 flooded through `solidPale` cells (every source pixel with luminance ≥ 200
 and chroma ≤ 22) lying beyond the body on that side. If the flood reaches the
-box edge it is discarded — the band was background, not shading. Rejected
+box edge it is discarded — the band was background, not shading. "Beyond
+the body" is judged per column and per row against the body's own cells,
+not against its bounding box: on the Z Fold (analysis at 1000 px, bilinear
+downscale) five Doom #9 captions on pp. 5-8 still lost their last line
+(2026-08-27) because the paper body ended halfway down the last text row
+with one deeper spike, so the pale gaps between the letters of that row
+lay above the bounding-box bottom and the flood never reached the band.
+Reproduced on the JVM only with the device's own analysed bitmaps
+(`BubbleOutlineDump` androidTest → `DeviceOutlineRepro`, see below). Rejected
 variants: growing through pale cells anywhere inside the box (light scanned
 sky and halftone next to a bubble are pale and happen to be enclosed by dark
 art at the box edges; Defensores 256, One Piece 28), gating by "the flood
@@ -481,6 +489,15 @@ uncropped page) the visualizer runs `SpeechBubbles.outlined` on those boxes
 instead of the heuristic, which is how the ML path is checked offline.
 `MlDetectorBenchmark` (androidTest) dumps ML panels and bubble boxes plus
 timings from the device into `files/mlspike/device.json` for `score.py`.
+`BubbleOutlineDump` (androidTest) writes the device's bubble boxes and
+outlines (`files/mlspike/outlines.json`) and the analysed 1000 px bitmap of
+every page (`<name>-analysed.png`); `DeviceOutlineRepro` (unit test,
+`REPRO_PAGES` = folder with those PNGs, `REPRO_DUMP` = that JSON) reruns the
+outliner on exactly those pixels, which is the only way a device-only
+silhouette defect has reproduced offline. Copy pages in with
+`cat page.jpg | run-as com.comicify.debug sh -c 'cat > files/mlspike/page.jpg'`
+and run the test with `am instrument` — `connectedDebugAndroidTest`
+uninstalls the app afterwards.
 
 The ground truth is the device, not the source JPEGs: Android decodes and
 subsamples differently, marginal ink shares shift, and the reader shows

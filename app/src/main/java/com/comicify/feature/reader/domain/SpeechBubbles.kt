@@ -20,6 +20,7 @@ private const val MIN_BLOCK_ASPECT = 0.6f
 private const val MIN_TALL_BLOCK_DENSITY = 0.4f
 private const val MIN_LINE_INK_SHARE = 0.75f
 private const val OUTLINE_MARGIN = 2
+private const val NO_CELL = -1
 private const val MAX_RIM_FRACTION = 0.015f
 private const val MAX_GAP_ART_SHARE = 0.1f
 private const val MIN_RIM_INK_SHARE = 0.35f
@@ -380,16 +381,44 @@ private class Blob(val box: Box, val cells: BooleanArray) {
         val margins = intArrayOf(body.top - box.top, box.bottom - body.bottom, body.left - box.left, box.right - body.right)
         val short = BooleanArray(margins.size) { side -> isShortSide(margins, side) }
         if (short.none { it }) return this
+        val extent = Extent(this, body)
         val passable = BooleanArray(box.area) { i ->
             val x = box.left + i % box.width
             val y = box.top + i / box.width
-            val beyondBody = short[0] && y < body.top || short[1] && y >= body.bottom || short[2] && x < body.left || short[3] && x >= body.right
+            val beyondBody = short[0] && y < extent.top(x) || short[1] && y > extent.bottom(x) || short[2] && x < extent.left(y) || short[3] && x > extent.right(y)
             cells[i] || beyondBody && pale[y * width + x]
         }
         val reached = BooleanArray(box.area)
         floodFrom(passable, reached, box.width, box.height) { cells[it] }
         val escapes = reached.indices.any { reached[it] && !cells[it] && onEdge(it) }
         return if (escapes) this else Blob(box, reached)
+    }
+
+    private class Extent(private val blob: Blob, private val body: Box) {
+        private val columnTop = IntArray(blob.box.width) { NO_CELL }
+        private val columnBottom = IntArray(blob.box.width) { NO_CELL }
+        private val rowLeft = IntArray(blob.box.height) { NO_CELL }
+        private val rowRight = IntArray(blob.box.height) { NO_CELL }
+
+        init {
+            val box = blob.box
+            for (i in blob.cells.indices) {
+                if (!blob.cells[i]) continue
+                val x = i % box.width
+                val y = i / box.width
+                if (columnTop[x] == NO_CELL) columnTop[x] = y + box.top
+                columnBottom[x] = y + box.top
+                if (rowLeft[y] == NO_CELL) rowLeft[y] = x + box.left
+                rowRight[y] = x + box.left
+            }
+        }
+
+        fun top(x: Int) = columnTop[x - blob.box.left].orElse(body.top)
+        fun bottom(x: Int) = columnBottom[x - blob.box.left].orElse(body.bottom - 1)
+        fun left(y: Int) = rowLeft[y - blob.box.top].orElse(body.left)
+        fun right(y: Int) = rowRight[y - blob.box.top].orElse(body.right - 1)
+
+        private fun Int.orElse(fallback: Int) = if (this == NO_CELL) fallback else this
     }
 
     private fun isShortSide(margins: IntArray, side: Int): Boolean {

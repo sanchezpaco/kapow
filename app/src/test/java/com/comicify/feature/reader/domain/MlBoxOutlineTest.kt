@@ -68,6 +68,16 @@ class MlBoxOutlineTest {
     }
 
     @Test
+    fun lastTextRowOverTheShadingDoesNotWallOffTheBand() {
+        val page = SyntheticPage(400, 600).fill(panel, RED)
+            .fill(Box(96, 96, 224, 174), BLACK).fill(Box(100, 100, 220, 146), WHITE).fill(Box(100, 146, 220, 170), shade)
+            .fill(Box(140, 146, 148, 154), WHITE).fill(Box(140, 154, 148, 162), BLACK)
+        for (x in 104 until 220 step 12) page.fill(Box(x, 146, x + 6, 158), BLACK)
+        val bubble = outlined(page, Box(92, 92, 228, 178))
+        assertTrue(bubble.contains(Offset(160f / 400, 166f / 600)))
+    }
+
+    @Test
     fun shadingNotEnclosedByInkIsLeftOut() {
         val page = SyntheticPage(400, 600).fill(panel, RED).fill(Box(100, 100, 220, 150), WHITE).fill(Box(100, 150, 220, 178), shade)
         val bubble = outlined(page, Box(92, 92, 228, 178))
