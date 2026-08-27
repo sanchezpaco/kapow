@@ -164,10 +164,12 @@ Goal: the details that make it feel premium.
       (luminance 200-235) is classified relative to it, digital pages keep
       the global threshold. Spiderman 2099 box fallbacks 17 → 0, mean IoU
       0.758 → 0.879; digital series unchanged. See `docs/speech-bubbles.md`
-- [ ] Bubble student v4: retrain on every comic in `comics/` (now 20 entries,
-      incl. the new Doctor Doom #5-#9) and add Doom pages to the ground
-      truth. No longer urgent — the Doom defect above was an outlining bug —
-      but student v3 has never seen Doom's caption style
+- [ ] Bubble student v4: retrain on every comic in `comics/` (29 entries
+      since 2026-08-27: Doctor Doom #5-#9 plus Absolute Carnage, Escuadrón
+      Suicida, Loki, Marvel Zombies, Marvels: Ruinas, Black Cat Strikes and
+      two Panini tomo scans, none seen by v3) and add the new styles to the
+      box ground truth. Prioritised ahead of the outlining ideas 3/3b on
+      2026-08-27 because the new comics arrived
 - [ ] Bubble enlarge: fill the residual vacated area. LaMa spike (2026-08-26)
       proved ML inpainting blends the hole into the art (≈90 % judged good on
       138 real bubbles, six styles) but costs ≈4 s per 512² crop on the Fold
