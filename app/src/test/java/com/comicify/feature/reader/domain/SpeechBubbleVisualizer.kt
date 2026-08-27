@@ -23,6 +23,13 @@ private const val PREVIEW_WIDTH = 1400
 private const val STUCK_SCALE_EPSILON = 0.02f
 private const val PAPER_SAMPLES_PER_AXIS = 12
 private const val ML_BOXES_FILE = "boxes.json"
+private const val SILHOUETTE_TRUTH_FILE = "../.claude/ml-spike-kit/gt/silhouettes.json"
+private const val SILHOUETTE_MATCH_IOU = 0.1f
+private const val GOOD_SILHOUETTE_IOU = 0.9f
+private const val BOX_FALLBACK_FILL = 0.97f
+
+private class SilhouetteTruth(val series: String, val box: Rect, val polygon: List<Offset>)
+private class SilhouetteScore(val series: String, val iou: Float?, val boxFallback: Boolean)
 
 class SpeechBubbleVisualizer {
 
@@ -33,6 +40,8 @@ class SpeechBubbleVisualizer {
         val out = File(dir, "out").apply { mkdirs() }
         val pages = ArrayList<String>()
         val mlBoxes = mlBoxes(File(dir!!, ML_BOXES_FILE))
+        val truths = silhouetteTruths(File(SILHOUETTE_TRUTH_FILE))
+        val scores = ArrayList<SilhouetteScore>()
         dir.listFiles { f -> f.extension.lowercase() in setOf("jpg", "jpeg", "png") }!!.sorted().forEach { file ->
             val full = subsampledToAnalysis(ImageIO.read(file))
             val content = content(full)
@@ -47,17 +56,63 @@ class SpeechBubbleVisualizer {
             val layoutStarted = System.nanoTime()
             val enlarged = BubbleLayout.enlarge(bubbles, BUBBLE_ENLARGE_SCALE)
             val layoutMillis = (System.nanoTime() - layoutStarted) / 1_000_000
+            val pageScores = truths[file.name].orEmpty().map { silhouetteScore(it, bubbles, content, page.width, page.height) }
+            scores.addAll(pageScores)
             val preview = scaled(page, PREVIEW_WIDTH, PREVIEW_WIDTH * page.height / page.width)
             ImageIO.write(withEnlarged(preview, page, enlarged), "png", File(out, file.nameWithoutExtension + "-enlarged.png"))
             ImageIO.write(withOutlines(preview, bubbles), "png", File(out, file.nameWithoutExtension + "-bubbles.png"))
             ImageIO.write(page, "png", File(out, file.nameWithoutExtension + "-page.png"))
-            pages.add(pageMetrics(file.name, page.width, page.height, pool, millis, layoutMillis, enlarged))
+            pages.add(pageMetrics(file.name, page.width, page.height, content, pool, millis, layoutMillis, enlarged, pageScores))
             println("${file.name}: ${bubbles.size} bubbles in ${millis}ms, layout ${layoutMillis}ms")
         }
         File(out, "metrics.json").writeText(pages.joinToString(",\n", "[\n", "\n]\n"))
+        if (scores.isNotEmpty()) File(out, "silhouettes.json").writeText(silhouetteSummary(scores))
     }
 
-    private fun pageMetrics(name: String, width: Int, height: Int, pool: Int, millis: Long, layoutMillis: Long, enlarged: List<EnlargedBubble>): String {
+    private fun silhouetteSummary(scores: List<SilhouetteScore>): String {
+        val bySeries = scores.groupBy { it.series } + ("all" to scores)
+        return bySeries.entries.joinToString(",\n", "{\n", "\n}\n") { (series, items) ->
+            val matched = items.mapNotNull { it.iou }
+            val line = "\"$series\": {\"count\": ${items.size}, \"unmatched\": ${items.size - matched.size}, " +
+                "\"meanIou\": ${f(matched.average().toFloat())}, \"good\": ${matched.count { it >= GOOD_SILHOUETTE_IOU }}, " +
+                "\"boxFallbacks\": ${items.count { it.boxFallback }}}"
+            println("silhouettes $line")
+            "  $line"
+        }
+    }
+
+    private fun silhouetteScore(truth: SilhouetteTruth, bubbles: List<SpeechBubble>, content: Rect, width: Int, height: Int): SilhouetteScore {
+        val box = inContent(truth.box, content)
+        val bubble = bubbles.maxByOrNull { iou(it.box, box) }?.takeIf { iou(it.box, box) >= SILHOUETTE_MATCH_IOU }
+            ?: return SilhouetteScore(truth.series, null, false)
+        val expected = Area(shape(listOf(truth.polygon.map { inContent(it, content) }), width, height) { it })
+        val actual = Area(shape(bubble.outlines, width, height) { it })
+        val intersection = Area(expected).apply { intersect(actual) }
+        val union = Area(expected).apply { add(actual) }
+        val boxPixels = bubble.box.width * width * bubble.box.height * height
+        val fallback = rasterArea(actual, width, height) >= boxPixels * BOX_FALLBACK_FILL
+        return SilhouetteScore(truth.series, rasterArea(intersection, width, height) / rasterArea(union, width, height).toFloat(), fallback)
+    }
+
+    private fun iou(a: Rect, b: Rect): Float {
+        val overlap = a.intersect(b)
+        if (overlap.width <= 0f || overlap.height <= 0f) return 0f
+        val shared = overlap.width * overlap.height
+        return shared / (a.width * a.height + b.width * b.height - shared)
+    }
+
+    private fun silhouetteTruths(file: File): Map<String, List<SilhouetteTruth>> {
+        if (!file.isFile) return emptyMap()
+        val entry = Regex("""\{"file":"([^"]+)","series":"([^"]+)","box":\[([^\]]+)\],"polygon":\[(.*?\])\]\}""")
+        val point = Regex("""\[([\d.]+),([\d.]+)\]""")
+        return entry.findAll(file.readText()).map { m ->
+            val box = m.groupValues[3].split(",").map { it.trim().toFloat() }
+            val polygon = point.findAll(m.groupValues[4]).map { Offset(it.groupValues[1].toFloat(), it.groupValues[2].toFloat()) }.toList()
+            unescaped(m.groupValues[1]) to SilhouetteTruth(m.groupValues[2], Rect(box[0], box[1], box[2], box[3]), polygon)
+        }.groupBy({ it.first }, { it.second })
+    }
+
+    private fun pageMetrics(name: String, width: Int, height: Int, content: Rect, pool: Int, millis: Long, layoutMillis: Long, enlarged: List<EnlargedBubble>, scores: List<SilhouetteScore>): String {
         val stuck = enlarged.count { it.scale <= 1f + STUCK_SCALE_EPSILON }
         val constrained = enlarged.count { it.scale < BUBBLE_ENLARGE_SCALE - STUCK_SCALE_EPSILON }
         val uncovered = uncoveredAreas(enlarged, width, height)
@@ -68,9 +123,13 @@ class SpeechBubbleVisualizer {
                 "\"target\": [${f(t.left)}, ${f(t.top)}, ${f(t.right)}, ${f(t.bottom)}], \"coversOriginal\": ${covers(b)}, " +
                 "\"uncovered\": ${f(uncovered[i])}, \"outlines\": ${outlines(b.bubble)}}"
         }.joinToString(", ")
-        return "  {\"page\": \"$name\", \"width\": $width, \"height\": $height, \"pool\": $pool, \"ms\": $millis, \"layoutMs\": $layoutMillis, " +
+        return "  {\"page\": \"$name\", \"width\": $width, \"height\": $height, \"content\": [${f(content.left)}, ${f(content.top)}, ${f(content.right)}, ${f(content.bottom)}], \"pool\": $pool, \"ms\": $millis, \"layoutMs\": $layoutMillis, " +
             "\"count\": ${enlarged.size}, \"stuckAtOne\": $stuck, \"constrained\": $constrained, " +
-            "\"uncovered\": ${f(uncovered.sum())}, \"bubbles\": [$bubbles]}"
+            "\"uncovered\": ${f(uncovered.sum())}, \"silhouettes\": [${silhouettes(scores)}], \"bubbles\": [$bubbles]}"
+    }
+
+    private fun silhouettes(scores: List<SilhouetteScore>) = scores.joinToString(", ") {
+        "{\"iou\": ${it.iou?.let(::f)}, \"boxFallback\": ${it.boxFallback}}"
     }
 
     private fun uncoveredAreas(enlarged: List<EnlargedBubble>, width: Int, height: Int): List<Float> {
@@ -122,11 +181,15 @@ class SpeechBubbleVisualizer {
         val entry = Regex("""\"file\":\s*\"([^\"]+)\".*?\"bubbles\":\s*\[(.*?)\]\s*\}""", RegexOption.DOT_MATCHES_ALL)
         val box = Regex("""\[([\d.]+),\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)\]""")
         return entry.findAll(file.readText()).associate { page ->
-            page.groupValues[1] to box.findAll(page.groupValues[2]).map { b ->
+            unescaped(page.groupValues[1]) to box.findAll(page.groupValues[2]).map { b ->
                 Rect(b.groupValues[1].toFloat(), b.groupValues[2].toFloat(), b.groupValues[3].toFloat(), b.groupValues[4].toFloat())
             }.toList()
         }
     }
+
+    private fun unescaped(name: String) = Regex("""\\u([0-9a-fA-F]{4})""").replace(name) { it.groupValues[1].toInt(16).toChar().toString() }
+
+    private fun inContent(point: Offset, content: Rect) = Offset((point.x - content.left) / content.width, (point.y - content.top) / content.height)
 
     private fun inContent(box: Rect, content: Rect) = Rect(
         ((box.left - content.left) / content.width).coerceIn(0f, 1f),

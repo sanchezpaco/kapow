@@ -14,16 +14,20 @@ from 2026-08-27.
 | Uncovered area after enlarge, Ben Reilly #01 (271 bubbles) | 0.0265 page-areas |
 | Uncovered area, 98-page corpus (863 bubbles) | 0.2152 |
 | Uncovered area, Doom #7/#9 (70 bubbles) | 0.0036 |
-| Silhouette correctness | not measured — eyeballed ~95 % on digital, ~70-80 % on old scans (rest fall back to the box) |
+| Silhouette IoU, 115 hand-validated outlines (`gt/silhouettes.json`) | mean 0.861, 64/115 ≥ 0.9; digital series 0.88-0.91, Spiderman 2099 scan 0.76 with 17/17 box fallbacks |
 | LaMa inpainting (spike) | 70-90 % judged good, ~4 s per crop — not shipped |
 
 Box F1 at IoU ≥ 0.5 says whether a box exists, not whether it is tight; the
 Doom last-line bug was invisible to it.
 
-## 1. Silhouette ground truth (scheduled — see ROADMAP Phase 5)
+## 1. Silhouette ground truth (done 2026-08-27 — see ROADMAP Phase 5)
 
-Annotate ~50 outlines by hand, add a silhouette IoU to the visualizer. Every
-outlining idea below is unmeasurable without it.
+115 outlines on six series, scored per series by `SpeechBubbleVisualizer`
+(`out/silhouettes.json`). The worst non-scan cases are one family: the paper
+body leaks into pale art beside the rim and runs to the box (Doctor Muerte
+0.36/0.40, Ben Reilly 0.46, Doom 009-004 0.43-0.73). That is a new idea 3b:
+stop the body at the rim ink instead of the box when the box side it reaches
+is pale art, the mirror image of the Doom short-side growth.
 
 ## 2. Per-bubble paper colour for old scans
 

@@ -148,13 +148,13 @@ Goal: the details that make it feel premium.
       silhouette stopped at the last line and the repaint ate it. Fixed in
       outlining, not in the model: the paper body grows through pale cells
       towards the short side of its box (see `docs/speech-bubbles.md`)
-- [ ] Silhouette ground truth: hand-annotate ~50 bubble outlines (polygons) on
-      5-6 series (digital Marvel, manga, 1970s halftone, 1990s scans, Doom
-      captions) and add a silhouette IoU to `SpeechBubbleVisualizer` /
-      `metrics.json`. Outlining changes are validated by eye today; the
-      uncovered-area metric and box F1 cannot see a silhouette that stops a
-      text line short. Prerequisite for the outlining work in
-      `IMPROVEMENT_IDEAS.md`
+- [x] Silhouette ground truth (2026-08-27): 115 validated bubble outlines on
+      six series in `.claude/ml-spike-kit/gt/silhouettes.json`, scored by
+      `SpeechBubbleVisualizer` (`out/silhouettes.json`: mean IoU, share
+      ≥ 0.9, box fallbacks per series). Baseline: mean IoU 0.861, 64/115
+      ≥ 0.9, 18 box fallbacks — 17 of them the whole Spiderman 2099 page.
+      Prerequisite for the outlining work in `IMPROVEMENT_IDEAS.md`; see
+      `docs/speech-bubbles.md`
 - [ ] Bubble student v4: retrain on every comic in `comics/` (now 20 entries,
       incl. the new Doctor Doom #5-#9) and add Doom pages to the ground
       truth. No longer urgent — the Doom defect above was an outlining bug —
