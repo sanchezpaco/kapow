@@ -164,10 +164,11 @@ Goal: the details that make it feel premium.
       (luminance 200-235) is classified relative to it, digital pages keep
       the global threshold. Spiderman 2099 box fallbacks 17 → 0, mean IoU
       0.758 → 0.879; digital series unchanged. See `docs/speech-bubbles.md`
-- [ ] Bubble student v4: retrain on every comic in `comics/` (29 entries
-      since 2026-08-27: Doctor Doom #5-#9 plus Absolute Carnage, Escuadrón
-      Suicida, Loki, Marvel Zombies, Marvels: Ruinas, Black Cat Strikes and
-      two Panini tomo scans, none seen by v3) and add the new styles to the
+- [ ] Bubble student v4: retrain on every comic in `comics/` (87 files since
+      2026-08-27, 55 of them new in 9 series: Doctor Doom #5-#9, Absolute
+      Carnage #1-#5, Escuadrón Suicida #0-#30, Loki, Marvel Zombies #1-#5,
+      Marvels: Ruinas, Black Cat Strikes #1-#5 and two Panini tomo scans,
+      none seen by v3) and add the new styles to the
       box ground truth. Prioritised ahead of the outlining ideas 3/3b on
       2026-08-27 because the new comics arrived
 - [ ] Bubble enlarge: fill the residual vacated area. LaMa spike (2026-08-26)
