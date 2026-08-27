@@ -100,6 +100,26 @@ border is part of the shape), and traced into outlines. If no body covers at
 least a quarter of the box (lettering straight over art, sound effects) the
 box itself becomes the bubble.
 
+The paper mask is chosen per box (`PaperTone`, 2026-08-27). `solidPaper` is a
+global threshold (luminance ≥ 228 or cream) tuned for digital pages; on a
+1990s scan the bubble paper sits at 224-231 with scanner grain, so half its
+cells fell under the threshold, the body was patchy and every bubble on the
+Spiderman 2099 ground-truth page fell back to its box. Like the ground-truth
+generator, the outliner now estimates the paper of each box as the median
+luminance of its brightest 40 % of cells and the median red-green /
+green-blue tints of the cells within 12 of it; when that paper is scanned —
+luminance in 200 until 236 — the body is the component of cells within
+`max(14, (255 - paper) / 2 + 8)` of the paper luminance and within 12 / 16
+of its tints (`PixelClasses.colors`, the mean colour per cell). Brighter
+paper keeps the global `solidPaper` so digital pages cannot move; darker
+"paper" is art (a box full of red would otherwise become its own body) and
+falls through to the old path. Spiderman 2099: 17 box fallbacks → 0, mean
+IoU 0.758 → 0.879, 11/17 ≥ 0.9; Defensores 0.898 → 0.902 with its one
+fallback gone; One Piece, Ben Reilly, Doctor Muerte and Doom identical;
+98-page corpus uncovered area 0.2300 → 0.2268, only scan pages
+changed. The two 2099 outlines still under 0.75 leak into pale art beside
+the rim — the idea 3b family, not a paper-tone problem.
+
 A paper body that covers that quarter is then **grown towards the short sides
 of its box**. Doctor Doom's bordered square captions (2026-08-27) are filled
 with a white-to-light-grey gradient whose bottom rows fall under the paper
@@ -164,20 +184,21 @@ the folder: the bubble is matched by box IoU, both shapes are rasterised at
 analysis resolution and the IoU goes into `metrics.json` per bubble, and
 `out/silhouettes.json` sums up per series and overall — count, unmatched,
 mean IoU, `good` (IoU ≥ 0.9) and `boxFallbacks` (outline filling ≥ 97 % of
-its box). Baseline on `main` (2026-08-27):
+its box). On `main` after the per-box paper tone (2026-08-27; the baseline
+before it was mean 0.861, 64 ≥ 0.9, 18 fallbacks, 17 of them Spiderman 2099
+at 0.758):
 
 | Series | Outlines | Mean IoU | IoU ≥ 0.9 | Box fallbacks |
 |---|---|---|---|---|
 | One Piece (manga) | 11 | 0.914 | 10 | 0 |
-| Defensores (1970s halftone) | 17 | 0.898 | 10 | 1 |
+| Defensores (1970s halftone) | 17 | 0.902 | 11 | 0 |
 | Ben Reilly #01 (digital) | 24 | 0.881 | 15 | 0 |
+| Spiderman 2099 (1990s scan) | 17 | 0.879 | 11 | 0 |
 | Doctor Doom #9 (digital, captions) | 33 | 0.876 | 19 | 0 |
 | Doctor Muerte (1990s) | 13 | 0.828 | 10 | 0 |
-| Spiderman 2099 (1990s scan) | 17 | 0.758 | 0 | 17 |
-| All | 115 | 0.861 | 64 | 18 |
+| All | 115 | 0.879 | 76 | 0 |
 
-Spiderman 2099 is the scanned-paper failure block of idea 2: every outline
-is the box rectangle. The worst cases everywhere else are one family — the
+The worst cases are now one family — the
 paper body leaks into pale art beside the rim and the outline runs to the
 box (Doctor Muerte "FUE..." 0.36 and "¿QUÉ ES ESO?" 0.40 over grey walls,
 Ben Reilly "HOY PASASTE" 0.46, Doom 009-004 "PERO AUN ASÍ" 0.43, "¿SABÍAS"

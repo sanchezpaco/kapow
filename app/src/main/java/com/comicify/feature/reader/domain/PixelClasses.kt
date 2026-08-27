@@ -32,6 +32,7 @@ class PixelClasses(
     val ink: BooleanArray,
     val light: BooleanArray,
     val border: BooleanArray,
+    val colors: IntArray,
 ) {
 
     val art: BooleanArray = BooleanArray(width * height) { !white[it] && !border[it] }
@@ -48,6 +49,9 @@ class PixelClasses(
             val ink = BooleanArray(width * height)
             val light = BooleanArray(width * height)
             val border = BooleanArray(width * height)
+            val red = IntArray(width * height)
+            val green = IntArray(width * height)
+            val blue = IntArray(width * height)
             val borderColor = borderColor(pixels, sourceWidth, sourceHeight)
             for (y in 0 until height * pool) {
                 val row = (y / pool) * width
@@ -65,10 +69,13 @@ class PixelClasses(
                     if (luminance <= INK_LUMINANCE) ink[cell] = true
                     if (luminance >= LIGHT_LUMINANCE) light[cell] = true
                     if (borderColor != null && near(color, borderColor)) border[cell] = true
+                    red[cell] += red(color); green[cell] += green(color); blue[cell] += blue(color)
                 }
             }
             val thickBorder = if (borderColor == null || isWhite(borderColor)) border else border.opened(width, height, BORDER_LINE_RADIUS)
-            return PixelClasses(width, height, white, solidWhite, solidPaper, solidPale, solidDark, ink, light, thickBorder)
+            val cellPixels = pool * pool
+            val colors = IntArray(width * height) { rgb(red[it] / cellPixels, green[it] / cellPixels, blue[it] / cellPixels) }
+            return PixelClasses(width, height, white, solidWhite, solidPaper, solidPale, solidDark, ink, light, thickBorder, colors)
         }
 
         private fun isWhite(color: Int) = luminance(color) >= WHITE_LUMINANCE && chroma(color) <= WHITE_CHROMA
@@ -77,10 +84,6 @@ class PixelClasses(
             luminance(color) >= PAPER_LUMINANCE &&
                 red(color) >= PAPER_MIN_RED && green(color) >= PAPER_MIN_GREEN && blue(color) >= PAPER_MIN_BLUE &&
                 red(color) - green(color) <= PAPER_MAX_RED_GREEN_GAP && green(color) > blue(color)
-
-        private fun luminance(color: Int) = (red(color) * 77 + green(color) * 150 + blue(color) * 29) shr 8
-
-        private fun chroma(color: Int) = maxOf(red(color), green(color), blue(color)) - minOf(red(color), green(color), blue(color))
 
         private fun near(color: Int, reference: Int) =
             abs(red(color) - red(reference)) <= BORDER_TOLERANCE &&
@@ -104,15 +107,11 @@ class PixelClasses(
             val dominant = counts.values.maxByOrNull { it[0] } ?: return null
             if (dominant[0] < total * MIN_BORDER_SHARE) return null
             val n = dominant[0]
-            val color = (dominant[1] / n shl 16) or (dominant[2] / n shl 8) or (dominant[3] / n)
+            val color = rgb(dominant[1] / n, dominant[2] / n, dominant[3] / n)
             return color.takeIf { chroma(it) <= MAX_BORDER_CHROMA }
         }
 
         private fun quantize(color: Int) =
             (red(color) shr BORDER_BIN_SHIFT shl 16) or (green(color) shr BORDER_BIN_SHIFT shl 8) or (blue(color) shr BORDER_BIN_SHIFT)
-
-        private fun red(color: Int) = color shr 16 and 0xFF
-        private fun green(color: Int) = color shr 8 and 0xFF
-        private fun blue(color: Int) = color and 0xFF
     }
 }

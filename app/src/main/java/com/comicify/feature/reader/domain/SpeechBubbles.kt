@@ -101,8 +101,8 @@ object SpeechBubbles {
         val pageSide = min(width, height)
         val inner = toBox(box, width, height)
         val frame = inner.inflate((pageSide * BOX_RIM_MARGIN_FRACTION).toInt(), width, height)
-        val paper = bodyWithin(classes.solidPaper, inner, frame, width)?.credibleWithin(inner)?.grownTowardsShortSides(classes.solidPale, width)
-        val dark = bodyWithin(darkCore, inner, frame, width)?.credibleWithin(inner)
+        val paper = bodyWithin(paperCells(classes, inner), inner, frame, width)?.credibleWithin(inner)?.grownTowardsShortSides(classes.solidPale, width)
+        val dark = bodyWithin({ darkCore[it] }, inner, frame, width)?.credibleWithin(inner)
         val body = listOfNotNull(paper, dark).maxByOrNull { it.insidePixels } ?: return Blob.filled(inner).toBubble(width, height)
         val maxRim = (pageSide * MAX_RIM_FRACTION).toInt()
         val blob = body.blob
@@ -118,8 +118,13 @@ object SpeechBubbles {
         }
     }
 
-    private fun bodyWithin(tone: BooleanArray, inner: Box, frame: Box, width: Int): Body? {
-        val cells = BooleanArray(frame.area) { tone[(frame.top + it / frame.width) * width + frame.left + it % frame.width] }
+    private fun paperCells(classes: PixelClasses, inner: Box): (Int) -> Boolean {
+        val tone = PaperTone.estimate(classes.colors, inner, classes.width)
+        return if (tone.isScannedPaper) { cell -> tone.matches(classes.colors[cell]) } else { cell -> classes.solidPaper[cell] }
+    }
+
+    private fun bodyWithin(tone: (Int) -> Boolean, inner: Box, frame: Box, width: Int): Body? {
+        val cells = BooleanArray(frame.area) { tone((frame.top + it / frame.width) * width + frame.left + it % frame.width) }
         val parts = cells.segment(frame.width, frame.height, 1)
         if (parts.components.isEmpty()) return null
         val insidePixels = IntArray(parts.components.size)

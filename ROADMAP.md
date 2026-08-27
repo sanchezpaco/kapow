@@ -159,6 +159,11 @@ Goal: the details that make it feel premium.
       ≥ 0.9, 18 box fallbacks — 17 of them the whole Spiderman 2099 page.
       Prerequisite for the outlining work in `IMPROVEMENT_IDEAS.md`; see
       `docs/speech-bubbles.md`
+- [x] Per-bubble paper colour for scans (2026-08-27, idea 2): the paper of
+      each ML box is estimated from its own interior and scanned paper
+      (luminance 200-235) is classified relative to it, digital pages keep
+      the global threshold. Spiderman 2099 box fallbacks 17 → 0, mean IoU
+      0.758 → 0.879; digital series unchanged. See `docs/speech-bubbles.md`
 - [ ] Bubble student v4: retrain on every comic in `comics/` (now 20 entries,
       incl. the new Doctor Doom #5-#9) and add Doom pages to the ground
       truth. No longer urgent — the Doom defect above was an outlining bug —

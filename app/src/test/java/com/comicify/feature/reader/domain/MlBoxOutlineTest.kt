@@ -24,9 +24,26 @@ class MlBoxOutlineTest {
         }
     }
 
+    private fun SyntheticPage.grainedBeige() = apply {
+        for (y in 0 until height) for (x in 0 until width) {
+            if (pixels[y * width + x] != WHITE) continue
+            val grain = (x * 7 + y * 13) % 5 * 6
+            fill(Box(x, y, x + 1, y + 1), 0xFF000000.toInt() or (232 - grain shl 16) or (226 - grain shl 8) or (212 - grain))
+        }
+    }
+
     @Test
     fun whiteOvalInsideBoxGetsItsOwnShapeNotTheBox() {
         val page = SyntheticPage(400, 600).fill(panel, RED).ovalBubble(Offset(160f, 135f), 60, 35)
+        val bubble = outlined(page, Box(94, 94, 226, 176))
+        assertTrue(bubble.contains(Offset(160f / 400, 135f / 600)))
+        assertFalse(bubble.contains(Offset(100f / 400, 100f / 600)))
+        assertEquals(1, bubble.outlines.size)
+    }
+
+    @Test
+    fun grainyBeigeOvalOnAScanGetsItsOwnShapeNotTheBox() {
+        val page = SyntheticPage(400, 600).fill(panel, RED).ovalBubble(Offset(160f, 135f), 60, 35).grainedBeige()
         val bubble = outlined(page, Box(94, 94, 226, 176))
         assertTrue(bubble.contains(Offset(160f / 400, 135f / 600)))
         assertFalse(bubble.contains(Offset(100f / 400, 100f / 600)))
