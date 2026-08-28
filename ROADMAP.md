@@ -1,8 +1,9 @@
 # Roadmap
 
-Comicify — a foldable-first comic reader. Built incrementally: every phase ends
-with something that already feels good to use. The differentiator is treating the
-Z Fold as a first-class reading device, not an afterthought.
+Comicify — a comic reader for any Android phone or tablet, developed and
+tuned on the Z Fold so foldables are first-class rather than an afterthought.
+Built incrementally: every phase ends with something that already feels good
+to use.
 
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
@@ -322,6 +323,52 @@ Goal: the details that make it feel premium.
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails
+
+## Phase 6 — Last tasks to 1.0
+
+Goal: a signed bundle on Google Play (internal testing first). App name, logo
+and store artwork are decided later and are not on this list.
+
+Blocking:
+
+- [ ] Release signing: upload keystore outside the repo (`local.properties` /
+      env), `signingConfigs.release`, Play App Signing. Today release is
+      installed with the debug key
+- [ ] AAB pipeline: `bundleRelease` with R8 + resource shrinking, confirm the
+      7-Zip-JBinding keep rules and the arm64-only `abiFilter` survive the
+      bundle, install the bundle-derived APK on the Fold
+- [ ] Onboarding on first launch (≤ 3 steps): choose the folder, reader
+      gestures over the first page (centre = HUD, edges = page turn, pinch =
+      zoom), Guided View + enlarged bubbles with the HUD toggles pointed out;
+      "Show again" from Settings → About. Flag in DataStore
+- [ ] Privacy policy URL + Play "Data safety" form (no data collected), and
+      explicit `dataExtractionRules` / `fullBackupContent` so auto-backup
+      restores Room + DataStore but not the cache
+- [ ] Licences screen under Settings → About: 7-Zip-JBinding (LGPL
+      attribution), ONNX Runtime, YOLO26 / ogkalu weights, Coil, others
+- [ ] Store listing: EN + ES short/long descriptions, screenshots folded and
+      unfolded, feature graphic (artwork pending the name/logo decision)
+- [ ] Crash visibility: rely on Play Vitals (no third-party SDK); make sure no
+      `runCatching` swallows a crash that should reach it
+
+Strongly recommended:
+
+- [ ] Tap zones left/right for page turns (Phase 1 item still `[~]`)
+- [ ] Verify tabletop posture on the physical Fold (Phase 2 item still `[~]`)
+- [ ] `ComicNameParser`: split a number glued to the name (`Venomverse001`,
+      `DoctorDoom9`) so issues group into their series
+- [ ] Error states with clear copy: folder grant revoked after reinstall
+      (`SecurityException` in `ComicScanner`), corrupted archive,
+      password-protected PDF (`PdfRenderer` throws `SecurityException`,
+      currently reported as a generic read failure)
+- [ ] Cold start on a rebooted Fold (release) to confirm the 117 ms baseline;
+      the emulator's >10 s splash is the emulator
+- [ ] Accessibility floor: `contentDescription` everywhere, 48 dp touch
+      targets (ghost actions are 44 dp), TalkBack pass on library + settings
+
+Deferred to 1.1: reading stats / recently read, home-screen widget, automatic
+day/night theme, ComicVine metadata, panel-level posture transition,
+outliner idea 3b.
 
 ---
 
