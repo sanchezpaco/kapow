@@ -14,7 +14,7 @@ import kotlin.math.roundToInt
 private const val ORDERING_GRID = 1000
 private const val PANELS_MODEL = "models/panels.onnx"
 private const val BUBBLES_MODEL = "models/bubbles.onnx"
-const val DETECTIONS_VERSION = "panels-v1+bubbles-v4"
+const val DETECTIONS_VERSION = "panels-v1h+bubbles-v4h"
 private const val PANEL_CONFIDENCE = 0.35f
 private const val BUBBLE_CONFIDENCE = 0.25f
 

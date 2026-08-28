@@ -199,9 +199,15 @@ Goal: the details that make it feel premium.
       Fold (ML boxes ~35 ms, outlining, `BubbleLayout` ≈50 ms JVM / 0.8 s
       worst case, paper sampling, overlay composition) on a cold page and on
       a Room-cached page, and attack whichever step dominates
-- [ ] APK size: arm64-v8a only (ABI split), ONNX Runtime minimal build with
-      just the YOLO26 ops, drop unused 7-Zip-JBinding ABIs, R8 already on.
-      Orthogonal to runtime behaviour; measure with `apkanalyzer` before/after
+- [~] APK size (release, `apkanalyzer`): 50.4 → 35.5 MB (download 32.8 →
+      19.2 MB) on 2026-08-28 by storing both models' Conv weights in fp16
+      (9.8 → 5.1 MB each, identical boxes on the 147-page ground truth and
+      bit-identical outlines on Doom #1 pp. 5-12 on the Fold) and
+      re-encoding the bundled sample comic as JPEG (6.8 → 1.3 MB). arm64-v8a
+      only was already in place (`abiFilters`). Left: `libonnxruntime.so`
+      (17.6 MB) via an ORT minimal build with just the YOLO26 ops, and
+      7-Zip-JBinding (2.7 MB). Gates for every step: unit tests, ground-truth
+      F1, `page_detections` diff on the Fold, RAR + PDF still open
 - [ ] RAM: baseline with `dumpsys meminfo` (normal reading vs bubble mode)
       on the final APK with the Room cache, then bound the preload bitmap
       pool and page decode size
