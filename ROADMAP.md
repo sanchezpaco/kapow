@@ -300,6 +300,26 @@ Goal: the details that make it feel premium.
       covers are shared elements into the settings header and the reader
       starts its glow from the cover's ambient. Absorbs "per-comic settings"
       below
+- [x] Library usability pass on the Z Fold (2026-08-28, `902eeb2`…`b8ab467`):
+      long-press is the only entry to per-comic and per-series actions (the
+      per-card gear is gone; series stacks and the series header get a menu
+      with settings, read/unread, favorite, delete); 3-column grid, compact
+      hero and undoable dismiss (× or swipe) on folded widths; search and a
+      Recent sort; the settings screen names its scope, spells out the global
+      value behind "Default" and no longer uses the danger red for selection
+- [ ] App settings screen + themes. A gear in the library header opens a
+      full-screen settings page (same visual family as the per-comic one):
+      Reading (default direction, cover-alone, guided/bubbles on open, bubble
+      scale, volume-key page turn), Screen (night tint, keep screen on),
+      Library (comics folder, rescan — move them out of the "⋮"), Appearance,
+      About. Appearance = theme picker as split-diagonal circles (ground +
+      accent): ground limited to pure black / dark grey (/ paper), accent
+      from 6–8 curated presets with AA contrast on both grounds plus a
+      Material You dynamic option; live preview on the settings page itself;
+      the reader keeps its page, ambient backdrop and HUD, only the accent
+      follows. Requires moving `LibraryPalette` constants into
+      `MaterialTheme.colorScheme` first (the bulk of the work); ship the
+      settings page with the existing preferences before the theme picker
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails
