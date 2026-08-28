@@ -19,7 +19,7 @@ object DatabaseModule {
     @Singleton
     fun database(@ApplicationContext context: Context): ComicifyDatabase =
         Room.databaseBuilder(context, ComicifyDatabase::class.java, "comicify.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
             .build()
 
     @Provides
@@ -64,5 +64,11 @@ private val MIGRATION_4_5 = object : Migration(4, 5) {
                 "documentUri TEXT NOT NULL, rightToLeft INTEGER, coverAlone INTEGER NOT NULL, " +
                 "bubblesEnlarged INTEGER, guided INTEGER, PRIMARY KEY(documentUri))",
         )
+    }
+}
+
+private val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE reading_states ADD COLUMN shelved INTEGER NOT NULL DEFAULT 1")
     }
 }

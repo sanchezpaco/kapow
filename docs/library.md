@@ -58,7 +58,7 @@ Comic(
 )
 
 ReadingState(
-    comicId, pageIndex, completed, updatedAt,
+    comicId, pageIndex, completed, updatedAt, shelved,
 )
 
 ComicSettings(
@@ -128,6 +128,9 @@ unfinished comic becomes the **hero**: a wide card washed with the cover's
 ambient colour, showing the cover, progress and an estimated time left
 (`LibraryCatalog.minutesLeft`, a flat 45 s per page until real reading stats
 exist); any other unfinished comics follow in a row of smaller resume cards.
+Both carry a "×" that hides the comic from "Continue reading" without touching
+its progress (`ReadingState.shelved = false`); the next `saveProgress` upsert
+re-shelves it, so a comic reappears as soon as it is read again.
 
 ## Home UI
 

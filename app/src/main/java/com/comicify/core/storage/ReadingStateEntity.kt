@@ -9,4 +9,5 @@ data class ReadingStateEntity(
     val pageIndex: Int,
     val completed: Boolean,
     val updatedAt: Long,
+    val shelved: Boolean = true,
 )

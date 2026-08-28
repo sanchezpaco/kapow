@@ -41,6 +41,7 @@
     <string name="library_group">Agrupar por serie</string>
     <string name="library_ungroup">Ver todos los cómics</string>
     <string name="library_group_read">%1$d/%2$d leídos</string>
+    <string name="library_unshelve">Quitar de continuar leyendo</string>
     <string name="library_back">Atrás</string>
     <string name="detail_read">Empezar a leer</string>
     <string name="detail_continue">Continuar</string>

@@ -40,6 +40,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Layers
@@ -112,6 +113,7 @@ fun LibraryScreen(
     onOpenFile: (Uri) -> Unit,
     onFilterSelected: (LibraryFilter) -> Unit,
     onToggleGrouped: () -> Unit,
+    onUnshelve: (LibraryComic) -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDeleteComic: (LibraryComic) -> Unit,
@@ -174,7 +176,7 @@ fun LibraryScreen(
         }
         if (state.continueReading.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                ContinueReadingShelf(comics = state.continueReading, onOpenComic = onOpenComic)
+                ContinueReadingShelf(comics = state.continueReading, onOpenComic = onOpenComic, onUnshelve = onUnshelve)
             }
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
@@ -408,70 +410,92 @@ internal fun GhostAction(
 }
 
 @Composable
-private fun ContinueReadingShelf(comics: List<LibraryComic>, onOpenComic: (LibraryComic) -> Unit) {
+private fun ContinueReadingShelf(comics: List<LibraryComic>, onOpenComic: (LibraryComic) -> Unit, onUnshelve: (LibraryComic) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         SectionHeader(eyebrow = stringResource(R.string.library_resume_eyebrow), title = stringResource(R.string.library_continue_reading))
-        LibraryHero(comic = comics.first(), onOpenComic = onOpenComic)
+        LibraryHero(comic = comics.first(), onOpenComic = onOpenComic, onUnshelve = onUnshelve)
         val rest = comics.drop(1)
         if (rest.isEmpty()) return@Column
         LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             items(items = rest, key = { it.id }) { comic ->
-                ContinueReadingCard(comic = comic, onOpenComic = onOpenComic)
+                ContinueReadingCard(comic = comic, onOpenComic = onOpenComic, onUnshelve = onUnshelve)
             }
         }
     }
 }
 
 @Composable
-private fun LibraryHero(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit) {
+private fun LibraryHero(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit, onUnshelve: (LibraryComic) -> Unit) {
     val ambient = comic.ambientColor()
     val glow = lerp(Color.Black, ambient, HeroGlowMix)
     val tint = lerp(Color.White, ambient, HeroTintMix)
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
             .clip(RoundedCornerShape(22.dp))
             .background(Brush.linearGradient(listOf(glow, HeroGround)))
-            .clickable { onOpenComic(comic) }
-            .padding(20.dp),
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
+            .clickable { onOpenComic(comic) },
     ) {
-        Box(modifier = Modifier.width(HeroCoverWidth).aspectRatio(2f / 3f).clip(RoundedCornerShape(14.dp))) {
-            CoverArt(comic = comic, showArtwork = true)
-        }
-        Column(modifier = Modifier.fillMaxHeight().weight(1f)) {
-            Text(
-                text = stringResource(R.string.library_hero_eyebrow).uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 2.sp,
-                color = tint,
-            )
-            if (comic.series != comic.title) {
-                Text(
-                    text = comic.series,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = InkDim,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 10.dp),
-                )
+        Row(
+            modifier = Modifier.height(IntrinsicSize.Min).padding(20.dp),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            Box(modifier = Modifier.width(HeroCoverWidth).aspectRatio(2f / 3f).clip(RoundedCornerShape(14.dp))) {
+                CoverArt(comic = comic, showArtwork = true)
             }
-            Text(
-                text = comic.title,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 6.dp),
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            HeroProgress(comic = comic)
-            Spacer(modifier = Modifier.height(14.dp))
-            ResumePill()
+            Column(modifier = Modifier.fillMaxHeight().weight(1f)) {
+                Text(
+                    text = stringResource(R.string.library_hero_eyebrow).uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 2.sp,
+                    color = tint,
+                )
+                if (comic.series != comic.title) {
+                    Text(
+                        text = comic.series,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = InkDim,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 10.dp),
+                    )
+                }
+                Text(
+                    text = comic.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                HeroProgress(comic = comic)
+                Spacer(modifier = Modifier.height(14.dp))
+                ResumePill()
+            }
         }
+        UnshelveButton(onClick = { onUnshelve(comic) }, modifier = Modifier.align(Alignment.TopEnd).padding(10.dp))
+    }
+}
+
+@Composable
+private fun UnshelveButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(32.dp)
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.45f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Close,
+            contentDescription = stringResource(R.string.library_unshelve),
+            tint = InkDim,
+            modifier = Modifier.size(16.dp),
+        )
     }
 }
 
@@ -504,50 +528,54 @@ private fun LibraryComic.proceduralGradient(): List<Color> {
 }
 
 @Composable
-private fun ContinueReadingCard(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit) {
+private fun ContinueReadingCard(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit, onUnshelve: (LibraryComic) -> Unit) {
     val pageCount = comic.pageCount
-    Row(
+    Box(
         modifier = Modifier
             .width(340.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(Brush.linearGradient(listOf(Surface2, Color(0xFF0D0E13))))
-            .clickable { onOpenComic(comic) }
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+            .clickable { onOpenComic(comic) },
     ) {
-        Box(modifier = Modifier.width(84.dp).height(126.dp).clip(RoundedCornerShape(10.dp))) {
-            CoverArt(comic = comic, showArtwork = false)
-        }
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = comic.series,
-                style = MaterialTheme.typography.labelSmall,
-                color = InkFaint,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = comic.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 2.dp),
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            if (pageCount != null && pageCount > 0) {
-                Text(
-                    text = stringResource(R.string.library_progress, comic.pageIndex + 1, pageCount),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = InkDim,
-                    modifier = Modifier.padding(bottom = 6.dp),
-                )
-                ProgressBar(progress = LibraryCatalog.progress(comic.pageIndex, pageCount))
-                Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Box(modifier = Modifier.width(84.dp).height(126.dp).clip(RoundedCornerShape(10.dp))) {
+                CoverArt(comic = comic, showArtwork = false)
             }
-            ResumePill()
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = comic.series,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = InkFaint,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = comic.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                if (pageCount != null && pageCount > 0) {
+                    Text(
+                        text = stringResource(R.string.library_progress, comic.pageIndex + 1, pageCount),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = InkDim,
+                        modifier = Modifier.padding(bottom = 6.dp),
+                    )
+                    ProgressBar(progress = LibraryCatalog.progress(comic.pageIndex, pageCount))
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+                ResumePill()
+            }
         }
+        UnshelveButton(onClick = { onUnshelve(comic) }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp))
     }
 }
 

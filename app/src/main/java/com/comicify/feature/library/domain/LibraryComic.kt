@@ -13,4 +13,5 @@ data class LibraryComic(
     val completed: Boolean,
     val favorite: Boolean,
     val lastReadAt: Long?,
+    val shelved: Boolean,
 )

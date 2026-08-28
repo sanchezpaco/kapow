@@ -41,6 +41,7 @@
     <string name="library_group">Group by series</string>
     <string name="library_ungroup">Show all comics</string>
     <string name="library_group_read">%1$d/%2$d read</string>
+    <string name="library_unshelve">Remove from continue reading</string>
     <string name="library_back">Back</string>
     <string name="detail_read">Start reading</string>
     <string name="detail_continue">Continue</string>

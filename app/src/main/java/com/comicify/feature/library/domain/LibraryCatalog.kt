@@ -52,7 +52,7 @@ object LibraryCatalog {
     fun nextUnread(series: List<LibraryComic>): LibraryComic? = series.firstOrNull { !it.completed }
 
     fun continueReading(comics: List<LibraryComic>): List<LibraryComic> =
-        comics.filter { it.lastReadAt != null && !it.completed && it.pageIndex > 0 }
+        comics.filter { it.lastReadAt != null && !it.completed && it.pageIndex > 0 && it.shelved }
             .sortedByDescending { it.lastReadAt }
             .take(CONTINUE_READING_LIMIT)
 

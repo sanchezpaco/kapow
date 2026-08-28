@@ -60,6 +60,7 @@ fun ComicifyRoot(initialUri: Uri? = null) {
                 onOpenFile = { open = OpenRequest(uri = it, comicId = null, initialPage = 0) },
                 onFilterSelected = viewModel::onFilterSelected,
                 onToggleGrouped = viewModel::onToggleGrouped,
+                onUnshelve = viewModel::onUnshelve,
                 onToggleRead = viewModel::onToggleRead,
                 onToggleFavorite = viewModel::onToggleFavorite,
                 onDeleteComic = viewModel::onDeleteComic,

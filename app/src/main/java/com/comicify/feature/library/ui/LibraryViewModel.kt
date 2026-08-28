@@ -77,6 +77,10 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch { repository.setGrouped(!state.value.grouped) }
     }
 
+    fun onUnshelve(comic: LibraryComic) {
+        viewModelScope.launch { repository.unshelve(comic.id) }
+    }
+
     fun onToggleRead(comic: LibraryComic) {
         viewModelScope.launch { repository.setRead(comic.id, !comic.completed) }
     }

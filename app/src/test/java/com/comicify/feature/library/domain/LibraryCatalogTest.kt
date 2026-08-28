@@ -16,6 +16,7 @@ class LibraryCatalogTest {
         favorite: Boolean = false,
         lastReadAt: Long? = null,
         pageCount: Int? = 20,
+        shelved: Boolean = true,
     ) = LibraryComic(
         id = id,
         documentUri = "uri$id",
@@ -29,6 +30,7 @@ class LibraryCatalogTest {
         completed = completed,
         favorite = favorite,
         lastReadAt = lastReadAt,
+        shelved = shelved,
     )
 
     @Test
@@ -81,6 +83,12 @@ class LibraryCatalogTest {
         assertEquals(1, LibraryCatalog.minutesLeft(pageIndex = 18, pageCount = 20))
         assertEquals(15, LibraryCatalog.minutesLeft(pageIndex = 0, pageCount = 20))
         assertEquals(0, LibraryCatalog.minutesLeft(pageIndex = 5, pageCount = 0))
+    }
+
+    @Test
+    fun continueReadingSkipsUnshelvedComics() {
+        val input = listOf(comic(1, pageIndex = 5, lastReadAt = 100, shelved = false), comic(2, pageIndex = 5, lastReadAt = 50))
+        assertEquals(listOf(2L), LibraryCatalog.continueReading(input).map { it.id })
     }
 
     @Test
