@@ -18,6 +18,7 @@ private const val PUSH_SHARE = 0.25f
 private val ANCHOR_SHARES = listOf(0f, 0.5f, 1f)
 private const val COLLISION_OUTLINE_VERTICES = 48
 private const val INTRUSION_EPSILON = 1e-3f
+private const val PAIR_COLLISION_COST = 2
 
 data class EnlargedBubble(val bubble: SpeechBubble, val scale: Float, val target: Rect) {
     fun map(point: Offset): Offset = Offset(
@@ -55,17 +56,29 @@ object BubbleLayout {
         }
     }
 
+    private data class Placement(val i: Int, val j: Int, val a: Rect, val b: Rect)
+
     private class Silhouettes(detected: List<SpeechBubble>) {
         private val bubbles = detected.map { bubble ->
             val step = bubble.outlines.sumOf { perimeter(it).toDouble() }.toFloat() / COLLISION_OUTLINE_VERTICES
             bubble.copy(outlines = bubble.outlines.map { sampled(it, step) })
         }
+        private val extents = bubbles.map { bubble -> bubble.outlines.flatten().let { points -> Rect(points.minOf { it.x }, points.minOf { it.y }, points.maxOf { it.x }, points.maxOf { it.y }) } }
         private val original = bubbles.indices.map { i -> bubbles.indices.map { j -> if (i < j) mutualIntrusion(i, bubbles[i].box, j, bubbles[j].box) else 0f } }
 
+        private val collisions = HashMap<Placement, Boolean>()
+
         fun collide(i: Int, j: Int, a: Rect, b: Rect): Boolean =
-            a.collides(b) && mutualIntrusion(i, a, j, b) > original[min(i, j)][max(i, j)] + INTRUSION_EPSILON
+            a.collides(b) && collisions.getOrPut(Placement(i, j, a, b)) { mutualIntrusion(i, a, j, b) > original[min(i, j)][max(i, j)] + INTRUSION_EPSILON }
 
         private fun mutualIntrusion(i: Int, a: Rect, j: Int, b: Rect): Float = intrusion(j, b, i, a) + intrusion(i, a, j, b)
+
+        private fun placedExtent(index: Int, at: Rect): Rect {
+            val box = bubbles[index].box
+            val scale = at.width / box.width
+            val extent = extents[index]
+            return Rect(at.left + (extent.left - box.left) * scale, at.top + (extent.top - box.top) * scale, at.left + (extent.right - box.left) * scale, at.top + (extent.bottom - box.top) * scale)
+        }
 
         private fun edges(outline: List<Offset>) = outline.indices.map { outline[it] to outline[(it + 1) % outline.size] }
 
@@ -95,14 +108,17 @@ object BubbleLayout {
             val outScale = at.width / source.box.width
             val inScale = host.box.width / target.width / TEXT_BODY_SHARE
             val body = target.scaledAbout(target.center, TEXT_BODY_SHARE)
+            if (!placedExtent(from, at).overlaps(body)) return 0f
+            val hostExtent = extents[into]
             val hostScale = target.width / host.box.width
-            val hostOutline = host.outlines.flatten().map { Offset(target.left + (it.x - host.box.left) * hostScale, target.top + (it.y - host.box.top) * hostScale) }
+            val hostOutline by lazy { host.outlines.flatten().map { Offset(target.left + (it.x - host.box.left) * hostScale, target.top + (it.y - host.box.top) * hostScale) } }
             val size = min(target.width, target.height)
             var depth = 0f
             source.outlines.forEach { outline ->
                 outline.forEach { point ->
                     val onPage = Offset(at.left + (point.x - source.box.left) * outScale, at.top + (point.y - source.box.top) * outScale)
-                    val inside = body.contains(onPage) && host.contains(Offset(host.box.left + (onPage.x - body.left) * inScale, host.box.top + (onPage.y - body.top) * inScale))
+                    val inHost = Offset(host.box.left + (onPage.x - body.left) * inScale, host.box.top + (onPage.y - body.top) * inScale)
+                    val inside = body.contains(onPage) && hostExtent.contains(inHost) && host.contains(inHost)
                     if (inside) depth += hostOutline.minOf { (it - onPage).getDistance() } / size
                 }
             }
@@ -140,14 +156,20 @@ object BubbleLayout {
     }
 
     private fun reanchorPair(i: Int, j: Int, targets: MutableList<Rect>, placed: List<Placed>, silhouettes: Silhouettes) {
+        val others = targets.indices.filter { it != i && it != j }
+        val positionsI = containedPositions(targets[i], placed[i])
+        val positionsJ = containedPositions(targets[j], placed[j])
+        val costI = positionsI.map { a -> others.count { silhouettes.collide(i, it, a, targets[it]) } }
+        val costJ = positionsJ.map { b -> others.count { silhouettes.collide(j, it, b, targets[it]) } }
         var bestCost = pairCost(i, j, targets, silhouettes)
         var best: Pair<Rect, Rect>? = null
-        for (a in containedPositions(targets[i], placed[i])) for (b in containedPositions(targets[j], placed[j])) {
-            val trial = targets.toMutableList().apply { set(i, a); set(j, b) }
-            val cost = pairCost(i, j, trial, silhouettes)
-            if (cost < bestCost) {
-                bestCost = cost
-                best = a to b
+        positionsI.forEachIndexed { ai, a ->
+            positionsJ.forEachIndexed { bi, b ->
+                val cost = costI[ai] + costJ[bi] + if (silhouettes.collide(i, j, a, b)) PAIR_COLLISION_COST else 0
+                if (cost < bestCost) {
+                    bestCost = cost
+                    best = a to b
+                }
             }
         }
         best?.let { (a, b) ->

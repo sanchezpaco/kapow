@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import com.comicify.feature.reader.domain.BubbleLayout
 import com.comicify.feature.reader.domain.SpeechBubble
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,10 +39,13 @@ class PageLoader(
     private val thumbCache = LruCache<Int, ImageBitmap>(THUMB_CACHE_SIZE)
     private val panelCache = LruCache<Int, List<Rect>>(CACHE_SIZE)
     private val bubbleCache = LruCache<Int, List<SpeechBubble>>(CACHE_SIZE)
+    private val overlayCache = LruCache<Int, PageOverlay>(CACHE_SIZE)
+    @Volatile private var focus = 0
     private val detectionSlots = Semaphore(PARALLEL_DETECTIONS)
     private val locks = HashMap<Int, Mutex>()
     private val thumbLocks = HashMap<Int, Mutex>()
     private val bubbleLocks = HashMap<Int, Mutex>()
+    private val overlayLocks = HashMap<Int, Mutex>()
 
     val pageCount: Int get() = source.pageCount
 
@@ -86,12 +90,30 @@ class PageLoader(
             .also { detectionStore.savePanels(index, it) }
     }
 
-    suspend fun bubbles(index: Int): List<SpeechBubble> {
+    private suspend fun bubbles(index: Int): List<SpeechBubble> {
         bubbleCache[index]?.let { return it }
         val mutex = synchronized(bubbleLocks) { bubbleLocks.getOrPut(index) { Mutex() } }
         return mutex.withLock {
             bubbleCache[index] ?: (detectionStore.bubbles(index) ?: detectBubbles(index)).also { bubbleCache.put(index, it) }
         }
+    }
+
+    suspend fun overlay(index: Int, scale: Float): List<PaintedBubble> {
+        cachedOverlay(index, scale)?.let { return it }
+        val focused = focus
+        if (index != focused) runCatching { overlay(focused, scale) }
+        val mutex = synchronized(overlayLocks) { overlayLocks.getOrPut(index) { Mutex() } }
+        return mutex.withLock {
+            cachedOverlay(index, scale) ?: planOverlay(index, scale).also { overlayCache.put(index, PageOverlay(scale, it)) }
+        }
+    }
+
+    private fun cachedOverlay(index: Int, scale: Float): List<PaintedBubble>? = overlayCache[index]?.takeIf { it.scale == scale }?.bubbles
+
+    private suspend fun planOverlay(index: Int, scale: Float): List<PaintedBubble> {
+        val bubbles = bubbles(index)
+        val art = load(index)
+        return withContext(Dispatchers.Default) { BubblePlan.of(art.analysis, BubbleLayout.enlarge(bubbles, scale)) }
     }
 
     private suspend fun detectBubbles(index: Int): List<SpeechBubble> {
@@ -106,9 +128,12 @@ class PageLoader(
         return detect().also { Log.d(LOG_TAG, "detected $what on page $index in ${SystemClock.elapsedRealtime() - started} ms") }
     }
 
-    fun preload(around: Int, indices: Iterable<Int>, withBubbles: Boolean) {
+    fun preload(around: Int, indices: Iterable<Int>, bubbleScale: Float?) {
+        focus = around
         indices.filter { it in 0 until source.pageCount }
             .sortedBy { abs(it - around) }
-            .forEach { index -> scope.launch { runCatching { if (withBubbles) bubbles(index) else load(index) } } }
+            .forEach { index -> scope.launch { runCatching { if (bubbleScale != null) overlay(index, bubbleScale) else load(index) } } }
     }
+
+    private class PageOverlay(val scale: Float, val bubbles: List<PaintedBubble>)
 }

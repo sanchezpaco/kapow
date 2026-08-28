@@ -113,10 +113,10 @@ private fun SinglePageReader(
 
     JumpEffect(pendingJump, onJumpApplied) { pagerState.scrollToPage(it.coerceIn(0, lastPage(loader))) }
 
-    LaunchedEffect(pagerState.currentPage) {
+    LaunchedEffect(pagerState.currentPage, bubbleScale) {
         val logicalPage = PageOrder.logicalIndex(direction, pagerState.currentPage, pageCount)
         onPageChanged(logicalPage)
-        loader.preload(logicalPage, (logicalPage - 1)..(logicalPage + 2), withBubbles = bubbleScale != null)
+        loader.preload(logicalPage, (logicalPage - 1)..(logicalPage + 2), bubbleScale)
         runCatching { loader.load(logicalPage) }.getOrNull()?.let { onAmbient(it.ambient) }
     }
 
@@ -181,10 +181,10 @@ private fun SpreadReader(
         pagerState.scrollToPage(ThumbnailStrip.stepIndexForPage(it, PAGES_PER_SPREAD).coerceIn(0, spreadCount - 1))
     }
 
-    LaunchedEffect(pagerState.currentPage) {
+    LaunchedEffect(pagerState.currentPage, bubbleScale) {
         val firstPage = PageOrder.logicalIndex(direction, pagerState.currentPage, spreadCount) * 2
         onPageChanged(firstPage)
-        loader.preload(firstPage, (firstPage - 1)..(firstPage + 3), withBubbles = bubbleScale != null)
+        loader.preload(firstPage, (firstPage - 1)..(firstPage + 3), bubbleScale)
         runCatching { loader.load(firstPage) }.getOrNull()?.let { onAmbient(it.ambient) }
     }
 
@@ -257,10 +257,10 @@ private fun TabletopReader(
 
     JumpEffect(pendingJump, onJumpApplied) { pagerState.scrollToPage(it.coerceIn(0, lastPage(loader))) }
 
-    LaunchedEffect(pagerState.currentPage) {
+    LaunchedEffect(pagerState.currentPage, bubbleScale) {
         val logicalPage = PageOrder.logicalIndex(direction, pagerState.currentPage, pageCount)
         onPageChanged(logicalPage)
-        loader.preload(logicalPage, (logicalPage - 1)..(logicalPage + 2), withBubbles = bubbleScale != null)
+        loader.preload(logicalPage, (logicalPage - 1)..(logicalPage + 2), bubbleScale)
         runCatching { loader.load(logicalPage) }.getOrNull()?.let { onAmbient(it.ambient) }
     }
 

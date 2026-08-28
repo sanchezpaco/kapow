@@ -519,26 +519,54 @@ silhouette minus the union of all copies). Ben Reilly #01 (24 pages, 271
 bubbles): 0.2005 → 0.0265 page-areas summed, no bubble uncovering more than
 0.2 % of the page (26 before); the 98-page corpus (873 bubbles): 0.840 →
 0.224, 1 bubble stuck at 1× (32 before) and 163 below the full scale (138
-before, now all ≥ 1.15× unless the coverage steps ran out). Layout costs
-≈50 ms per page on the JVM, 0.8 s worst case on a 19-bubble Defensores page,
-and runs on `Dispatchers.Default` (`ZoomablePage`) — it used to run on the
-main thread.
+before, now all ≥ 1.15× unless the coverage steps ran out). Layout runs on `Dispatchers.Default` (`PageLoader.overlay`) and is cheap
+since 2026-08-28: it used to take 0.5–0.9 s on the Fold for a page of 6–9
+bubbles and 3.8 s for a 13-caption Doctor Doom #9 page (191,000 `collide`
+calls), because `reanchorPair` recounted the collisions of both bubbles
+against every neighbour for each of its 81 anchor combinations, and the
+push/shrink passes re-tested pairs that had not moved. It now scores the 9
+anchors of each bubble against the others once and adds the 81 pair checks,
+memoises `collide` per placement, builds the host outline only when a point
+lands inside the text body and rejects by silhouette extents first. The
+result is identical by construction (`metrics.json` bit-identical on the
+101-page corpus); the corpus layout time on the JVM went 4.0 s → 0.28 s
+(worst page 486 → 24 ms) and that Doom page takes 62 ms on the Fold in
+release.
 The earlier "compact group zoom" step (scale a cluster about the group's
 centre) was removed: it uncovered a strip on every outer member by
 construction and the contained-anchor search covers its cases.
 
 ## Rendering
 
-`ZoomablePage` shows a small spinner in the page corner while its bubbles are
-being detected (one page at a time — `PageLoader` gates detection with a
-semaphore and serves the visible page before its neighbours, so a page turn
-never competes with several detections for the cores), draws the page as
+`PageLoader.overlay(index, scale)` is the one entry point for the reader: it
+returns the page's `PaintedBubble`s (layout + paper colour) from an
+`LruCache` sized like the page cache, or computes them once — detection from
+memory, Room or the model, then `BubbleLayout.enlarge` and `BubblePlan.of`
+on `Dispatchers.Default` — and keeps them until the scale changes. Toggling
+bubbles off and on or turning back to a recent page therefore costs nothing,
+and `preload` computes the overlays of the neighbouring pages after the
+current one. The **current page is served first**: `preload` records the
+page the reader is on as the loader's focus, and any request for another
+page first awaits the focus page's overlay (without holding any lock, so a
+focus change mid-flight cannot deadlock) — before this, the visible page's
+detection routinely queued behind a neighbour's for ~1 s, which is why the
+toggle felt randomly slow. Measured on the Fold (release, Doctor Doom #9
+p.4, 13 captions): toggle to enlarged 3.9 s → 69 ms with detections in Room
+and 387 ms cold (331 ms of that is the model + outlining); page turns 3–5 ms
+with Room.
+
+`ZoomablePage` shows a small spinner in the page corner while its overlay is
+being computed (one detection at a time — `PageLoader` gates detection with a
+semaphore), draws the page as
 before and, in a `drawWithContent` after the zoom/pan `graphicsLayer` (so the
 overlay pans and zooms with the page), draws in two passes straight into the
-Compose `DrawScope` (`BubbleOverlay.drawBubbles`). Nothing is rasterised in
+Compose `DrawScope` (`BubbleOverlay.drawBubbles`). The draw is not repeated
+per frame: the `graphicsLayer` caches it, and zooming, panning and page turns
+only transform the layer (fewer than 30 draws were counted across a zoom and
+fling session). Nothing is rasterised in
 between: an earlier version rendered a full-page ARGB overlay bitmap per page
 and per slider step, which on a 2953 × 4528 scan meant 53 MB allocations and
-page turns at ~10 fps. The only precomputed part is `BubbleOverlay.plan`: the
+page turns at ~10 fps. The only precomputed part is `BubblePlan.of`: the
 paper colour of each enlarged bubble. First every enlarged bubble's **original footprint** (its
 outline polygons) is repainted with the bubble's paper colour — the median
 luminance of samples taken **inside the silhouette** (`SpeechBubble.interiorSamples`,

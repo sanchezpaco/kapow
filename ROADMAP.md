@@ -194,13 +194,19 @@ Goal: the details that make it feel premium.
       model and writes through after. Second open of a 5-page comic in
       bubble mode: 5 → 0 bubble runs. RAM and battery are measured after
       this, not before. See `docs/speech-bubbles.md`
-- [ ] Bubble enlarge latency: investigate whether the time from toggling
-      bubbles to seeing them enlarged can be cut. Profile the chain on the
-      Fold (ML boxes ~35 ms, outlining, `BubbleLayout` ≈50 ms JVM / 0.8 s
-      worst case, paper sampling, overlay composition) on a cold page and on
-      a Room-cached page, and attack whichever step dominates. Battery
-      run (2026-08-28) already says the model is only ~half of the bubble
-      cost: layout + overlay drawing are ~0.3 s CPU per page on a re-read
+- [x] Bubble enlarge latency (2026-08-28, profiled stage by stage on the
+      Fold): the model was 60 ms and Room 1–20 ms; `BubbleLayout.enlarge`
+      was the cost — 0.5–0.9 s for 6–9 bubbles, 3.8 s for a 13-caption Doom
+      #9 page (`reanchorPair` recounting 81 × 2n collisions) — recomputed on
+      every toggle, and the visible page queued ~1 s behind its neighbours'
+      detections, which read as random latency. Fixed by decomposing the
+      anchor search and memoising collisions (identical layouts on the
+      101-page corpus, JVM 4.0 → 0.28 s), caching overlays per page and
+      scale in `PageLoader` and serving the current page first. Release on
+      the Fold, that Doom page: toggle → enlarged 3.9 s → 69 ms from Room,
+      387 ms cold; page turns 3–5 ms from Room; off/on 0 ms. `drawBubbles`
+      is not per-frame (layer-cached), so nothing to gain there. See
+      `docs/speech-bubbles.md`
 - [ ] App-wide fluidity research: after the bubble latency item, profile
       the whole app (library scroll, opening a comic, page turns, zoom,
       Guided View, HUD) with `gfxinfo`, systrace/Perfetto and the

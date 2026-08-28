@@ -42,10 +42,8 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.comicify.feature.reader.data.PageArt
 import com.comicify.feature.reader.data.PageLoader
-import com.comicify.feature.reader.domain.BubbleLayout
-import kotlinx.coroutines.Dispatchers
+import com.comicify.feature.reader.data.PaintedBubble
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 
 private const val MAX_SCALE = 5f
@@ -89,8 +87,7 @@ fun ZoomablePage(
         val page = art
         if (bubbleScale == null || page == null) { overlay = BubbleOverlayState.None; return@LaunchedEffect }
         overlay = BubbleOverlayState.Loading
-        val bubbles = runCatching { loader.bubbles(index) }.getOrDefault(emptyList())
-        overlay = BubbleOverlayState.Ready(withContext(Dispatchers.Default) { BubbleOverlay.plan(page.analysis, BubbleLayout.enlarge(bubbles, bubbleScale)) })
+        overlay = BubbleOverlayState.Ready(runCatching { loader.overlay(index, bubbleScale) }.getOrDefault(emptyList()))
     }
     LaunchedEffect(scale) { onZoomedChange(scale > 1.01f) }
 
