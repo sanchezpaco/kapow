@@ -473,11 +473,13 @@ pages are unaffected).
 `enlarge(bubbles, scale)` scales every bubble by the user's scale (default
 `BUBBLE_ENLARGE_SCALE` = 1.3×, adjustable 1.1–2.0× with the slider that appears
 under the HUD buttons while the toggle is on; persisted in DataStore as
-`bubble_scale`). The whole original silhouette is repainted flat at render
-time, so whatever the copy does not cover shows as a paper-coloured hole the
-size of the displacement. The policy is therefore **leave the smallest
-possible uncovered area**: keep the copy over its original, give up scale down
-to a floor before sliding, and slide only when nothing else fits.
+`bubble_scale`). The whole original silhouette is filled from the art around
+it at render time (see `CrescentFill` under Rendering), so whatever the copy
+does not cover shows as a smudge of the surrounding colours the size of the
+displacement — invisible on flat backgrounds, a soft blur over detailed art.
+The policy is therefore still **leave the smallest possible uncovered area**:
+keep the copy over its original, give up scale down to a floor before
+sliding, and slide only when nothing else fits.
 
 1. Every bubble grows about its own centre, bounded by the page only: a bubble
    at a panel edge grows over the gutter instead of sliding inward.
@@ -539,7 +541,7 @@ construction and the contained-anchor search covers its cases.
 ## Rendering
 
 `PageLoader.overlay(index, scale)` is the one entry point for the reader: it
-returns the page's `PaintedBubble`s (layout + paper colour) from an
+returns the page's `PaintedBubble`s (layout + fill bitmap) from an
 `LruCache` sized like the page cache, or computes them once — detection from
 memory, Room or the model, then `BubbleLayout.enlarge` and `BubblePlan.of`
 on `Dispatchers.Default` — and keeps them until the scale changes. Toggling
@@ -563,20 +565,48 @@ overlay pans and zooms with the page), draws in two passes straight into the
 Compose `DrawScope` (`BubbleOverlay.drawBubbles`). The draw is not repeated
 per frame: the `graphicsLayer` caches it, and zooming, panning and page turns
 only transform the layer (fewer than 30 draws were counted across a zoom and
-fling session). Nothing is rasterised in
+fling session). No full-page bitmap is rasterised in
 between: an earlier version rendered a full-page ARGB overlay bitmap per page
 and per slider step, which on a 2953 × 4528 scan meant 53 MB allocations and
-page turns at ~10 fps. The only precomputed part is `BubblePlan.of`: the
-paper colour of each enlarged bubble. First every enlarged bubble's **original footprint** (its
-outline polygons) is repainted with the bubble's paper colour — the median
-luminance of samples taken **inside the silhouette** (`SpeechBubble.interiorSamples`,
-never the bounding box, which would pick up surrounding art and paint a grey
-smear) — so a copy that slid into a gap leaves flat paper, not a half-covered
-original. Then each copy is drawn: clip to the scaled outline polygons, draw the
-source bitmap region of the bubble box into its target box with high filter
-quality, plus a faint 1 dp outline so the copy reads as intentional. Bubbles at
-scale 1 (fully constrained) are skipped. The offline visualizer mirrors both
-passes so its output matches the device.
+page turns at ~10 fps. The only precomputed part is `BubblePlan.of`: one
+small fill bitmap per enlarged bubble, the size of its box plus margin, cut
+from the analysis bitmap by `CrescentFill` (pure Kotlin, ≈3 ms per bubble on
+the JVM, cached with the overlay). First every enlarged bubble's **original
+footprint** is covered with that fill, then each copy is drawn: clip to the
+scaled outline polygons, draw the source bitmap region of the bubble box into
+its target box with high filter quality, plus a faint 1 dp outline so the copy
+reads as intentional. Bubbles at scale 1 (fully constrained) are skipped. The
+offline visualizer mirrors both passes so its output matches the device.
+
+### Filling the vacated area (`CrescentFill`)
+
+Before 2026-08-28 the footprint was repainted flat with the bubble's paper
+colour, so a copy that slid or shrank left a cut-out paper-coloured hole —
+rated ≈1.6/5 against LaMa inpainting's 4+ in the inpainting spike, which at
+≈4 s per crop was too slow to ship. The classical fill that replaced it:
+
+1. Rasterise the **whole original silhouette** (scanline, even-odd, same rule
+   as `SpeechBubble.contains`) and dilate it by a margin (4 px or 4 % of the
+   box's long side) with a 3-4 chamfer distance transform, so the rim, border
+   and tail are inside the mask. Filling only the exposed crescent would let
+   the still-visible text leak into the fill (LaMa spike lesson).
+2. The **source** is every pixel of the crop outside that mask, minus the 2 px
+   halo next to the mask edge (anti-aliased rim pixels) and minus any
+   neighbouring bubble's dilated silhouette — touching balloons otherwise bleed
+   their paper into the fill (Ben Reilly #01 p.14, "PODRÍAS SER").
+3. **Onion peel**: mask pixels are filled in chamfer-distance order from the
+   source, each as the mean of its already-known 8-neighbours.
+4. A separable **box blur** (radius 6 % of the crop) is applied inside the
+   mask: the raw peel leaves radial streaks, the blur turns them into a soft
+   gradient. Pixels outside the mask stay transparent.
+
+Verdict on the 77 corpus crescents that uncover > 0.05 % of the page
+(`out/crescents/`, original | flat | filled triptychs written by the
+visualizer): on flat backgrounds — manga, digital skies, cream paper — the
+hole disappears; on busy scans (Defensores) it becomes a soft colour smudge
+instead of a cut-out, roughly 3/5. What the method cannot do is invent
+texture: where the art behind the bubble is itself a pale glow, the fill is a
+pale smudge. A tiny inpainting model remains the escalation path for that.
 
 ## Iterating on detection
 

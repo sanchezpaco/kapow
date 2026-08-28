@@ -173,12 +173,17 @@ Goal: the details that make it feel premium.
       series 0.92-1.00 except Blacksad 0.88 (ground-truth geometry, all
       three models equal), silhouette IoU 0.879 → 0.881, corpus uncovered
       0.2269 → 0.2212, 29 ms/page. See `docs/speech-bubbles.md`
-- [ ] Bubble enlarge: fill the residual vacated area. LaMa spike (2026-08-26)
-      proved ML inpainting blends the hole into the art (≈90 % judged good on
-      138 real bubbles, six styles) but costs ≈4 s per 512² crop on the Fold
-      emulator, so the shipped fill must be far cheaper (small crop / tiny
-      model / classical fill for thin crescents). Decide after the item above
-      shows how much area is actually left. See `docs/speech-bubbles.md`
+- [x] Bubble enlarge: fill the residual vacated area (2026-08-28). LaMa
+      spike (2026-08-26) proved ML inpainting blends the hole into the art
+      (≈90 % judged good on 138 real bubbles) but costs ≈4 s per 512² crop.
+      Shipped a classical fill instead (`CrescentFill`): the whole original
+      silhouette plus margin is onion-peeled from the surrounding art (minus
+      neighbouring bubbles and the rim halo) and box-blurred, ≈3 ms per bubble
+      on the JVM, cached with the overlay. On flat backgrounds the hole
+      disappears; on busy scans it becomes a soft smudge instead of a cut-out
+      (≈3/5 vs 1.6/5 flat). Only 77 of 876 corpus bubbles uncover > 0.05 % of
+      the page. A tiny model stays the escalation path. See
+      `docs/speech-bubbles.md`
 - [x] Page-turn lag on the Z Fold (2026-08-28, reported on Doctor Doom #1
       pp. 18-21, bubbles off): software page bitmaps (24 MB each) thrashed
       HWUI's 72 MB texture cache, re-uploading a page per frame. Pages are
