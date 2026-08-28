@@ -89,17 +89,6 @@ import com.comicify.feature.library.domain.LibraryFilter
 import java.io.File
 import kotlin.math.roundToInt
 
-private val Accent = Color(0xFFE62429)
-private val AccentAmber = Color(0xFFFFB300)
-private val Good = Color(0xFF3FB27F)
-private val InkDim = Color(0xFFB4ABA8)
-private val InkFaint = Color(0xFF807571)
-private val Surface2 = Color(0xFF171414)
-private val CardLine = Color(0x12FFFFFF)
-private val CoverTrack = Color(0x24FFFFFF)
-private val HeroGround = Color(0xFF0A0A0D)
-private const val HeroGlowMix = 0.55f
-private const val HeroTintMix = 0.35f
 private val HeroCoverWidth = 132.dp
 
 private val CoverGradients = listOf(
@@ -119,6 +108,7 @@ fun LibraryScreen(
     onFolderPicked: (Uri) -> Unit,
     onRefresh: () -> Unit,
     onOpenComic: (LibraryComic) -> Unit,
+    onShowDetail: (LibraryComic) -> Unit,
     onOpenFile: (Uri) -> Unit,
     onFilterSelected: (LibraryFilter) -> Unit,
     onToggleGrouped: () -> Unit,
@@ -150,7 +140,7 @@ fun LibraryScreen(
         SeriesScreen(
             group = openGroup,
             onBack = { openedSeries = null },
-            onOpenComic = onOpenComic,
+            onOpenComic = onShowDetail,
             onToggleRead = onToggleRead,
             onToggleFavorite = onToggleFavorite,
             onDeleteComic = onDeleteComic,
@@ -203,7 +193,7 @@ fun LibraryScreen(
                 when (entry) {
                     is LibraryEntry.Single -> ComicCard(
                         comic = entry.comic,
-                        onOpenComic = onOpenComic,
+                        onOpenComic = onShowDetail,
                         onToggleRead = onToggleRead,
                         onToggleFavorite = onToggleFavorite,
                         onDeleteComic = onDeleteComic,
@@ -215,7 +205,7 @@ fun LibraryScreen(
             items(items = state.comics, key = { it.id }) { comic ->
                 ComicCard(
                     comic = comic,
-                    onOpenComic = onOpenComic,
+                    onOpenComic = onShowDetail,
                     onToggleRead = onToggleRead,
                     onToggleFavorite = onToggleFavorite,
                     onDeleteComic = onDeleteComic,
@@ -378,7 +368,7 @@ private fun LibraryHeader(
 }
 
 @Composable
-private fun PrimaryAction(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+internal fun PrimaryAction(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
@@ -394,7 +384,7 @@ private fun PrimaryAction(icon: androidx.compose.ui.graphics.vector.ImageVector,
 }
 
 @Composable
-private fun GhostAction(
+internal fun GhostAction(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
@@ -505,7 +495,7 @@ private fun HeroProgress(comic: LibraryComic) {
     ProgressBar(progress = LibraryCatalog.progress(comic.pageIndex, pageCount))
 }
 
-private fun LibraryComic.ambientColor(): Color =
+internal fun LibraryComic.ambientColor(): Color =
     coverAmbient?.let { Color(it) } ?: proceduralGradient().first()
 
 private fun LibraryComic.proceduralGradient(): List<Color> {
@@ -562,7 +552,7 @@ private fun ContinueReadingCard(comic: LibraryComic, onOpenComic: (LibraryComic)
 }
 
 @Composable
-private fun ResumePill() {
+internal fun ResumePill() {
     Row(
         modifier = Modifier
             .clip(CircleShape)
@@ -582,7 +572,7 @@ private fun ResumePill() {
 }
 
 @Composable
-private fun SectionHeader(eyebrow: String, title: String) {
+internal fun SectionHeader(eyebrow: String, title: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = eyebrow.uppercase(),
@@ -688,7 +678,7 @@ private fun ComicCard(
 }
 
 @Composable
-private fun DeleteConfirmDialog(
+internal fun DeleteConfirmDialog(
     comic: LibraryComic,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
@@ -711,7 +701,7 @@ private fun DeleteConfirmDialog(
 }
 
 @Composable
-private fun ComicCardMenu(
+internal fun ComicCardMenu(
     expanded: Boolean,
     comic: LibraryComic,
     onDismiss: () -> Unit,
@@ -752,7 +742,7 @@ private fun ComicCardMenu(
 }
 
 @Composable
-private fun FavoriteBadge(modifier: Modifier = Modifier) {
+internal fun FavoriteBadge(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .size(28.dp)
@@ -887,7 +877,7 @@ private fun FilterEmpty() {
 }
 
 @Composable
-private fun CoverArt(comic: LibraryComic, showArtwork: Boolean) {
+internal fun CoverArt(comic: LibraryComic, showArtwork: Boolean) {
     val coverPath = comic.coverPath
     if (coverPath != null) {
         AsyncImage(
@@ -960,7 +950,7 @@ private fun Halftone() {
 }
 
 @Composable
-private fun ProgressRing(progress: Float, modifier: Modifier = Modifier) {
+internal fun ProgressRing(progress: Float, modifier: Modifier = Modifier) {
     Box(modifier = modifier.size(34.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val stroke = 3.dp.toPx()
@@ -997,7 +987,7 @@ private fun ProgressRing(progress: Float, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun CompletedBadge(modifier: Modifier = Modifier) {
+internal fun CompletedBadge(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .size(30.dp)
@@ -1015,7 +1005,7 @@ private fun CompletedBadge(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ProgressBar(progress: Float) {
+internal fun ProgressBar(progress: Float) {
     Box(
         modifier = Modifier
             .fillMaxWidth()

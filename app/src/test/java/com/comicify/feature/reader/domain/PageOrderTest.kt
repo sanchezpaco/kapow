@@ -73,4 +73,22 @@ class PageOrderTest {
         assertEquals(TapZone.Center, PageOrder.tapZone(RightToLeft, 0.5f, 0.28f, 0.72f))
         assertEquals(TapZone.Previous, PageOrder.tapZone(RightToLeft, 0.9f, 0.28f, 0.72f))
     }
+
+    @Test
+    fun spreadsPairFromTheCoverByDefault() {
+        assertEquals(3, PageOrder.spreadCount(pageCount = 5, coverAlone = false))
+        assertEquals(1, PageOrder.spreadIndex(pageIndex = 3, coverAlone = false))
+        assertEquals(2, PageOrder.spreadFirstPage(spreadIndex = 1, coverAlone = false))
+    }
+
+    @Test
+    fun coverAloneShiftsPairingByOnePage() {
+        assertEquals(3, PageOrder.spreadCount(pageCount = 5, coverAlone = true))
+        assertEquals(4, PageOrder.spreadCount(pageCount = 6, coverAlone = true))
+        assertEquals(0, PageOrder.spreadIndex(pageIndex = 0, coverAlone = true))
+        assertEquals(1, PageOrder.spreadIndex(pageIndex = 1, coverAlone = true))
+        assertEquals(1, PageOrder.spreadIndex(pageIndex = 2, coverAlone = true))
+        assertEquals(-1, PageOrder.spreadFirstPage(spreadIndex = 0, coverAlone = true))
+        assertEquals(1, PageOrder.spreadFirstPage(spreadIndex = 1, coverAlone = true))
+    }
 }

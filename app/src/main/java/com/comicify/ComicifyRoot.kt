@@ -21,6 +21,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
+import com.comicify.feature.library.ui.ComicDetailScreen
 import com.comicify.feature.library.ui.LibraryScreen
 import com.comicify.feature.library.ui.LibraryViewModel
 import com.comicify.feature.reader.ui.ReaderScreen
@@ -34,18 +35,28 @@ fun ComicifyRoot(initialUri: Uri? = null) {
     var open by remember {
         mutableStateOf(initialUri?.let { OpenRequest(uri = it, comicId = null, initialPage = 0) })
     }
+    var detail by remember { mutableStateOf<LibraryComic?>(null) }
 
     Surface(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         color = MaterialTheme.colorScheme.background,
     ) {
         val request = open
-        if (request == null) {
+        val shownDetail = detail
+        if (request == null && shownDetail != null) {
+            ComicDetailScreen(
+                comic = shownDetail,
+                onBack = { detail = null },
+                onOpenComic = { open = it.toOpenRequest() },
+                onShowComic = { detail = it },
+            )
+        } else if (request == null) {
             LibraryScreen(
                 state = state,
                 onFolderPicked = viewModel::onFolderPicked,
                 onRefresh = viewModel::onRefresh,
                 onOpenComic = { open = it.toOpenRequest() },
+                onShowDetail = { detail = it },
                 onOpenFile = { open = OpenRequest(uri = it, comicId = null, initialPage = 0) },
                 onFilterSelected = viewModel::onFilterSelected,
                 onToggleGrouped = viewModel::onToggleGrouped,

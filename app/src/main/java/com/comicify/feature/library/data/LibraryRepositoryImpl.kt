@@ -10,16 +10,22 @@ import androidx.core.net.toUri
 import com.comicify.R
 import com.comicify.core.storage.ComicDao
 import com.comicify.core.storage.ComicEntity
+import com.comicify.core.storage.ComicSettingsDao
+import com.comicify.core.storage.ComicSettingsEntity
 import com.comicify.core.storage.LibraryPreferences
+import com.comicify.core.storage.PageDetectionDao
 import com.comicify.core.storage.ReadingStateDao
 import com.comicify.core.storage.ReadingStateEntity
+import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.library.domain.ComicNameParser
+import com.comicify.feature.library.domain.ComicSettings
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,6 +39,8 @@ class LibraryRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val comicDao: ComicDao,
     private val readingStateDao: ReadingStateDao,
+    private val comicSettingsDao: ComicSettingsDao,
+    private val pageDetectionDao: PageDetectionDao,
     private val preferences: LibraryPreferences,
     private val scanner: ComicScanner,
     private val coverGenerator: CoverGenerator,
@@ -167,6 +175,37 @@ class LibraryRepositoryImpl @Inject constructor(
         return true
     }
 
+    override fun settings(documentUri: String): Flow<ComicSettings> =
+        comicSettingsDao.observe(documentUri).map { it?.toComicSettings() ?: ComicSettings.Default }
+
+    override suspend fun saveSettings(documentUri: String, settings: ComicSettings) {
+        if (settings == ComicSettings.Default) {
+            comicSettingsDao.delete(documentUri)
+            return
+        }
+        comicSettingsDao.upsert(
+            ComicSettingsEntity(
+                documentUri = documentUri,
+                rightToLeft = settings.direction?.let { it == ReadingDirection.RightToLeft },
+                coverAlone = settings.coverAlone,
+                bubblesEnlarged = settings.bubblesEnlarged,
+                guided = settings.guided,
+            ),
+        )
+    }
+
+    override suspend fun clearDetections(documentUri: String) {
+        pageDetectionDao.deleteAll(documentUri)
+    }
+
+    private fun ComicSettingsEntity.toComicSettings(): ComicSettings =
+        ComicSettings(
+            direction = rightToLeft?.let { if (it) ReadingDirection.RightToLeft else ReadingDirection.LeftToRight },
+            coverAlone = coverAlone,
+            bubblesEnlarged = bubblesEnlarged,
+            guided = guided,
+        )
+
     private fun deleteLocalFile(uri: Uri): Boolean {
         val path = uri.path ?: return false
         val file = File(path)
@@ -186,6 +225,8 @@ class LibraryRepositoryImpl @Inject constructor(
     private suspend fun removeComic(comic: ComicEntity) {
         comic.coverPath?.let { File(it).delete() }
         readingStateDao.delete(comic.id)
+        comicSettingsDao.delete(comic.documentUri)
+        pageDetectionDao.deleteAll(comic.documentUri)
         comicDao.deleteById(comic.id)
     }
 

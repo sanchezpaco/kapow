@@ -50,8 +50,13 @@ Default on `UnfoldedSpread`.
 - **Double-page splash handling:** if a page is detected as a full-width spread
   (aspect ratio near 2:1, or metadata flag), it occupies both halves and pairing
   re-aligns so the artwork joins correctly across the seam.
-- Page pairing parity (which page starts a spread) is configurable and remembered
-  per comic.
+- Page pairing parity is a per-comic setting ("cover alone in the spread",
+  `ComicSettings.coverAlone`, set from the comic detail screen). `PageOrder`
+  owns the arithmetic (`spreadCount`, `spreadIndex`, `spreadFirstPage`): with
+  the cover alone, spread 0 shows a blank left half and the cover, and the
+  pairs become (1, 2), (3, 4)… The spread surface and Guided View's spread
+  layout both use it; the thumbnail scrubber maps a page to its spread through
+  the same helper.
 
 ## Book mode (tabletop)
 
@@ -89,6 +94,15 @@ scaled up **in place** (1.3× by default, a slider under the HUD buttons sets 1.
 pinch/double-tap zoom). It is a static render enhancement — no page zoom, no
 bubble-to-bubble navigation, nothing to order — so it deliberately sidesteps
 panel segmentation and reading-order errors. Full detail in `speech-bubbles.md`.
+
+## Per-comic settings
+
+`ReaderViewModel` reads the comic's `comic_settings` row (`ComicSettingsDao`)
+on open: `bubblesEnlarged` and `guided`, when not null, replace the reader's
+initial off state; `rightToLeft`, when not null, overrides the global reading
+direction, and the reader's direction toggle then writes the override instead
+of the global preference; `coverAlone` feeds the spread pairing above.
+Everything else stays global in `ReaderPreferencesRepository`.
 
 ## Reading direction
 

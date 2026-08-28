@@ -12,4 +12,7 @@ interface PageDetectionDao {
 
     @Upsert
     suspend fun upsert(detection: PageDetectionEntity)
+
+    @Query("DELETE FROM page_detections WHERE documentUri = :documentUri")
+    suspend fun deleteAll(documentUri: String)
 }

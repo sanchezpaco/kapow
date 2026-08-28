@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.comicify.core.storage.ComicSettingsDao
+import com.comicify.core.storage.ComicSettingsEntity
 import com.comicify.core.storage.DatabaseEntryPoint
 import com.comicify.core.storage.ReaderPreferencesRepository
 import com.comicify.domain.model.ReadingDirection
@@ -23,6 +25,7 @@ import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -36,6 +39,8 @@ class ReaderViewModel(
     private val _state = MutableStateFlow(ReaderUiState(position = ReadingPosition(pageIndex = initialPage)))
     val state: StateFlow<ReaderUiState> = _state.asStateFlow()
 
+    private val comicSettingsDao: ComicSettingsDao =
+        EntryPointAccessors.fromApplication(application, DatabaseEntryPoint::class.java).comicSettingsDao()
     private var source: ComicSource? = null
     var pageLoader: PageLoader? = null
         private set
@@ -50,6 +55,7 @@ class ReaderViewModel(
 
     private fun openComic() {
         viewModelScope.launch {
+            applyComicSettings(comicSettingsDao.find(uri.toString()))
             runCatching { ComicSourceFactory.open(getApplication(), uri, state.value.position.pageIndex) }
                 .onSuccess { opened ->
                     source = opened
@@ -60,6 +66,16 @@ class ReaderViewModel(
                     val error = (throwable as? ComicSourceException)?.error ?: ComicOpenError.ReadFailure
                     _state.update { it.copy(loading = false, error = error) }
                 }
+        }
+    }
+
+    private fun applyComicSettings(settings: ComicSettingsEntity?) {
+        if (settings == null) return
+        _state.update {
+            it.copy(
+                bubblesEnlarged = settings.bubblesEnlarged ?: it.bubblesEnlarged,
+                guided = settings.guided ?: it.guided,
+            )
         }
     }
 
@@ -139,13 +155,27 @@ class ReaderViewModel(
             ReadingDirection.LeftToRight -> ReadingDirection.RightToLeft
             ReadingDirection.RightToLeft -> ReadingDirection.LeftToRight
         }
-        viewModelScope.launch { preferencesRepository.setReadingDirection(next) }
+        viewModelScope.launch {
+            val override = comicSettingsDao.find(uri.toString())?.takeIf { it.rightToLeft != null }
+            if (override == null) {
+                preferencesRepository.setReadingDirection(next)
+            } else {
+                comicSettingsDao.upsert(override.copy(rightToLeft = next == ReadingDirection.RightToLeft))
+            }
+        }
     }
 
     private fun observeReadingDirection() {
         viewModelScope.launch {
-            preferencesRepository.readingDirection.collect { direction ->
-                _state.update { it.copy(direction = direction) }
+            combine(preferencesRepository.readingDirection, comicSettingsDao.observe(uri.toString())) { global, settings ->
+                val direction = when (settings?.rightToLeft) {
+                    null -> global
+                    true -> ReadingDirection.RightToLeft
+                    false -> ReadingDirection.LeftToRight
+                }
+                direction to (settings?.coverAlone ?: false)
+            }.collect { (direction, coverAlone) ->
+                _state.update { it.copy(direction = direction, coverAlone = coverAlone) }
             }
         }
     }

@@ -91,6 +91,7 @@ fun GuidedReader(
     loader: PageLoader,
     spread: Boolean,
     direction: ReadingDirection,
+    coverAlone: Boolean,
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
     onPageChanged: (Int) -> Unit,
@@ -105,7 +106,8 @@ fun GuidedReader(
 
     LaunchedEffect(page) {
         onPageChanged(page)
-        arts = arts.filterKeys { it in spreadStart(page)..spreadStart(page) + 1 }
+        val spreadStart = spreadStart(page, coverAlone)
+        arts = arts.filterKeys { it in spreadStart..spreadStart + 1 }
         val loaded = runCatching { loader.load(page) }.getOrNull()
         loaded?.let { arts = arts + (page to it); onAmbient(it.ambient) }
         val detected = runCatching { loader.panels(page) }.getOrDefault(listOf(FullPagePanel))
@@ -114,7 +116,7 @@ fun GuidedReader(
         panelIndex = if (panelIndex == LAST_PANEL) stops.lastIndex else panelIndex.coerceIn(0, stops.lastIndex)
         loader.preload(page, (page - 1)..(page + 2), bubbleScale = null, panels = true)
         if (spread) {
-            val sibling = spreadStart(page) + 1 - page % 2
+            val sibling = spreadStart * 2 + 1 - page
             if (sibling in 0 until loader.pageCount) runCatching { loader.load(sibling) }.getOrNull()?.let { arts = arts + (sibling to it) }
         }
     }
@@ -158,7 +160,7 @@ fun GuidedReader(
         GuidedPanel(arts[page], panelView, autoPan, resetKey, direction, ::goPrevious, ::goNext, onTap, Modifier.fillMaxSize())
         return
     }
-    val firstPage = spreadStart(page)
+    val firstPage = spreadStart(page, coverAlone)
     val secondPage = firstPage + 1
     val screenLeftPage = PageOrder.leftPage(direction, firstPage, secondPage)
     val screenRightPage = PageOrder.rightPage(direction, firstPage, secondPage)
@@ -168,7 +170,8 @@ fun GuidedReader(
     }
 }
 
-private fun spreadStart(page: Int) = page - page % 2
+private fun spreadStart(page: Int, coverAlone: Boolean) =
+    PageOrder.spreadFirstPage(PageOrder.spreadIndex(page, coverAlone), coverAlone)
 
 private fun isLargeStop(stop: Rect) =
     stop.width * stop.height >= AUTO_PAN_MIN_AREA && minOf(stop.width, stop.height) >= AUTO_PAN_MIN_SIDE

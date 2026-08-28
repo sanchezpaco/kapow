@@ -42,12 +42,10 @@ import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.domain.PageOrder
 import com.comicify.feature.reader.domain.PageTurn
-import com.comicify.feature.reader.domain.ThumbnailStrip
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 private const val PAGE_TURN_CAMERA_DISTANCE_DP = 12f
-private const val PAGES_PER_SPREAD = 2
 
 @Composable
 fun ReaderSurface(
@@ -58,6 +56,7 @@ fun ReaderSurface(
     guidedFullScreen: Boolean,
     bubbleScale: Float?,
     direction: ReadingDirection,
+    coverAlone: Boolean,
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
     pendingJump: Int?,
@@ -70,14 +69,14 @@ fun ReaderSurface(
     if (guided) {
         val spread = posture == ReadingPosture.UnfoldedSpread && !guidedFullScreen
         key(spread) {
-            GuidedReader(loader, spread, direction, initialPage, pageTurnRequests, onPageChanged, onGuidedStop, onTap, onAmbient)
+            GuidedReader(loader, spread, direction, coverAlone, initialPage, pageTurnRequests, onPageChanged, onGuidedStop, onTap, onAmbient)
         }
         return
     }
-    key(posture, direction) {
+    key(posture, direction, coverAlone) {
         when (posture) {
             ReadingPosture.UnfoldedSpread ->
-                SpreadReader(loader, bubbleScale, direction, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
+                SpreadReader(loader, bubbleScale, direction, coverAlone, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
             ReadingPosture.Tabletop ->
                 TabletopReader(loader, bubbleScale, direction, hinge, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
             else ->
@@ -162,6 +161,7 @@ private fun SpreadReader(
     loader: PageLoader,
     bubbleScale: Float?,
     direction: ReadingDirection,
+    coverAlone: Boolean,
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
     pendingJump: Int?,
@@ -170,8 +170,8 @@ private fun SpreadReader(
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
-    val spreadCount = (loader.pageCount + 1) / 2
-    val initialSpread = (initialPage / 2).coerceIn(0, spreadCount - 1)
+    val spreadCount = PageOrder.spreadCount(loader.pageCount, coverAlone)
+    val initialSpread = PageOrder.spreadIndex(initialPage, coverAlone).coerceIn(0, spreadCount - 1)
     val pagerState = rememberPagerState(
         initialPage = PageOrder.pagerIndex(direction, initialSpread, spreadCount),
     ) {
@@ -180,11 +180,12 @@ private fun SpreadReader(
     var zoomed by remember { mutableStateOf(false) }
 
     JumpEffect(pendingJump, onJumpApplied) {
-        pagerState.scrollToPage(ThumbnailStrip.stepIndexForPage(it, PAGES_PER_SPREAD).coerceIn(0, spreadCount - 1))
+        pagerState.scrollToPage(PageOrder.spreadIndex(it, coverAlone).coerceIn(0, spreadCount - 1))
     }
 
     LaunchedEffect(pagerState.currentPage, bubbleScale) {
-        val firstPage = PageOrder.logicalIndex(direction, pagerState.currentPage, spreadCount) * 2
+        val firstPage = PageOrder.spreadFirstPage(PageOrder.logicalIndex(direction, pagerState.currentPage, spreadCount), coverAlone)
+            .coerceAtLeast(0)
         onPageChanged(firstPage)
         loader.preload(firstPage, (firstPage - 1)..(firstPage + 3), bubbleScale, panels = false)
         runCatching { loader.load(firstPage) }.getOrNull()?.let { onAmbient(it.ambient) }
@@ -202,12 +203,12 @@ private fun SpreadReader(
         beyondViewportPageCount = 1,
         modifier = Modifier.fillMaxSize(),
     ) { spread ->
-        val firstPage = PageOrder.logicalIndex(direction, spread, spreadCount) * 2
+        val firstPage = PageOrder.spreadFirstPage(PageOrder.logicalIndex(direction, spread, spreadCount), coverAlone)
         val secondPage = firstPage + 1
         val screenLeftPage = PageOrder.leftPage(direction, firstPage, secondPage)
         val screenRightPage = PageOrder.rightPage(direction, firstPage, secondPage)
         Row(modifier = Modifier.fillMaxSize()) {
-            if (screenLeftPage < loader.pageCount) {
+            if (screenLeftPage in 0 until loader.pageCount) {
                 ZoomablePage(
                     loader = loader,
                     bubbleScale = bubbleScale,
@@ -219,7 +220,7 @@ private fun SpreadReader(
             } else {
                 Spacer(modifier = Modifier.weight(1f))
             }
-            if (screenRightPage < loader.pageCount) {
+            if (screenRightPage in 0 until loader.pageCount) {
                 ZoomablePage(
                     loader = loader,
                     bubbleScale = bubbleScale,

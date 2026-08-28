@@ -42,6 +42,27 @@
     <string name="library_ungroup">Ver todos los cómics</string>
     <string name="library_group_read">%1$d/%2$d leídos</string>
     <string name="library_back">Atrás</string>
+    <string name="detail_read">Empezar a leer</string>
+    <string name="detail_continue">Continuar</string>
+    <string name="detail_read_again">Volver a leer</string>
+    <string name="detail_pages_eyebrow">Páginas</string>
+    <string name="detail_pages">%1$d páginas</string>
+    <string name="detail_issues_eyebrow">Serie</string>
+    <string name="detail_issues">%1$d números</string>
+    <string name="detail_next_unread">Siguiente sin leer</string>
+    <string name="detail_settings_eyebrow">Este cómic</string>
+    <string name="detail_settings">Ajustes de lectura</string>
+    <string name="detail_setting_direction">Sentido de lectura</string>
+    <string name="detail_setting_cover_alone">Portada sola en la doble página</string>
+    <string name="detail_setting_bubbles">Bocadillos ampliados al abrir</string>
+    <string name="detail_setting_guided">Vista guiada al abrir</string>
+    <string name="detail_option_default">Por defecto</string>
+    <string name="detail_option_ltr">Izquierda a derecha</string>
+    <string name="detail_option_rtl">Derecha a izquierda</string>
+    <string name="detail_option_on">Sí</string>
+    <string name="detail_option_off">No</string>
+    <string name="detail_clear_detections">Borrar detecciones de viñetas y bocadillos</string>
+    <string name="detail_detections_cleared">Detecciones borradas</string>
 
     <string name="reader_loading">Cargando cómic…</string>
     <string name="reader_page_of">Página %1$d de %2$d</string>

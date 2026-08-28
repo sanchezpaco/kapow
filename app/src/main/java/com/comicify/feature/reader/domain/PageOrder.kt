@@ -26,6 +26,17 @@ object PageOrder {
         RightToLeft -> firstPage
     }
 
+    fun spreadCount(pageCount: Int, coverAlone: Boolean): Int =
+        (pageCount + spreadOffset(coverAlone) + 1) / 2
+
+    fun spreadIndex(pageIndex: Int, coverAlone: Boolean): Int =
+        (pageIndex.coerceAtLeast(0) + spreadOffset(coverAlone)) / 2
+
+    fun spreadFirstPage(spreadIndex: Int, coverAlone: Boolean): Int =
+        spreadIndex * 2 - spreadOffset(coverAlone)
+
+    private fun spreadOffset(coverAlone: Boolean): Int = if (coverAlone) 1 else 0
+
     fun step(direction: ReadingDirection): Int = when (direction) {
         LeftToRight -> 1
         RightToLeft -> -1

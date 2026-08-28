@@ -168,6 +168,7 @@ fun ReaderScreen(
                         guidedFullScreen = state.guidedFullScreen,
                         bubbleScale = state.bubbleScale.takeIf { state.bubblesEnlarged },
                         direction = state.direction,
+                        coverAlone = state.coverAlone,
                         initialPage = state.position.pageIndex,
                         pageTurnRequests = pageTurnRequests,
                         pendingJump = state.pendingJump,

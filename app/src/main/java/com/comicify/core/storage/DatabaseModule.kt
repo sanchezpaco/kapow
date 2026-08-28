@@ -19,7 +19,7 @@ object DatabaseModule {
     @Singleton
     fun database(@ApplicationContext context: Context): ComicifyDatabase =
         Room.databaseBuilder(context, ComicifyDatabase::class.java, "comicify.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .build()
 
     @Provides
@@ -30,6 +30,9 @@ object DatabaseModule {
 
     @Provides
     fun pageDetectionDao(database: ComicifyDatabase): PageDetectionDao = database.pageDetectionDao()
+
+    @Provides
+    fun comicSettingsDao(database: ComicifyDatabase): ComicSettingsDao = database.comicSettingsDao()
 }
 
 private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -51,5 +54,15 @@ private val MIGRATION_2_3 = object : Migration(2, 3) {
 private val MIGRATION_3_4 = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE comics ADD COLUMN coverAmbient INTEGER")
+    }
+}
+
+private val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS comic_settings (" +
+                "documentUri TEXT NOT NULL, rightToLeft INTEGER, coverAlone INTEGER NOT NULL, " +
+                "bubblesEnlarged INTEGER, guided INTEGER, PRIMARY KEY(documentUri))",
+        )
     }
 }

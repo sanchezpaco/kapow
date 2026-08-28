@@ -19,4 +19,5 @@ data class ReaderUiState(
     val bubbleScale: Float = BUBBLE_ENLARGE_SCALE,
     val pendingJump: Int? = null,
     val direction: ReadingDirection = ReadingDirection.LeftToRight,
+    val coverAlone: Boolean = false,
 )

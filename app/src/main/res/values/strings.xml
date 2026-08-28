@@ -42,6 +42,27 @@
     <string name="library_ungroup">Show all comics</string>
     <string name="library_group_read">%1$d/%2$d read</string>
     <string name="library_back">Back</string>
+    <string name="detail_read">Start reading</string>
+    <string name="detail_continue">Continue</string>
+    <string name="detail_read_again">Read again</string>
+    <string name="detail_pages_eyebrow">Pages</string>
+    <string name="detail_pages">%1$d pages</string>
+    <string name="detail_issues_eyebrow">Series</string>
+    <string name="detail_issues">%1$d issues</string>
+    <string name="detail_next_unread">Next unread</string>
+    <string name="detail_settings_eyebrow">This comic</string>
+    <string name="detail_settings">Reading settings</string>
+    <string name="detail_setting_direction">Reading direction</string>
+    <string name="detail_setting_cover_alone">Cover alone in the spread</string>
+    <string name="detail_setting_bubbles">Enlarged bubbles on open</string>
+    <string name="detail_setting_guided">Guided view on open</string>
+    <string name="detail_option_default">Default</string>
+    <string name="detail_option_ltr">Left to right</string>
+    <string name="detail_option_rtl">Right to left</string>
+    <string name="detail_option_on">On</string>
+    <string name="detail_option_off">Off</string>
+    <string name="detail_clear_detections">Clear panel and bubble detections</string>
+    <string name="detail_detections_cleared">Detections cleared</string>
 
     <string name="reader_loading">Loading comic…</string>
     <string name="reader_page_of">Page %1$d of %2$d</string>

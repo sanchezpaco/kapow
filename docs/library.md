@@ -45,8 +45,10 @@ The home of the collection: import comics, browse covers, resume reading.
 
 ## Persistence (Room)
 
-`ComicifyDatabase` (`core/storage`) holds two tables, exposed as Flows through
-`LibraryRepository` and combined into `LibraryComic` domain models for the UI.
+`ComicifyDatabase` (`core/storage`) holds the library tables, exposed as Flows
+through `LibraryRepository` and combined into `LibraryComic` domain models for
+the UI. Per-comic reading settings live in their own table keyed by document
+Uri (below); page detections are documented in `docs/ml-runtime.md`.
 
 ```
 Comic(
@@ -57,6 +59,10 @@ Comic(
 
 ReadingState(
     comicId, pageIndex, completed, updatedAt,
+)
+
+ComicSettings(
+    documentUri, rightToLeft?, coverAlone, bubblesEnlarged?, guided?,
 )
 ```
 
@@ -139,6 +145,35 @@ exist); any other unfinished comics follow in a row of smaller resume cards.
 - Icon-only affordances to choose/refresh the folder, toggle grouping and open
   a single file; the empty state keeps the large "Choose folder" button.
 - Entries are naturally sorted by series, then issue number, then title.
+
+## Comic detail screen
+
+Tapping a cover in the grid (or in a series stack) opens `ComicDetailScreen`
+instead of the reader; the hero and the resume cards still jump straight into
+reading. The screen is one adaptive grid:
+
+- Header washed with the cover's ambient colour: cover, series, title, page
+  count, progress + time left and a single call to action ("Start reading" /
+  "Continue" / "Read again", the last one restarting at page 0). The toolbar
+  toggles favourite and read/unread.
+- **Series** row when the comic belongs to a series with more than one issue:
+  covers in natural order, the open one outlined, the first unfinished issue
+  labelled "next unread". Tapping an issue swaps the screen to that issue.
+- **Reading settings** for this comic, saved in `comic_settings` through
+  `LibraryRepository.saveSettings` (a row equal to `ComicSettings.Default` is
+  deleted rather than stored): reading direction (default / LTR / RTL), cover
+  alone in the spread (pairing parity), enlarged bubbles on open and Guided
+  View on open (default / on / off). `docs/reading-modes.md` describes how the
+  reader consumes them.
+- "Clear panel and bubble detections" drops the comic's `page_detections` rows
+  so the next open re-runs the models.
+- **Pages** mosaic decoded on demand by `ComicThumbnails` (its own
+  `ComicSource`, 240 px wide, hardware bitmaps, closed with the ViewModel);
+  the current page is outlined and tapping a page opens the reader there.
+
+`ComicDetailViewModel` combines the library flow, the settings flow of the
+shown comic and the page count into `ComicDetailUiState`; it is the only place
+that opens a comic outside the reader.
 
 ## Metadata
 
