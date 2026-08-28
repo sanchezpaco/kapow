@@ -27,6 +27,9 @@ private const val SILHOUETTE_TRUTH_FILE = "../.claude/ml-spike-kit/gt/silhouette
 private const val SILHOUETTE_MATCH_IOU = 0.1f
 private const val GOOD_SILHOUETTE_IOU = 0.9f
 private const val BOX_FALLBACK_FILL = 0.97f
+private const val CRESCENT_MIN_UNCOVERED = 0.0005f
+private const val CRESCENT_CROP_PAD = 0.3f
+private const val CRESCENT_GAP = 6
 
 private class SilhouetteTruth(val series: String, val box: Rect, val polygon: List<Offset>)
 private class SilhouetteScore(val series: String, val iou: Float?, val boxFallback: Boolean)
@@ -59,7 +62,15 @@ class SpeechBubbleVisualizer {
             val pageScores = truths[file.name].orEmpty().map { silhouetteScore(it, bubbles, content, page.width, page.height) }
             scores.addAll(pageScores)
             val preview = scaled(page, PREVIEW_WIDTH, PREVIEW_WIDTH * page.height / page.width)
-            ImageIO.write(withEnlarged(preview, page, enlarged), "png", File(out, file.nameWithoutExtension + "-enlarged.png"))
+            val fillStarted = System.nanoTime()
+            val fills = enlarged.filter { it.scale > 1f }.map { CrescentFill.of(pixels, page.width, page.height, it.bubble) }
+            val fillMillis = (System.nanoTime() - fillStarted) / 1_000_000
+            val flat = withEnlarged(preview, page, enlarged, null)
+            val filled = withEnlarged(preview, page, enlarged, fills)
+            ImageIO.write(filled, "png", File(out, file.nameWithoutExtension + "-enlarged.png"))
+            ImageIO.write(flat, "png", File(out, file.nameWithoutExtension + "-enlarged-flat.png"))
+            writeCrescents(File(out, "crescents"), file.nameWithoutExtension, page, preview, flat, filled, enlarged, uncoveredAreas(enlarged, page.width, page.height))
+            println("${file.name}: fill ${fillMillis}ms for ${fills.size} bubbles")
             ImageIO.write(withOutlines(preview, bubbles), "png", File(out, file.nameWithoutExtension + "-bubbles.png"))
             ImageIO.write(page, "png", File(out, file.nameWithoutExtension + "-page.png"))
             pages.add(pageMetrics(file.name, page.width, page.height, content, pool, millis, layoutMillis, enlarged, pageScores))
@@ -239,15 +250,26 @@ class SpeechBubbleVisualizer {
         return page
     }
 
-    private fun withEnlarged(preview: BufferedImage, source: BufferedImage, enlarged: List<EnlargedBubble>): BufferedImage {
+    private fun withEnlarged(preview: BufferedImage, source: BufferedImage, enlarged: List<EnlargedBubble>, fills: List<BubbleFill>?): BufferedImage {
         val page = copy(preview)
         val g = page.createGraphics()
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         val big = enlarged.filter { it.scale > 1f }
-        big.forEach { item ->
+        val sx = page.width.toFloat() / source.width
+        val sy = page.height.toFloat() / source.height
+        if (fills == null) big.forEach { item ->
             g.color = paperColor(source, item.bubble)
             g.fill(shape(item.bubble.outlines, page.width, page.height) { it })
+        } else fills.forEach { fill ->
+            val image = BufferedImage(fill.width, fill.height, BufferedImage.TYPE_INT_ARGB)
+            image.setRGB(0, 0, fill.width, fill.height, fill.argb, 0, fill.width)
+            g.drawImage(
+                image,
+                (fill.left * sx).roundToInt(), (fill.top * sy).roundToInt(),
+                ((fill.left + fill.width) * sx).roundToInt(), ((fill.top + fill.height) * sy).roundToInt(),
+                0, 0, fill.width, fill.height, null,
+            )
         }
         big.forEach { item ->
             val shape = shape(item.bubble.outlines, page.width, page.height, item::map)
@@ -269,6 +291,28 @@ class SpeechBubbleVisualizer {
         }
         g.dispose()
         return page
+    }
+
+    private fun writeCrescents(dir: File, name: String, page: BufferedImage, original: BufferedImage, flat: BufferedImage, filled: BufferedImage, enlarged: List<EnlargedBubble>, uncovered: List<Float>) {
+        enlarged.forEachIndexed { i, item ->
+            if (uncovered[i] < CRESCENT_MIN_UNCOVERED) return@forEachIndexed
+            val box = item.bubble.box
+            val pad = CRESCENT_CROP_PAD * maxOf(box.width, box.height)
+            val x0 = ((box.left - pad) * original.width).roundToInt().coerceIn(0, original.width - 1)
+            val y0 = ((box.top - pad) * original.height).roundToInt().coerceIn(0, original.height - 1)
+            val x1 = ((box.right + pad) * original.width).roundToInt().coerceIn(x0 + 1, original.width)
+            val y1 = ((box.bottom + pad) * original.height).roundToInt().coerceIn(y0 + 1, original.height)
+            val w = x1 - x0
+            val h = y1 - y0
+            val sheet = BufferedImage(w * 3 + 2 * CRESCENT_GAP, h, BufferedImage.TYPE_INT_RGB)
+            val g = sheet.createGraphics()
+            g.color = Color.MAGENTA
+            g.fillRect(0, 0, sheet.width, sheet.height)
+            listOf(original, flat, filled).forEachIndexed { k, image -> g.drawImage(image.getSubimage(x0, y0, w, h), k * (w + CRESCENT_GAP), 0, null) }
+            g.dispose()
+            dir.mkdirs()
+            ImageIO.write(sheet, "png", File(dir, "$name-$i-${(uncovered[i] * 10000).roundToInt()}.png"))
+        }
     }
 
     private fun paperColor(source: BufferedImage, bubble: SpeechBubble): Color {

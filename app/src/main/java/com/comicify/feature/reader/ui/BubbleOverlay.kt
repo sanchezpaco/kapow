@@ -20,7 +20,15 @@ private const val OUTLINE_ALPHA = 0.35f
 object BubbleOverlay {
 
     fun DrawScope.drawBubbles(page: ImageBitmap, area: Rect, bubbles: List<PaintedBubble>) {
-        bubbles.forEach { item -> drawPath(path(item.enlarged.bubble.outlines, area) { it }, item.paper) }
+        bubbles.forEach { item ->
+            val r = item.fillRect
+            drawImage(
+                image = item.fill,
+                dstOffset = IntOffset((area.left + r.left * area.width).roundToInt(), (area.top + r.top * area.height).roundToInt()),
+                dstSize = IntSize((r.width * area.width).roundToInt(), (r.height * area.height).roundToInt()),
+                filterQuality = FilterQuality.Low,
+            )
+        }
         val outline = Stroke(width = minOf(area.width, area.height) * OUTLINE_WIDTH_FRACTION)
         val outlineColor = Color.Black.copy(alpha = OUTLINE_ALPHA)
         bubbles.forEach { item ->

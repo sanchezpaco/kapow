@@ -1,32 +1,30 @@
 package com.comicify.feature.reader.data
 
-import androidx.compose.ui.graphics.Color
+import android.graphics.Bitmap
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import com.comicify.feature.reader.domain.CrescentFill
 import com.comicify.feature.reader.domain.EnlargedBubble
-import com.comicify.feature.reader.domain.SpeechBubble
 
-private const val PAPER_SAMPLES_PER_AXIS = 12
-
-data class PaintedBubble(val enlarged: EnlargedBubble, val paper: Color)
+data class PaintedBubble(val enlarged: EnlargedBubble, val fill: ImageBitmap, val fillRect: Rect)
 
 object BubblePlan {
 
-    fun of(page: ImageBitmap, bubbles: List<EnlargedBubble>): List<PaintedBubble> =
-        bubbles.filter { it.scale > 1f }.map { PaintedBubble(it, paperColor(page, it.bubble)) }
-
-    private fun paperColor(page: ImageBitmap, bubble: SpeechBubble): Color {
-        val box = bubble.box
-        val x = (box.left * page.width).toInt().coerceIn(0, page.width - 1)
-        val y = (box.top * page.height).toInt().coerceIn(0, page.height - 1)
-        val w = (box.width * page.width).toInt().coerceIn(1, page.width - x)
-        val h = (box.height * page.height).toInt().coerceIn(1, page.height - y)
-        val pixels = page.toPixelMap(x, y, w, h)
-        val samples = bubble.interiorSamples(PAPER_SAMPLES_PER_AXIS).map {
-            pixels[((it.x * page.width).toInt() - x).coerceIn(0, w - 1), ((it.y * page.height).toInt() - y).coerceIn(0, h - 1)]
+    fun of(page: ImageBitmap, bubbles: List<EnlargedBubble>): List<PaintedBubble> {
+        val big = bubbles.filter { it.scale > 1f }
+        if (big.isEmpty()) return emptyList()
+        val pixels = IntArray(page.width * page.height)
+        page.asAndroidBitmap().getPixels(pixels, 0, page.width, 0, 0, page.width, page.height)
+        return big.map { item ->
+            val fill = CrescentFill.of(pixels, page.width, page.height, item.bubble)
+            val bitmap = Bitmap.createBitmap(fill.argb, fill.width, fill.height, Bitmap.Config.ARGB_8888)
+            val rect = Rect(
+                fill.left.toFloat() / page.width, fill.top.toFloat() / page.height,
+                (fill.left + fill.width).toFloat() / page.width, (fill.top + fill.height).toFloat() / page.height,
+            )
+            PaintedBubble(item, bitmap.asImageBitmap(), rect)
         }
-        if (samples.isEmpty()) return Color.White
-        return samples.sortedBy { it.luminance() }[samples.size / 2]
     }
 }
