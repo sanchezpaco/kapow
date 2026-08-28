@@ -53,6 +53,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.RemoveDone
+import com.comicify.feature.library.domain.LibraryScanError
 import com.comicify.feature.library.domain.LibrarySort
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -263,7 +264,7 @@ private fun LibraryContent(
     }
 
     if (state.totalCount == 0 && !state.scanning) {
-        EmptyLibrary(scanFailed = state.scanFailed, onPickFolder = pickFolder, onOpenFile = openFile)
+        EmptyLibrary(scanError = state.scanError, onPickFolder = pickFolder, onOpenFile = openFile)
         return
     }
 
@@ -278,7 +279,7 @@ private fun LibraryContent(
             LibraryHeader(
                 comicCount = state.totalCount,
                 scanning = state.scanning,
-                scanFailed = state.scanFailed,
+                scanError = state.scanError,
                 grouped = state.grouped,
                 query = state.query,
                 onOpenAppSettings = onOpenAppSettings,
@@ -464,7 +465,7 @@ private fun DebugBadge() {
 private fun LibraryHeader(
     comicCount: Int,
     scanning: Boolean,
-    scanFailed: Boolean,
+    scanError: LibraryScanError?,
     grouped: Boolean,
     query: String,
     onOpenAppSettings: () -> Unit,
@@ -520,9 +521,9 @@ private fun LibraryHeader(
                 )
             }
         }
-        if (scanFailed) {
+        if (scanError != null) {
             Text(
-                text = stringResource(R.string.library_scan_error),
+                text = stringResource(scanError.messageRes()),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
             )
@@ -1393,7 +1394,7 @@ internal fun ProgressBar(progress: Float) {
 }
 
 @Composable
-private fun EmptyLibrary(scanFailed: Boolean, onPickFolder: () -> Unit, onOpenFile: () -> Unit) {
+private fun EmptyLibrary(scanError: LibraryScanError?, onPickFolder: () -> Unit, onOpenFile: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
         verticalArrangement = Arrangement.Center,
@@ -1428,9 +1429,9 @@ private fun EmptyLibrary(scanFailed: Boolean, onPickFolder: () -> Unit, onOpenFi
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp, bottom = 28.dp),
         )
-        if (scanFailed) {
+        if (scanError != null) {
             Text(
-                text = stringResource(R.string.library_scan_error),
+                text = stringResource(scanError.messageRes()),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error,
                 textAlign = TextAlign.Center,
@@ -1468,3 +1469,8 @@ private val openDocumentMimeTypes = arrayOf(
     "application/pdf",
     "application/octet-stream",
 )
+
+private fun LibraryScanError.messageRes(): Int = when (this) {
+    LibraryScanError.AccessLost -> R.string.library_scan_access_lost
+    LibraryScanError.ReadFailure -> R.string.library_scan_error
+}

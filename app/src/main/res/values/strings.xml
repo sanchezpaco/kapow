@@ -13,6 +13,7 @@
     <string name="library_action_open_file">Open file</string>
     <string name="library_scanning">Scanning folder…</string>
     <string name="library_scan_error">Couldn\'t read that folder. Try choosing it again.</string>
+    <string name="library_scan_access_lost">Access to the comics folder was lost (this happens after reinstalling). Choose it again.</string>
     <string name="library_debug_badge">DEBUG %1$s</string>
     <string name="library_count">%1$d comics</string>
     <string name="library_shelf_eyebrow">Shelf</string>
@@ -133,6 +134,8 @@
     <string name="reader_error_unsupported_format">This file format is not supported. Kapow reads CBZ, CBR and PDF files.</string>
     <string name="reader_error_empty_archive">This archive does not contain any readable pages.</string>
     <string name="reader_error_read_failure">This comic could not be read. The file may be corrupted or unavailable.</string>
+    <string name="reader_error_password_protected">This PDF is password-protected. Kapow cannot open encrypted files.</string>
+    <string name="reader_error_access_lost">Access to this file was lost. Choose the comics folder again from Settings.</string>
     <string name="reader_thumbnail_go_to_page">Go to page %1$d</string>
     <string name="reader_end_title">You\'ve reached the end</string>
     <string name="reader_end_next">Next issue</string>

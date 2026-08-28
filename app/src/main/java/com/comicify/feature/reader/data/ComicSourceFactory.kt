@@ -16,14 +16,23 @@ object ComicSourceFactory {
 
     suspend fun open(context: Context, uri: Uri, startPage: Int): ComicSource =
         withContext(Dispatchers.IO) {
-            val descriptor = context.contentResolver.openFileDescriptor(uri, "r")
-                ?: throw ComicSourceException.ReadFailure(IOException("Cannot open comic descriptor"))
+            val descriptor = openDescriptor(context, uri)
             val source = openSource(context, descriptor, startPage)
             if (source.pageCount == 0) {
                 source.close()
                 throw ComicSourceException.EmptyArchive()
             }
             source
+        }
+
+    private fun openDescriptor(context: Context, uri: Uri): ParcelFileDescriptor =
+        try {
+            context.contentResolver.openFileDescriptor(uri, "r")
+                ?: throw ComicSourceException.ReadFailure(IOException("Cannot open comic descriptor"))
+        } catch (e: SecurityException) {
+            throw ComicSourceException.AccessLost(e)
+        } catch (e: java.io.FileNotFoundException) {
+            throw ComicSourceException.ReadFailure(e)
         }
 
     suspend fun openFolder(context: Context, treeUri: Uri): ComicSource =
@@ -43,6 +52,9 @@ object ComicSourceFactory {
         } catch (e: IOException) {
             descriptor.close()
             throw ComicSourceException.ReadFailure(e)
+        } catch (e: SecurityException) {
+            descriptor.close()
+            throw ComicSourceException.PasswordProtected(e)
         }
 
     private fun copyToCacheFile(context: Context, descriptor: ParcelFileDescriptor): File {

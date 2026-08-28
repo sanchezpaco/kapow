@@ -66,7 +66,7 @@ class ReaderViewModel(
                     _state.update { it.copy(loading = false, pageCount = opened.pageCount) }
                 }
                 .onFailure { throwable ->
-                    val error = (throwable as? ComicSourceException)?.error ?: ComicOpenError.ReadFailure
+                    val error = (throwable as? ComicSourceException)?.error ?: throw throwable
                     _state.update { it.copy(loading = false, error = error) }
                 }
         }

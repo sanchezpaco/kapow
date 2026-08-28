@@ -351,19 +351,21 @@ Blocking:
       attribution), ONNX Runtime, YOLO26 / ogkalu weights, Coil, others
 - [ ] Store listing: EN + ES short/long descriptions, screenshots folded and
       unfolded, feature graphic (artwork pending the name/logo decision)
-- [ ] Crash visibility: rely on Play Vitals (no third-party SDK); make sure no
-      `runCatching` swallows a crash that should reach it
+- [~] Crash visibility: rely on Play Vitals (no third-party SDK). Opening a
+      comic now rethrows anything that is not a `ComicSourceException`; the
+      page-load `runCatching { … }.getOrNull()` sites in the reader still turn
+      decode failures into a spinner and need a per-page error state
 
 Strongly recommended:
 
 - [x] Tap zones left/right for page turns (Phase 1 item still `[~]`)
 - [ ] Verify tabletop posture on the physical Fold (Phase 2 item still `[~]`)
-- [ ] `ComicNameParser`: split a number glued to the name (`Venomverse001`,
+- [x] `ComicNameParser`: split a number glued to the name (`Venomverse001`,
       `DoctorDoom9`) so issues group into their series
-- [ ] Error states with clear copy: folder grant revoked after reinstall
-      (`SecurityException` in `ComicScanner`), corrupted archive,
-      password-protected PDF (`PdfRenderer` throws `SecurityException`,
-      currently reported as a generic read failure)
+- [x] Error states with clear copy: folder grant revoked after reinstall
+      (`LibraryScanError.AccessLost`, `ComicOpenError.AccessLost`), corrupted
+      archive (`ReadFailure`), password-protected PDF
+      (`ComicOpenError.PasswordProtected`, verified on the emulator)
 - [ ] Cold start on a rebooted Fold (release) to confirm the 117 ms baseline;
       the emulator's >10 s splash is the emulator
 - [ ] Accessibility floor: `contentDescription` everywhere, 48 dp touch

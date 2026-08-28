@@ -13,6 +13,7 @@ object ComicNameParser {
     private val hashIssue = Regex("""^#0*(\d{1,6})$""")
     private val plainNumber = Regex("""^0*(\d{1,6})$""")
     private val volumeMarker = Regex("""^[vV](?:ol(?:ume)?)?\.?$""")
+    private val gluedIssue = Regex("""^([A-Za-z]{3,})(\d{1,4})$""")
 
     fun parse(fileName: String): ParsedComicName {
         val base = fileName.substringBeforeLast('.', fileName)
@@ -23,7 +24,7 @@ object ComicNameParser {
             .replace(punctuation, " ")
             .replace(multiSpace, " ")
             .trim()
-        val tokens = normalized.split(' ').filter { it.isNotBlank() }
+        val tokens = splitGluedIssue(normalized.split(' ').filter { it.isNotBlank() })
 
         val yearIndex = if (parenYear != null) -1 else tokens.indexOfLast { strictYear.matches(it) }
         val year = parenYear ?: yearIndex.takeIf { it >= 0 }?.let { tokens[it].toInt() }
@@ -51,6 +52,12 @@ object ComicNameParser {
             .joinToString(" ")
             .trim()
         return fallback.ifBlank { base.trim() }
+    }
+
+    private fun splitGluedIssue(tokens: List<String>): List<String> {
+        if (tokens.any { hashIssue.matches(it) || plainNumber.matches(it) }) return tokens
+        val glued = tokens.lastOrNull()?.let(gluedIssue::find) ?: return tokens
+        return tokens.dropLast(1) + glued.groupValues[1] + glued.groupValues[2]
     }
 
     private fun numberFrom(token: String): Int? =

@@ -8,6 +8,7 @@ import com.comicify.feature.library.data.LibraryRepository
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.domain.LibraryFilter
+import com.comicify.feature.library.domain.LibraryScanError
 import com.comicify.feature.library.domain.LibrarySort
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -27,7 +28,7 @@ class LibraryViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val scanning = MutableStateFlow(false)
-    private val scanFailed = MutableStateFlow(false)
+    private val scanError = MutableStateFlow<LibraryScanError?>(null)
     private val filter = MutableStateFlow(LibraryFilter.ALL)
     private val sort = MutableStateFlow(LibrarySort.TITLE)
     private val query = MutableStateFlow("")
@@ -37,10 +38,10 @@ class LibraryViewModel @Inject constructor(
         combine(
             repository.library,
             repository.folderUri,
-            combine(scanning, scanFailed) { isScanning, failed -> isScanning to failed },
+            combine(scanning, scanError) { isScanning, error -> isScanning to error },
             combine(filter, sort, query, repository.grouped, openedSeries, ::ViewState),
         ) { comics, folder, scanState, view ->
-            val (isScanning, failed) = scanState
+            val (isScanning, error) = scanState
             val (selectedFilter, selectedSort, searchQuery, isGrouped, series) = view
             val filtered = LibraryCatalog.sorted(
                 LibraryCatalog.search(LibraryCatalog.filtered(comics, selectedFilter), searchQuery),
@@ -49,7 +50,7 @@ class LibraryViewModel @Inject constructor(
             LibraryUiState(
                 loading = false,
                 scanning = isScanning,
-                scanFailed = failed,
+                scanError = error,
                 hasFolder = folder != null,
                 filter = selectedFilter,
                 sort = selectedSort,
@@ -134,15 +135,18 @@ class LibraryViewModel @Inject constructor(
     private fun runScan(scan: suspend () -> Unit) {
         viewModelScope.launch {
             scanning.value = true
-            scanFailed.value = false
+            scanError.value = null
             try {
                 scan()
                 repository.generateMissingCovers()
             } catch (cancellation: CancellationException) {
                 throw cancellation
+            } catch (error: SecurityException) {
+                Log.e(LIBRARY_TAG, "Folder access lost", error)
+                scanError.value = LibraryScanError.AccessLost
             } catch (error: Exception) {
                 Log.e(LIBRARY_TAG, "Folder scan failed", error)
-                scanFailed.value = true
+                scanError.value = LibraryScanError.ReadFailure
             } finally {
                 scanning.value = false
             }

@@ -12,10 +12,11 @@ The home of the collection: import comics, browse covers, resume reading.
   when a provider hides the extension. Extension detection is tolerant of trailing
   suffixes providers append to duplicate downloads (e.g. `Comic.cbr (1)`).
   Subfolders name the series.
-- A scan that throws (revoked permission, unreadable provider) is caught in the
-  ViewModel: it is logged, surfaced as an error message in the UI, and always
-  clears the scanning state instead of leaving an empty shelf and a stuck
-  spinner.
+- A scan that throws is caught in the ViewModel, logged, surfaced as a
+  `LibraryScanError` in the UI (`AccessLost` for `SecurityException`, i.e. the
+  tree grant vanished after a reinstall; `ReadFailure` for anything else), and
+  always clears the scanning state instead of leaving an empty shelf and a
+  stuck spinner.
 - Files stay where the user put them; only a durable document Uri is persisted,
   never a copy. A single file can still be opened directly (`OPEN_DOCUMENT`)
   without adding it to the library.

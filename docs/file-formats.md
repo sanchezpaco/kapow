@@ -103,16 +103,23 @@ and is unit-tested independently of any file IO.
 ## Open failures
 
 `ComicSourceFactory.open` never leaks raw exceptions to the UI. Failures are
-classified into a sealed `ComicOpenError` (`feature/reader/domain`) with three
-cases, each carried to the reader as a distinct localized message:
+classified into a sealed `ComicOpenError` (`feature/reader/domain`), each
+carried to the reader as a distinct localized message:
 
 - `UnsupportedFormat` — the magic bytes are not ZIP, RAR or PDF.
 - `EmptyArchive` — the archive opened but contains zero readable image pages.
 - `ReadFailure` — the stream could not be read, or the archive is corrupted.
+- `PasswordProtected` — `PdfRenderer` threw `SecurityException` on an
+  encrypted PDF.
+- `AccessLost` — `openFileDescriptor` threw `SecurityException`: the document
+  grant is gone (typically after a reinstall), so the folder must be chosen
+  again.
 
 `ComicSourceFactory` throws a matching `ComicSourceException` (`feature/reader/data`)
-that wraps the `ComicOpenError`; `ReaderViewModel` catches it and stores the
-error case in `ReaderUiState` for `ReaderScreen` to render.
+that wraps the `ComicOpenError`; `ReaderViewModel` stores the error case in
+`ReaderUiState` for `ReaderScreen` to render. Anything else thrown while
+opening is rethrown on purpose so it crashes and reaches Play Vitals instead of
+being reported as a generic read failure.
 
 ## Natural sorting
 

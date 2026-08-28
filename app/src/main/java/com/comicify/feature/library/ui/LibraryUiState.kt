@@ -3,12 +3,13 @@ package com.comicify.feature.library.ui
 import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.domain.LibraryEntry
 import com.comicify.feature.library.domain.LibraryFilter
+import com.comicify.feature.library.domain.LibraryScanError
 import com.comicify.feature.library.domain.LibrarySort
 
 data class LibraryUiState(
     val loading: Boolean = true,
     val scanning: Boolean = false,
-    val scanFailed: Boolean = false,
+    val scanError: LibraryScanError? = null,
     val hasFolder: Boolean = false,
     val filter: LibraryFilter = LibraryFilter.ALL,
     val sort: LibrarySort = LibrarySort.TITLE,

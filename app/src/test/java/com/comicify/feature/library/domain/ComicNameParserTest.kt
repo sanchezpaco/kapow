@@ -58,4 +58,21 @@ class ComicNameParserTest {
         val result = ComicNameParser.parse("Hellboy 0007.cbz")
         assertEquals(7, result.issueNumber)
     }
+
+    @Test
+    fun splitsIssueNumberGluedToTheName() {
+        val venom = ComicNameParser.parse("Venomverse001.cbz")
+        assertEquals("Venomverse", venom.series)
+        assertEquals(1, venom.issueNumber)
+        val doom = ComicNameParser.parse("DoctorDoom9.pdf")
+        assertEquals("DoctorDoom", doom.series)
+        assertEquals(9, doom.issueNumber)
+    }
+
+    @Test
+    fun keepsGluedDigitsWhenAnExplicitIssueExists() {
+        val result = ComicNameParser.parse("Area51 #003.cbz")
+        assertEquals("Area51", result.series)
+        assertEquals(3, result.issueNumber)
+    }
 }

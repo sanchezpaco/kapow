@@ -634,4 +634,6 @@ private fun ComicOpenError.messageRes(): Int = when (this) {
     ComicOpenError.UnsupportedFormat -> R.string.reader_error_unsupported_format
     ComicOpenError.EmptyArchive -> R.string.reader_error_empty_archive
     ComicOpenError.ReadFailure -> R.string.reader_error_read_failure
+    ComicOpenError.PasswordProtected -> R.string.reader_error_password_protected
+    ComicOpenError.AccessLost -> R.string.reader_error_access_lost
 }

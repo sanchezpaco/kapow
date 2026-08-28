@@ -6,4 +6,6 @@ sealed class ComicSourceException(val error: ComicOpenError, cause: Throwable? =
     class UnsupportedFormat : ComicSourceException(ComicOpenError.UnsupportedFormat)
     class EmptyArchive : ComicSourceException(ComicOpenError.EmptyArchive)
     class ReadFailure(cause: Throwable) : ComicSourceException(ComicOpenError.ReadFailure, cause)
+    class PasswordProtected(cause: Throwable) : ComicSourceException(ComicOpenError.PasswordProtected, cause)
+    class AccessLost(cause: Throwable) : ComicSourceException(ComicOpenError.AccessLost, cause)
 }
