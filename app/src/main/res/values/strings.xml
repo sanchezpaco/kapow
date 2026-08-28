@@ -90,6 +90,7 @@
     <string name="app_settings_ground">Background</string>
     <string name="app_settings_ground_black">Pure black</string>
     <string name="app_settings_ground_graphite">Graphite</string>
+    <string name="app_settings_ground_paper">Paper</string>
     <string name="app_settings_accent">Accent</string>
     <string name="app_settings_accent_red">Red</string>
     <string name="app_settings_accent_amber">Amber</string>

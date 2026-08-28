@@ -7,7 +7,10 @@ import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import android.graphics.Color
+import androidx.compose.runtime.LaunchedEffect
 import com.comicify.core.input.VolumeKeyPageTurnDispatcher
 import com.comicify.core.input.volumeKeyPageTurnDirection
 import androidx.compose.runtime.getValue
@@ -21,16 +24,19 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         val initialUri = resolveViewIntentUri()
         val preferences = ReaderPreferencesRepository(applicationContext)
         setContent {
             val theme by preferences.theme.collectAsStateWithLifecycle(ThemeChoice.Default)
+            LaunchedEffect(theme.ground.light) { enableEdgeToEdge(systemBarStyle(theme.ground.light)) }
             ComicifyTheme(choice = theme) {
                 ComicifyRoot(initialUri = initialUri)
             }
         }
     }
+
+    private fun systemBarStyle(lightGround: Boolean): SystemBarStyle =
+        if (lightGround) SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT) else SystemBarStyle.dark(Color.TRANSPARENT)
 
     private fun resolveViewIntentUri(): Uri? {
         if (intent.action != Intent.ACTION_VIEW) return null

@@ -31,8 +31,12 @@ and writes straight through, so every change is a live preview.
 
 `ThemeChoice(ground, accent)` (`core/ui/theme/ThemeChoice.kt`):
 
-- **Ground**: `Black` (pure black, OLED) or `Graphite` (dark grey). Each
-  carries its background, surface and raised-surface colours.
+- **Ground**: `Black` (pure black, OLED), `Graphite` (dark grey) or `Paper`
+  (warm cream, `light = true`). Each carries its background, surface and
+  raised-surface colours. On Paper the palette swaps to dark inks and black
+  translucent hairlines/tracks, every accent is darkened by 45 % so it still
+  clears AA on cream, `MaterialTheme` switches to `lightColorScheme` and
+  `MainActivity` re-applies `enableEdgeToEdge` with dark status-bar icons.
 - **Accent**: seven curated presets (red, amber, orange, green, cyan, violet,
   pink), all ≥ 4.5:1 against both grounds and the raised surface, plus
   `Dynamic` = Material You `dynamicDarkColorScheme(context).primary`
@@ -56,6 +60,9 @@ The swatches are split-diagonal circles: the current ground on the upper-left
 half, the accent on the lower-right, a hairline outline so the black half
 reads on a black page, and a ring on the selected one. The Material You
 swatch shows the resolved wallpaper colour with a sparkle glyph.
+
+The hero and settings-header glows blend the cover's ambient with the
+ground (not black), so they read on paper as well.
 
 The reader keeps its page, ambient backdrop and black chrome regardless of the
 theme; only the accent (active toggles, progress, guided stops) follows.

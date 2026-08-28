@@ -3,17 +3,16 @@ package com.comicify.core.ui.theme
 import android.content.Context
 import android.os.Build
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-
-private val OnDark = Color(0xFFF2F2F5)
 
 object ComicifyTheme {
     val palette: ComicifyPalette
@@ -37,14 +36,32 @@ fun ComicifyTheme(choice: ThemeChoice = ThemeChoice.Default, content: @Composabl
     }
 }
 
-private fun ComicifyPalette.toColorScheme() = darkColorScheme(
-    primary = accent,
-    onPrimary = onAccent,
-    secondary = secondary,
-    background = ground,
-    onBackground = OnDark,
-    surface = surface,
-    onSurface = OnDark,
-    surfaceVariant = raised,
-    error = danger,
-)
+private fun ComicifyPalette.toColorScheme() = if (light) {
+    lightColorScheme(
+        primary = accent,
+        onPrimary = onAccent,
+        secondary = secondary,
+        background = ground,
+        onBackground = onGround,
+        surface = surface,
+        onSurface = onGround,
+        surfaceVariant = raised,
+        secondaryContainer = raised,
+        onSecondaryContainer = onGround,
+        error = danger,
+    )
+} else {
+    darkColorScheme(
+        primary = accent,
+        onPrimary = onAccent,
+        secondary = secondary,
+        background = ground,
+        onBackground = onGround,
+        surface = surface,
+        onSurface = onGround,
+        surfaceVariant = raised,
+        secondaryContainer = raised,
+        onSecondaryContainer = onGround,
+        error = danger,
+    )
+}

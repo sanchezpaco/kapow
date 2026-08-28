@@ -663,8 +663,8 @@ private fun SwipeUnshelveBackground(direction: SwipeToDismissBoxValue) {
 @Composable
 private fun LibraryHero(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit, onUnshelve: (LibraryComic) -> Unit) {
     val ambient = comic.ambientColor()
-    val glow = lerp(Color.Black, ambient, HeroGlowMix)
-    val tint = lerp(Color.White, ambient, HeroTintMix)
+    val glow = lerp(Ground, ambient, HeroGlowMix)
+    val tint = lerp(OnGround, ambient, HeroTintMix)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -723,14 +723,14 @@ private fun UnshelveButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .size(UnshelveButtonSize)
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.45f))
+            .background(CoverTrack)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = Icons.Filled.Close,
             contentDescription = stringResource(R.string.library_unshelve),
-            tint = InkDim,
+            tint = OnGround,
             modifier = Modifier.size(16.dp),
         )
     }

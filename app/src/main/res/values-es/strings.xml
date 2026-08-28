@@ -90,6 +90,7 @@
     <string name="app_settings_ground">Fondo</string>
     <string name="app_settings_ground_black">Negro puro</string>
     <string name="app_settings_ground_graphite">Grafito</string>
+    <string name="app_settings_ground_paper">Papel</string>
     <string name="app_settings_accent">Acento</string>
     <string name="app_settings_accent_red">Rojo</string>
     <string name="app_settings_accent_amber">Ámbar</string>

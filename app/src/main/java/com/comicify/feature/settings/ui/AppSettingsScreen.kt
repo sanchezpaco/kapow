@@ -57,6 +57,7 @@ import com.comicify.core.ui.BubbleScaleRow
 import com.comicify.core.ui.OnOffChips
 import com.comicify.core.ui.OptionChips
 import com.comicify.core.ui.SettingRow
+import com.comicify.core.ui.theme.ComicifyPalette
 import com.comicify.core.ui.theme.ComicifyTheme
 import com.comicify.core.ui.theme.ThemeAccent
 import com.comicify.core.ui.theme.ThemeChoice
@@ -196,6 +197,7 @@ private fun AppearanceSection(theme: ThemeChoice, onThemeSelected: (ThemeChoice)
             options = listOf(
                 ThemeGround.Black to stringResource(R.string.app_settings_ground_black),
                 ThemeGround.Graphite to stringResource(R.string.app_settings_ground_graphite),
+                ThemeGround.Paper to stringResource(R.string.app_settings_ground_paper),
             ),
             selected = theme.ground,
             onSelect = { onThemeSelected(theme.copy(ground = it)) },
@@ -207,7 +209,7 @@ private fun AppearanceSection(theme: ThemeChoice, onThemeSelected: (ThemeChoice)
             ThemeAccent.entries.forEach { accent ->
                 ThemeSwatch(
                     ground = theme.ground.background,
-                    accent = accent.resolve(context),
+                    accent = ComicifyPalette.of(theme.ground, accent.resolve(context)).accent,
                     dynamic = accent == ThemeAccent.Dynamic,
                     selected = accent == theme.accent,
                     contentDescription = stringResource(accent.labelRes()),

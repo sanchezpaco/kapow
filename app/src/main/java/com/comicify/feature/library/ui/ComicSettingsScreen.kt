@@ -121,7 +121,7 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
 private fun SettingsHeader(comics: List<LibraryComic>) {
     val comic = comics.first()
     val wholeSeries = comics.size > 1
-    val glow = lerp(Color.Black, comic.ambientColor(), HeroGlowMix)
+    val glow = lerp(Ground, comic.ambientColor(), HeroGlowMix)
     Row(
         modifier = Modifier
             .fillMaxWidth()

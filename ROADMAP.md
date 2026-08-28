@@ -311,13 +311,13 @@ Goal: the details that make it feel premium.
       the library header → full-screen settings page (Reading defaults incl.
       bubbles/guided on open and bubble size, Screen with night tint and a new
       keep-screen-on toggle, Library with folder + rescan moved out of "⋮",
-      Appearance, About). Theme = ground (pure black / graphite) × accent
+      Appearance, About). Theme = ground (pure black / graphite / paper) × accent
       (7 curated presets with AA contrast on both grounds + Material You),
       picked from split-diagonal swatches with live preview; `LibraryPalette`
       constants became getters over a `ComicifyPalette` composition local
       and `MaterialTheme.colorScheme`; the reader keeps page, ambient and
       chrome, only the accent follows. Cover-alone stays per-comic (the
-      column is not tri-state). Paper ground not done. See `docs/settings.md`
+      column is not tri-state). See `docs/settings.md`
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails
