@@ -43,6 +43,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.MoreVert
@@ -52,6 +55,7 @@ import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.RemoveDone
 import com.comicify.feature.library.domain.LibrarySort
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -85,6 +89,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -114,6 +119,7 @@ import com.comicify.feature.library.domain.LibraryFilter
 import java.io.File
 
 private const val COMPACT_WIDTH_DP = 600
+private const val SWIPE_UNSHELVE_THRESHOLD = 0.4f
 private val HeroCoverWidth = 132.dp
 private val HeroCoverWidthCompact = 100.dp
 private val ShelfCardWidth = 340.dp
@@ -624,14 +630,51 @@ internal fun GhostAction(
 private fun ContinueReadingShelf(comics: List<LibraryComic>, onOpenComic: (LibraryComic) -> Unit, onUnshelve: (LibraryComic) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         SectionHeader(eyebrow = stringResource(R.string.library_resume_eyebrow), title = stringResource(R.string.library_continue_reading))
-        LibraryHero(comic = comics.first(), onOpenComic = onOpenComic, onUnshelve = onUnshelve)
+        val hero = comics.first()
+        key(hero.id) {
+            SwipeToUnshelve(comic = hero, onUnshelve = onUnshelve) {
+                LibraryHero(comic = hero, onOpenComic = onOpenComic, onUnshelve = onUnshelve)
+            }
+        }
         val rest = comics.drop(1)
         if (rest.isEmpty()) return@Column
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        val rowState = rememberLazyListState()
+        LaunchedEffect(hero.id) { rowState.scrollToItem(0) }
+        LazyRow(state = rowState, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             items(items = rest, key = { it.id }) { comic ->
                 ContinueReadingCard(comic = comic, onOpenComic = onOpenComic, onUnshelve = onUnshelve)
             }
         }
+    }
+}
+
+@Composable
+private fun SwipeToUnshelve(comic: LibraryComic, onUnshelve: (LibraryComic) -> Unit, content: @Composable () -> Unit) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        positionalThreshold = { totalDistance -> totalDistance * SWIPE_UNSHELVE_THRESHOLD },
+    )
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) onUnshelve(comic)
+    }
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = { SwipeUnshelveBackground(dismissState.dismissDirection) },
+        content = { content() },
+    )
+}
+
+@Composable
+private fun SwipeUnshelveBackground(direction: SwipeToDismissBoxValue) {
+    val alignment = if (direction == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(22.dp))
+            .background(Accent.copy(alpha = 0.16f))
+            .padding(horizontal = 28.dp),
+        contentAlignment = alignment,
+    ) {
+        Icon(imageVector = Icons.Filled.Close, contentDescription = null, tint = Accent)
     }
 }
 

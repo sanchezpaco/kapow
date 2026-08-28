@@ -157,8 +157,11 @@ re-shelves it, so a comic reappears as soon as it is read again.
   screen each card is labelled by its issue number only.
 - The "Continue reading" section: the hero card for the latest unfinished comic
   (compact cover and title on folded widths), then a row for the rest. The "×"
-  removes a comic from the shelf and shows a snackbar with **Undo**
-  (`LibraryRepository.reshelve`); progress is never lost.
+  or a horizontal swipe on the hero removes it from the shelf and shows a
+  snackbar with **Undo** (`LibraryRepository.reshelve`); progress is never lost.
+  The swipe state is keyed by comic so the next hero starts settled, and the
+  row scrolls back to its start whenever the hero changes (a `LazyRow` would
+  otherwise keep the old first item anchored and hide a reinserted one).
 - Toolbar: search, group-by-series toggle and open-a-file are visible; choose
   folder and refresh live behind "⋮". The empty state keeps the large
   "Choose folder" button.
