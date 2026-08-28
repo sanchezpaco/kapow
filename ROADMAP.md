@@ -353,10 +353,10 @@ Blocking:
       but confirm that reading of the AGPL before publishing
 - [ ] Store listing: EN + ES short/long descriptions, screenshots folded and
       unfolded, feature graphic (artwork pending the name/logo decision)
-- [~] Crash visibility: rely on Play Vitals (no third-party SDK). Opening a
-      comic now rethrows anything that is not a `ComicSourceException`; the
-      page-load `runCatching { … }.getOrNull()` sites in the reader still turn
-      decode failures into a spinner and need a per-page error state
+- [x] Crash visibility: rely on Play Vitals (no third-party SDK). Opening a
+      comic rethrows anything that is not a `ComicSourceException`; a page
+      that fails to decode shows "Page N could not be decoded" and logs the
+      cause instead of spinning forever
 
 Strongly recommended:
 

@@ -139,6 +139,7 @@
     <string name="reader_error_read_failure">No se ha podido leer este cómic. Puede que el archivo esté dañado o no esté disponible.</string>
     <string name="reader_error_password_protected">Este PDF está protegido con contraseña. Kapow no puede abrir archivos cifrados.</string>
     <string name="reader_error_access_lost">Se perdió el acceso a este archivo. Vuelve a elegir la carpeta de cómics desde Ajustes.</string>
+    <string name="reader_page_load_failed">No se ha podido decodificar la página %1$d.</string>
     <string name="reader_thumbnail_go_to_page">Ir a la página %1$d</string>
     <string name="reader_end_title">Has llegado al final</string>
     <string name="reader_end_next">Siguiente número</string>

@@ -25,6 +25,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import com.comicify.R
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
+import androidx.compose.material3.Text
+import android.util.Log
 import androidx.compose.ui.draw.drawBehind
 import com.comicify.feature.reader.ui.BubbleOverlay.drawBubbles
 import androidx.compose.ui.geometry.Offset
@@ -50,6 +56,7 @@ import com.comicify.feature.reader.data.PaintedBubble
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+private const val PAGE_TAG = "ReaderPage"
 private const val MAX_SCALE = 5f
 private const val DOUBLE_TAP_SCALE = 2.5f
 private val BubbleSpinnerSize = 22.dp
@@ -81,6 +88,7 @@ fun ZoomablePage(
     modifier: Modifier = Modifier,
 ) {
     var art by remember(index) { mutableStateOf<PageArt?>(null) }
+    var loadFailed by remember(index) { mutableStateOf(false) }
     var overlay by remember(index) { mutableStateOf<BubbleOverlayState>(BubbleOverlayState.None) }
     var scale by remember(index) { mutableFloatStateOf(1f) }
     var offset by remember(index) { mutableStateOf(Offset.Zero) }
@@ -88,7 +96,11 @@ fun ZoomablePage(
     val scope = rememberCoroutineScope()
     val decay = remember { exponentialDecay<Offset>(frictionMultiplier = 2.0f) }
 
-    LaunchedEffect(index) { art = runCatching { loader.load(index) }.getOrNull() }
+    LaunchedEffect(index) {
+        runCatching { loader.load(index) }
+            .onSuccess { art = it }
+            .onFailure { Log.e(PAGE_TAG, "Page $index failed to load", it); loadFailed = true }
+    }
     LaunchedEffect(index, bubbleScale, art) {
         val page = art
         if (bubbleScale == null || page == null) { overlay = BubbleOverlayState.None; return@LaunchedEffect }
@@ -103,7 +115,17 @@ fun ZoomablePage(
     ) {
         val page = art
         if (page == null) {
-            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            if (loadFailed) {
+                Text(
+                    text = stringResource(R.string.reader_page_load_failed, index + 1),
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(32.dp),
+                )
+            } else {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            }
         } else {
             Box(
                 modifier = Modifier

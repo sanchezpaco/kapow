@@ -140,6 +140,7 @@
     <string name="reader_error_password_protected">This PDF is password-protected. Kapow cannot open encrypted files.</string>
     <string name="reader_error_access_lost">Access to this file was lost. Choose the comics folder again from Settings.</string>
     <string name="reader_thumbnail_go_to_page">Go to page %1$d</string>
+    <string name="reader_page_load_failed">Page %1$d could not be decoded.</string>
     <string name="reader_end_title">You\'ve reached the end</string>
     <string name="reader_end_next">Next issue</string>
     <string name="reader_end_library">Back to library</string>
