@@ -24,7 +24,7 @@ private const val DUPLICATE_IOU = 0.5f
 
 class OnnxBoxDetector(modelPath: String, private val confidence: Float) {
     private val environment = OrtEnvironment.getEnvironment()
-    private val session = environment.createSession(modelPath, OrtSession.SessionOptions())
+    private val session = environment.createSession(modelPath, OrtSession.SessionOptions().apply { setCPUArenaAllocator(false) })
 
     fun detect(bitmap: Bitmap): List<Rect> {
         val frame = Letterbox(bitmap)

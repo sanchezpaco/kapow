@@ -22,7 +22,7 @@ import kotlin.math.abs
 
 private const val TARGET_WIDTH_PX = 2160
 private const val THUMB_WIDTH_PX = 180
-private const val CACHE_SIZE = 8
+private const val CACHE_SIZE = 5
 private const val CROP_MARGINS = true
 private const val THUMB_CACHE_SIZE = 64
 private const val PARALLEL_DETECTIONS = 1
