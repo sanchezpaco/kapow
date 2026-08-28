@@ -55,6 +55,11 @@
     <string name="library_series_menu">Opciones de la serie</string>
     <string name="settings_series_eyebrow">Esta serie</string>
     <string name="detail_option_default_value">Por defecto (%1$s)</string>
+    <string name="library_series_add_favorite">Añadir serie a favoritos</string>
+    <string name="library_series_remove_favorite">Quitar serie de favoritos</string>
+    <string name="library_delete_series">Borrar serie</string>
+    <string name="library_delete_series_confirm_title">¿Borrar la serie?</string>
+    <string name="library_delete_series_confirm_body">Los %1$d cómics de %2$s se borrarán definitivamente del dispositivo.</string>
     <string name="library_back">Atrás</string>
     <string name="settings_series_scope">Se aplica a los %1$d cómics</string>
     <string name="detail_settings_eyebrow">Este cómic</string>

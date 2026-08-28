@@ -150,8 +150,10 @@ re-shelves it, so a comic reappears as soon as it is read again.
   or series, case-insensitive (`LibraryCatalog.search`).
 - **Long-pressing a cover** opens a menu headed by the comic's title: reading
   settings, mark read/unread, favorite, delete. **Long-pressing a series stack**
-  opens the series menu: series settings and mark the whole series read/unread;
-  the same menu sits behind "⋮" in the series screen header. Inside a series
+  opens the series menu: series settings, mark the whole series read/unread,
+  add/remove every issue from favorites and delete the series (confirmation
+  dialog, deletes every file); the same menu sits behind "⋮" in the series
+  screen header. Inside a series
   screen each card is labelled by its issue number only.
 - The "Continue reading" section: the hero card for the latest unfinished comic
   (compact cover and title on folded widths), then a row for the rest. The "×"

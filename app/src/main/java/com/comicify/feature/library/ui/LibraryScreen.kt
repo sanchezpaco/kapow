@@ -152,6 +152,8 @@ fun LibraryScreen(
     onReshelve: (LibraryComic) -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onSetSeriesRead: (List<LibraryComic>, Boolean) -> Unit,
+    onSetSeriesFavorite: (List<LibraryComic>, Boolean) -> Unit,
+    onDeleteSeries: (List<LibraryComic>) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDeleteComic: (LibraryComic) -> Unit,
     onQueryChanged: (String) -> Unit,
@@ -187,6 +189,8 @@ fun LibraryScreen(
                 onUnshelve = unshelveWithUndo,
                 onToggleRead = onToggleRead,
                 onSetSeriesRead = onSetSeriesRead,
+                onSetSeriesFavorite = onSetSeriesFavorite,
+                onDeleteSeries = onDeleteSeries,
                 onToggleFavorite = onToggleFavorite,
                 onDeleteComic = onDeleteComic,
                 onQueryChanged = onQueryChanged,
@@ -210,6 +214,8 @@ private fun LibraryContent(
     onUnshelve: (LibraryComic) -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onSetSeriesRead: (List<LibraryComic>, Boolean) -> Unit,
+    onSetSeriesFavorite: (List<LibraryComic>, Boolean) -> Unit,
+    onDeleteSeries: (List<LibraryComic>) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDeleteComic: (LibraryComic) -> Unit,
     onQueryChanged: (String) -> Unit,
@@ -243,6 +249,8 @@ private fun LibraryContent(
             onOpenSettings = onOpenSettings,
             onToggleRead = onToggleRead,
             onSetSeriesRead = onSetSeriesRead,
+            onSetSeriesFavorite = onSetSeriesFavorite,
+            onDeleteSeries = onDeleteSeries,
             onToggleFavorite = onToggleFavorite,
             onDeleteComic = onDeleteComic,
         )
@@ -307,6 +315,8 @@ private fun LibraryContent(
                         onOpen = { onOpenSeries(it.series) },
                         onOpenSettings = onOpenSettings,
                         onSetSeriesRead = onSetSeriesRead,
+                        onSetSeriesFavorite = onSetSeriesFavorite,
+                        onDeleteSeries = onDeleteSeries,
                     )
                 }
             }
@@ -338,6 +348,8 @@ private fun SeriesScreen(
     onOpenSettings: (List<LibraryComic>) -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onSetSeriesRead: (List<LibraryComic>, Boolean) -> Unit,
+    onSetSeriesFavorite: (List<LibraryComic>, Boolean) -> Unit,
+    onDeleteSeries: (List<LibraryComic>) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDeleteComic: (LibraryComic) -> Unit,
 ) {
@@ -354,6 +366,8 @@ private fun SeriesScreen(
                 onBack = onBack,
                 onOpenSettings = onOpenSettings,
                 onSetSeriesRead = onSetSeriesRead,
+                onSetSeriesFavorite = onSetSeriesFavorite,
+                onDeleteSeries = onDeleteSeries,
             )
         }
         items(items = group.comics, key = { it.id }) { comic ->
@@ -376,6 +390,8 @@ private fun SeriesHeader(
     onBack: () -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
     onSetSeriesRead: (List<LibraryComic>, Boolean) -> Unit,
+    onSetSeriesFavorite: (List<LibraryComic>, Boolean) -> Unit,
+    onDeleteSeries: (List<LibraryComic>) -> Unit,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -418,6 +434,8 @@ private fun SeriesHeader(
                 onDismiss = { menuExpanded = false },
                 onOpenSettings = onOpenSettings,
                 onSetSeriesRead = onSetSeriesRead,
+                onSetSeriesFavorite = onSetSeriesFavorite,
+                onDeleteSeries = onDeleteSeries,
             )
         }
     }
@@ -1012,8 +1030,12 @@ private fun SeriesMenu(
     onDismiss: () -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
     onSetSeriesRead: (List<LibraryComic>, Boolean) -> Unit,
+    onSetSeriesFavorite: (List<LibraryComic>, Boolean) -> Unit,
+    onDeleteSeries: (List<LibraryComic>) -> Unit,
 ) {
     val allRead = group.comics.all { it.completed }
+    val allFavorite = group.comics.all { it.favorite }
+    var confirmDelete by remember { mutableStateOf(false) }
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         MenuHeader(title = group.series)
         DropdownMenuItem(
@@ -1026,6 +1048,31 @@ private fun SeriesMenu(
             leadingIcon = { Icon(imageVector = if (allRead) Icons.Outlined.RemoveDone else Icons.Outlined.DoneAll, contentDescription = null) },
             onClick = { onDismiss(); onSetSeriesRead(group.comics, !allRead) },
         )
+        DropdownMenuItem(
+            text = { Text(stringResource(if (allFavorite) R.string.library_series_remove_favorite else R.string.library_series_add_favorite)) },
+            leadingIcon = { Icon(imageVector = if (allFavorite) Icons.Outlined.StarBorder else Icons.Filled.Star, contentDescription = null) },
+            onClick = { onDismiss(); onSetSeriesFavorite(group.comics, !allFavorite) },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.library_delete_series), color = Accent) },
+            leadingIcon = { Icon(imageVector = Icons.Outlined.Delete, contentDescription = null, tint = Accent) },
+            onClick = { onDismiss(); confirmDelete = true },
+        )
+    }
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(stringResource(R.string.library_delete_series_confirm_title)) },
+            text = { Text(stringResource(R.string.library_delete_series_confirm_body, group.comics.size, group.series)) },
+            confirmButton = {
+                TextButton(onClick = { confirmDelete = false; onDeleteSeries(group.comics) }) {
+                    Text(stringResource(R.string.library_delete_confirm), color = Accent)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.library_delete_cancel)) }
+            },
+        )
     }
 }
 
@@ -1035,6 +1082,8 @@ private fun GroupCard(
     onOpen: (LibraryEntry.Group) -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
     onSetSeriesRead: (List<LibraryComic>, Boolean) -> Unit,
+    onSetSeriesFavorite: (List<LibraryComic>, Boolean) -> Unit,
+    onDeleteSeries: (List<LibraryComic>) -> Unit,
 ) {
     val representative = group.comics.firstOrNull { !it.completed && it.pageIndex > 0 } ?: group.comics.first()
     val readCount = group.comics.count { it.completed }
@@ -1096,6 +1145,8 @@ private fun GroupCard(
             onDismiss = { menuExpanded = false },
             onOpenSettings = onOpenSettings,
             onSetSeriesRead = onSetSeriesRead,
+            onSetSeriesFavorite = onSetSeriesFavorite,
+            onDeleteSeries = onDeleteSeries,
         )
     }
 }

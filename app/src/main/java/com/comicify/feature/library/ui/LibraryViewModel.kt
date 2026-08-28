@@ -115,6 +115,14 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch { comics.forEach { repository.setRead(it.id, read) } }
     }
 
+    fun onSetSeriesFavorite(comics: List<LibraryComic>, favorite: Boolean) {
+        viewModelScope.launch { comics.forEach { repository.setFavorite(it.id, favorite) } }
+    }
+
+    fun onDeleteSeries(comics: List<LibraryComic>) {
+        viewModelScope.launch { comics.forEach { repository.deleteComic(it.id) } }
+    }
+
     fun onToggleFavorite(comic: LibraryComic) {
         viewModelScope.launch { repository.setFavorite(comic.id, !comic.favorite) }
     }
