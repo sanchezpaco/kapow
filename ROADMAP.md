@@ -28,7 +28,7 @@ screen. This is the solid base everything else builds on.
 - [x] Reader screen: horizontal pager, one full page per screen
 - [x] Pinch-zoom + pan, double-tap to zoom
 - [x] Page preloading (next N pages) for zero-lag turns
-- [~] Tap zones (center toggles chrome; left/right page-turn zones pending)
+- [x] Tap zones (center toggles chrome; left/right edges turn the page)
 - [x] Immersive mode: edge-to-edge, hidden system bars
 
 ## Phase 2 — Foldable magic
@@ -356,7 +356,7 @@ Blocking:
 
 Strongly recommended:
 
-- [ ] Tap zones left/right for page turns (Phase 1 item still `[~]`)
+- [x] Tap zones left/right for page turns (Phase 1 item still `[~]`)
 - [ ] Verify tabletop posture on the physical Fold (Phase 2 item still `[~]`)
 - [ ] `ComicNameParser`: split a number glued to the name (`Venomverse001`,
       `DoctorDoom9`) so issues group into their series

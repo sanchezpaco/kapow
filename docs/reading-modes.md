@@ -11,8 +11,12 @@ Default on `UnfoldedSingle` and `CompactSingle`.
 - Horizontal `Pager`, one page per screen.
 - Content fits the screen; the unfolded screen shows a page at near-physical size
   so no zoom is needed for normal reading.
-- Gestures: single-finger horizontal swipe changes page; pinch (two fingers)
-  zooms; when zoomed, one finger pans (clamped to the page) with an inertial
+- Gestures: single-finger horizontal swipe changes page; a tap on the outer 28 %
+  of the width turns the page (`TapZones` in `PageOrder.kt`: the left zone goes
+  back and the right one forward, mirrored for right-to-left; in a spread each
+  half only exposes its outer edge, so the gutter stays a centre tap) and a tap
+  in the middle toggles the chrome; while zoomed every tap is a centre tap.
+  Pinch (two fingers) zooms; when zoomed, one finger pans (clamped to the page) with an inertial
   fling on release (velocity-tracked, `exponentialDecay` clamped to the pan
   bounds) and the pager is locked; double-tap toggles a 2.5× zoom centred on the
   tapped point. The

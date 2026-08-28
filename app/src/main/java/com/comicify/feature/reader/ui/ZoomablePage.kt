@@ -42,7 +42,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.comicify.feature.reader.data.PageArt
+import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
+import com.comicify.feature.reader.domain.TapZone
+import com.comicify.feature.reader.domain.TapZones
 import com.comicify.feature.reader.data.PaintedBubble
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -71,7 +74,9 @@ fun ZoomablePage(
     loader: PageLoader,
     index: Int,
     bubbleScale: Float?,
-    onTap: () -> Unit,
+    direction: ReadingDirection,
+    tapZones: TapZones,
+    onTap: (TapZone) -> Unit,
     onZoomedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -105,7 +110,7 @@ fun ZoomablePage(
                     .fillMaxSize()
                     .pointerInput(index) {
                         detectTapGestures(
-                            onTap = { onTap() },
+                            onTap = { tap -> onTap(if (scale > 1f) TapZone.Center else tapZones.at(direction, tap.x / size.width)) },
                             onDoubleTap = { tap ->
                                 flingJob?.cancel()
                                 if (scale > 1f) {

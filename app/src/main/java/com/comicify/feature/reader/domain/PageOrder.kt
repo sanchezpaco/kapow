@@ -6,6 +6,20 @@ import com.comicify.domain.model.ReadingDirection.RightToLeft
 
 enum class TapZone { Previous, Center, Next }
 
+private const val PREVIOUS_ZONE_END = 0.28f
+private const val NEXT_ZONE_START = 0.72f
+private const val NEVER = 2f
+
+data class TapZones(val previousEnd: Float, val nextStart: Float) {
+    fun at(direction: ReadingDirection, xFraction: Float): TapZone = PageOrder.tapZone(direction, xFraction, previousEnd, nextStart)
+
+    companion object {
+        val FullWidth = TapZones(PREVIOUS_ZONE_END, NEXT_ZONE_START)
+        val LeftHalf = TapZones(PREVIOUS_ZONE_END, NEVER)
+        val RightHalf = TapZones(-NEVER, NEXT_ZONE_START)
+    }
+}
+
 object PageOrder {
 
     fun pagerIndex(direction: ReadingDirection, logicalIndex: Int, count: Int): Int = when (direction) {

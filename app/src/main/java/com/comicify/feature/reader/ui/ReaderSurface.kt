@@ -41,6 +41,8 @@ import com.comicify.core.window.splitAtHinge
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.domain.PageOrder
+import com.comicify.feature.reader.domain.TapZone
+import com.comicify.feature.reader.domain.TapZones
 import com.comicify.feature.reader.domain.PageTurn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -63,13 +65,13 @@ fun ReaderSurface(
     onJumpApplied: () -> Unit,
     onPageChanged: (Int) -> Unit,
     onGuidedStop: (Int, Int) -> Unit,
-    onTap: () -> Unit,
+    onTap: (TapZone) -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
     if (guided) {
         val spread = posture == ReadingPosture.UnfoldedSpread && !guidedFullScreen
         key(spread) {
-            GuidedReader(loader, spread, direction, coverAlone, initialPage, pageTurnRequests, onPageChanged, onGuidedStop, onTap, onAmbient)
+            GuidedReader(loader, spread, direction, coverAlone, initialPage, pageTurnRequests, onPageChanged, onGuidedStop, { onTap(TapZone.Center) }, onAmbient)
         }
         return
     }
@@ -100,7 +102,7 @@ private fun SinglePageReader(
     pendingJump: Int?,
     onJumpApplied: () -> Unit,
     onPageChanged: (Int) -> Unit,
-    onTap: () -> Unit,
+    onTap: (TapZone) -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
     val pageCount = loader.pageCount
@@ -136,6 +138,8 @@ private fun SinglePageReader(
             loader = loader,
             bubbleScale = bubbleScale,
             index = PageOrder.logicalIndex(direction, physicalPage, pageCount),
+            direction = direction,
+            tapZones = TapZones.FullWidth,
             onTap = onTap,
             onZoomedChange = { if (physicalPage == pagerState.currentPage) zoomed = it },
             modifier = Modifier.pageTurnDepth(pagerState, physicalPage, layered = bubbleScale != null),
@@ -167,7 +171,7 @@ private fun SpreadReader(
     pendingJump: Int?,
     onJumpApplied: () -> Unit,
     onPageChanged: (Int) -> Unit,
-    onTap: () -> Unit,
+    onTap: (TapZone) -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
     val spreadCount = PageOrder.spreadCount(loader.pageCount, coverAlone)
@@ -213,6 +217,8 @@ private fun SpreadReader(
                     loader = loader,
                     bubbleScale = bubbleScale,
                     index = screenLeftPage,
+                    direction = direction,
+                    tapZones = TapZones.LeftHalf,
                     onTap = onTap,
                     onZoomedChange = { if (spread == pagerState.currentPage) zoomed = it },
                     modifier = Modifier.weight(1f),
@@ -225,6 +231,8 @@ private fun SpreadReader(
                     loader = loader,
                     bubbleScale = bubbleScale,
                     index = screenRightPage,
+                    direction = direction,
+                    tapZones = TapZones.RightHalf,
                     onTap = onTap,
                     onZoomedChange = { if (spread == pagerState.currentPage) zoomed = it },
                     modifier = Modifier.weight(1f),
@@ -247,7 +255,7 @@ private fun TabletopReader(
     pendingJump: Int?,
     onJumpApplied: () -> Unit,
     onPageChanged: (Int) -> Unit,
-    onTap: () -> Unit,
+    onTap: (TapZone) -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
     val pageCount = loader.pageCount
@@ -286,6 +294,8 @@ private fun TabletopReader(
                     loader = loader,
                     bubbleScale = bubbleScale,
                     index = PageOrder.logicalIndex(direction, physicalPage, pageCount),
+                    direction = direction,
+                    tapZones = TapZones.FullWidth,
                     onTap = onTap,
                     onZoomedChange = { if (physicalPage == pagerState.currentPage) zoomed = it },
                 )

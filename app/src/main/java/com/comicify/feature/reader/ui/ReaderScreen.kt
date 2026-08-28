@@ -87,6 +87,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.comicify.R
 import com.comicify.core.input.PageTurnDirection
+import com.comicify.feature.reader.domain.TapZone
 import com.comicify.core.input.RegisterVolumeKeyPageTurns
 import com.comicify.core.window.ReadingPosture
 import com.comicify.core.window.rememberReadingWindowState
@@ -176,7 +177,13 @@ fun ReaderScreen(
                         onJumpApplied = viewModel::onJumpApplied,
                         onPageChanged = viewModel::onPageChanged,
                         onGuidedStop = { index, count -> guidedIndex = index; guidedCount = count },
-                        onTap = viewModel::toggleChrome,
+                        onTap = { zone ->
+                            when (zone) {
+                                TapZone.Center -> viewModel.toggleChrome()
+                                TapZone.Next -> pageTurnRequests.tryEmit(PageTurnDirection.Next)
+                                TapZone.Previous -> pageTurnRequests.tryEmit(PageTurnDirection.Previous)
+                            }
+                        },
                         onAmbient = { ambient = it },
                     )
                 }

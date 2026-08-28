@@ -91,4 +91,14 @@ class PageOrderTest {
         assertEquals(-1, PageOrder.spreadFirstPage(spreadIndex = 0, coverAlone = true))
         assertEquals(1, PageOrder.spreadFirstPage(spreadIndex = 1, coverAlone = true))
     }
+
+    @Test
+    fun spreadHalvesOnlyExposeTheirOuterEdge() {
+        assertEquals(TapZone.Previous, TapZones.LeftHalf.at(LeftToRight, 0.1f))
+        assertEquals(TapZone.Center, TapZones.LeftHalf.at(LeftToRight, 0.9f))
+        assertEquals(TapZone.Center, TapZones.RightHalf.at(LeftToRight, 0.1f))
+        assertEquals(TapZone.Next, TapZones.RightHalf.at(LeftToRight, 0.9f))
+        assertEquals(TapZone.Next, TapZones.LeftHalf.at(RightToLeft, 0.1f))
+        assertEquals(TapZone.Previous, TapZones.RightHalf.at(RightToLeft, 0.9f))
+    }
 }

@@ -58,6 +58,7 @@ import com.comicify.feature.reader.domain.FullPagePanel
 import com.comicify.feature.reader.domain.GuidedFocus
 import com.comicify.feature.reader.domain.PageOrder
 import com.comicify.feature.reader.domain.TapZone
+import com.comicify.feature.reader.domain.TapZones
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -65,8 +66,6 @@ import kotlinx.coroutines.flow.Flow
 
 private const val LAST_PANEL = Int.MAX_VALUE / 2
 private const val PANEL_PADDING = 0.02f
-private const val PREVIOUS_ZONE = 0.28f
-private const val NEXT_ZONE = 0.72f
 private const val DOUBLE_TAP_ZOOM = 2f
 private const val MAX_ZOOM = 4f
 private const val FOCUS_ANIMATION_MILLIS = 520
@@ -261,7 +260,7 @@ private fun GuidedPanel(
                     onTap = { offset ->
                         when {
                             zoomed -> onTap()
-                            else -> when (PageOrder.tapZone(currentDirection, offset.x / size.width, PREVIOUS_ZONE, NEXT_ZONE)) {
+                            else -> when (TapZones.FullWidth.at(currentDirection, offset.x / size.width)) {
                                 TapZone.Previous -> onPrevious()
                                 TapZone.Next -> onNext()
                                 TapZone.Center -> onTap()
