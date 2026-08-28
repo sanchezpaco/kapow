@@ -166,8 +166,8 @@ inside the series screen for individual tweaks.
   change writes it to every issue. Saved in `comic_settings` through `LibraryRepository.saveSettings`; a
   row equal to `ComicSettings.Default` is deleted rather than stored.
   `docs/reading-modes.md` describes how the reader consumes them.
-- "Clear panel and bubble detections" drops the comic's `page_detections` rows
-  so the next open re-runs the models.
+- Debug builds only: "Clear panel and bubble detections" drops the comic's
+  `page_detections` rows so the next open re-runs the models.
 
 `ComicSettingsViewModel` observes the first target's settings and fans writes
 out to all targets.

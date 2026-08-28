@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.comicify.BuildConfig
 import com.comicify.R
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.library.domain.ComicSettings
@@ -106,7 +107,7 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
         SettingRow(label = stringResource(R.string.detail_setting_guided)) {
             TriStateChips(selected = settings.guided, onSelect = { viewModel.onSettingsChanged(settings.copy(guided = it)) })
         }
-        ClearDetectionsRow(onClearDetections = viewModel::onClearDetections)
+        if (BuildConfig.DEBUG) ClearDetectionsRow(onClearDetections = viewModel::onClearDetections)
     }
 }
 
