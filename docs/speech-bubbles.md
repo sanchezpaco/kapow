@@ -61,13 +61,13 @@ corpus grew with 1970s halftone (Defensores), 1990s scans (Spiderman 2099,
 Gambito) and modern digital Marvel (4F, Capitana Marvel). Exported with
 ultralytics (`format=onnx imgsz=640 nms=True`, so the graph ends in
 NonMaxSuppression and outputs `[1, 300, 6]` like the panel model) it is 9.8 MB
-in fp32; the bundled `assets/models/bubbles.onnx` (stored uncompressed) keeps
-the Conv weights in fp16 behind a `Cast` node (`.claude/ml-spike-kit/quant_fp16.py`,
-2026-08-28), 5.1 MB, and ORT folds the casts at session creation so inference
-cost is unchanged. On the 147-page ground truth the fp16 weights give the same
-boxes on every page (F1 0.97 = fp32); weight-only int8 (2.8 MB) kept the
-global F1 but lost up to 0.04 on single series (Ben Reilly, Vengadores 174,
-Venomverse) and was rejected. Boxes with score ≥ 0.25
+in fp32; the bundled `assets/models/bubbles.ort` is the ORT-format version
+with fused operators and fp16 Conv weights, 5.2 MB, run by a minimal ONNX
+Runtime build (`docs/ml-runtime.md`, 2026-08-28). On the 147-page ground
+truth the fp16 weights give the same boxes on every page (F1 0.97 = fp32) and
+bit-identical outlines on Doom #1 pp. 5-12 on the Fold; weight-only int8
+(2.8 MB) kept the global F1 but lost up to 0.04 on single series (Ben Reilly,
+Vengadores 174, Venomverse) and was rejected. Boxes with score ≥ 0.25
 are kept (the threshold baked into the exported NMS).
 
 On the 98-page ground truth (14 series × 7 pages) the student scores bubble

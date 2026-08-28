@@ -57,7 +57,7 @@ android {
     }
 
     androidResources {
-        noCompress += "onnx"
+        noCompress += "ort"
     }
 
     compileOptions {
@@ -90,7 +90,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.androidx.palette)
     implementation(libs.sevenzip)
-    implementation(libs.onnxruntime.android)
+    implementation(files("libs/onnxruntime-minimal-1.20.0.aar"))
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

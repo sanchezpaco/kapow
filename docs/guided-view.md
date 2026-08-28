@@ -29,8 +29,8 @@ is pure Kotlin in `feature/reader/domain` and unit-tested on synthetic pages.
 
 `OnnxBoxDetector` (shared with speech bubbles, one session per model asset) runs a YOLO26n detector fine-tuned on manga frames
 (`leoxs22/manga-panel-detector-yolo26n`, exported to ONNX, 9 MB in
-`assets/models/panels.onnx`, stored uncompressed, Conv weights in fp16 — 5.1 MB,
-see `docs/speech-bubbles.md`) through ONNX Runtime Mobile.
+`assets/models/panels.ort`, ORT format with fp16 Conv weights — 5.2 MB) through
+a minimal ONNX Runtime build (`docs/ml-runtime.md`).
 The page is letterboxed to 640×640 on a grey canvas, the end-to-end output
 (`[1, 300, 6]` = x1, y1, x2, y2, score, class) is filtered to class `frame`
 with score ≥ 0.35, and boxes are mapped back to normalized page coordinates.

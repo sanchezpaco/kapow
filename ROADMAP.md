@@ -199,15 +199,17 @@ Goal: the details that make it feel premium.
       Fold (ML boxes ~35 ms, outlining, `BubbleLayout` ≈50 ms JVM / 0.8 s
       worst case, paper sampling, overlay composition) on a cold page and on
       a Room-cached page, and attack whichever step dominates
-- [~] APK size (release, `apkanalyzer`): 50.4 → 35.5 MB (download 32.8 →
-      19.2 MB) on 2026-08-28 by storing both models' Conv weights in fp16
-      (9.8 → 5.1 MB each, identical boxes on the 147-page ground truth and
-      bit-identical outlines on Doom #1 pp. 5-12 on the Fold) and
-      re-encoding the bundled sample comic as JPEG (6.8 → 1.3 MB). arm64-v8a
-      only was already in place (`abiFilters`). Left: `libonnxruntime.so`
-      (17.6 MB) via an ORT minimal build with just the YOLO26 ops, and
-      7-Zip-JBinding (2.7 MB). Gates for every step: unit tests, ground-truth
-      F1, `page_detections` diff on the Fold, RAR + PDF still open
+- [x] APK size (release, `apkanalyzer`, 2026-08-28): 50.4 → 20.8 MB
+      (download 32.8 → 14.0 MB). Both models' Conv weights in fp16 (9.8 →
+      5.2 MB each; identical boxes on the 147-page ground truth, bit-identical
+      outlines on Doom #1 pp. 5-12 on the Fold; weight-only int8 rejected for
+      per-series F1 losses), ONNX Runtime rebuilt as a minimal arm64 build
+      with only the YOLO26 operators (`libonnxruntime.so` 17.6 → 2.7 MB,
+      `tools/ort`, `docs/ml-runtime.md`), bundled sample comic re-encoded as
+      JPEG (6.8 → 1.3 MB). arm64-v8a only was already in place. Detection
+      times on the Fold unchanged (first page 596 vs 645 ms, then 56–347 ms),
+      jank unchanged, release opens a real RAR and runs bubble mode. Left on
+      the table: 7-Zip-JBinding (2.7 MB), dex (2.6 MB)
 - [ ] RAM: baseline with `dumpsys meminfo` (normal reading vs bubble mode)
       on the final APK with the Room cache, then bound the preload bitmap
       pool and page decode size
