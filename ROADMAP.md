@@ -210,9 +210,17 @@ Goal: the details that make it feel premium.
       times on the Fold unchanged (first page 596 vs 645 ms, then 56–347 ms),
       jank unchanged, release opens a real RAR and runs bubble mode. Left on
       the table: 7-Zip-JBinding (2.7 MB), dex (2.6 MB)
-- [ ] RAM: baseline with `dumpsys meminfo` (normal reading vs bubble mode)
-      on the final APK with the Room cache, then bound the preload bitmap
-      pool and page decode size
+- [x] RAM (2026-08-28, release on the Fold, `dumpsys meminfo` PSS after 6
+      page turns): reading 584 → 484 MB, bubble mode 641 → ~500-550 MB
+      (native heap 156 → 73-85 MB), library 94 MB. Three cuts: page cache
+      8 → 5 (the preload window is −1..+2), ORT CPU arena off
+      (`setCPUArenaAllocator(false)`, which also removed the ~600 ms first
+      detection), and pages now decode to exactly 2160 px (a 3000 px scan
+      was kept full-res at 54 MB because power-of-two halving undershot;
+      27 MB now). Jank unchanged (0.9-3 %, p90 ≤ 9 ms). What is left is
+      Graphics: ~125 MB of page textures for 5 pages plus ~185 MB EGL
+      (window buffers, the page-turn and zoom `graphicsLayer`s); not worth
+      touching without a reason
 - [ ] Battery: last, since it inherits the items above; `batterystats` over a
       fixed 20-page read, touch preload/parallelism only if the numbers say so
 - [ ] Outliner: idea 3b (paper body leaking into pale art beside the rim) and

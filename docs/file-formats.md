@@ -132,8 +132,10 @@ bitmap and average/quantize edge rows/columns.
 
 ## Memory strategy
 
-- Decode to target width (2160 px, power-of-two subsampling), never full-res
-  for paging; an `LruCache` of 8 pages plus a thumbnail cache in `PageLoader`.
+- Decode to target width (2160 px: power-of-two subsampling, then a density
+  scale inside `BitmapFactory` down to exactly 2160 px, so a 2953 px scan
+  no longer stays full-res at 53 MB because halving would undershoot), never
+  full-res for paging; an `LruCache` of 8 pages plus a thumbnail cache in `PageLoader`.
 - The displayed page is a **hardware bitmap** (`Bitmap.Config.HARDWARE`,
   2026-08-28). Software bitmaps of 1988 × 3056 (24 MB each, three resident
   around the pager) blew HWUI's 72 MB texture cache on the Z Fold, so every

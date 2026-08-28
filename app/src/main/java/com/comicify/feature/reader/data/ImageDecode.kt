@@ -13,8 +13,16 @@ internal fun decodeSampled(bytes: ByteArray, targetWidth: Int): Bitmap {
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
     val options = BitmapFactory.Options().apply {
         inSampleSize = computeInSampleSize(bounds.outWidth, targetWidth)
+        scaleDownTo(bounds.outWidth / inSampleSize, targetWidth)
     }
     return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+}
+
+private fun BitmapFactory.Options.scaleDownTo(sampledWidth: Int, targetWidth: Int) {
+    if (targetWidth <= 0 || sampledWidth <= targetWidth) return
+    inScaled = true
+    inDensity = sampledWidth
+    inTargetDensity = targetWidth
 }
 
 private fun computeInSampleSize(sourceWidth: Int, targetWidth: Int): Int {
