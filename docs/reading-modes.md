@@ -104,7 +104,9 @@ panel segmentation and reading-order errors. Full detail in `speech-bubbles.md`.
 on open: `bubblesEnlarged` and `guided`, when not null, replace the reader's
 initial off state; `rightToLeft`, when not null, overrides the global reading
 direction, and the reader's direction toggle then writes the override instead
-of the global preference; `coverAlone` feeds the spread pairing above.
+of the global preference; `bubbleScale` works the same way for the HUD slider
+(override wins, and dragging the slider updates the override when one exists);
+`coverAlone` feeds the spread pairing above.
 Everything else stays global in `ReaderPreferencesRepository`.
 
 ## Reading direction

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,8 +47,13 @@ import com.comicify.R
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.library.domain.ComicSettings
 import com.comicify.feature.library.domain.LibraryComic
+import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
+import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
 
 private val SettingsCoverWidth = 96.dp
+private val BubbleScaleLabelWidth = 44.dp
+private val BubbleScaleSliderWidth = 240.dp
+private const val BUBBLE_SCALE_STEPS = 8
 
 @Composable
 fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
@@ -86,7 +92,16 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
             )
         }
         SettingRow(label = stringResource(R.string.detail_setting_bubbles)) {
-            TriStateChips(selected = settings.bubblesEnlarged, onSelect = { viewModel.onSettingsChanged(settings.copy(bubblesEnlarged = it)) })
+            TriStateChips(
+                selected = settings.bubblesEnlarged,
+                onSelect = { viewModel.onSettingsChanged(settings.copy(bubblesEnlarged = it, bubbleScale = settings.bubbleScale.takeIf { _ -> it == true })) },
+            )
+            if (settings.bubblesEnlarged == true) {
+                BubbleScaleRow(
+                    scale = settings.bubbleScale ?: BUBBLE_ENLARGE_SCALE,
+                    onScaleCommitted = { viewModel.onSettingsChanged(settings.copy(bubbleScale = it)) },
+                )
+            }
         }
         SettingRow(label = stringResource(R.string.detail_setting_guided)) {
             TriStateChips(selected = settings.guided, onSelect = { viewModel.onSettingsChanged(settings.copy(guided = it)) })
@@ -139,6 +154,27 @@ private fun SettingsHeader(comics: List<LibraryComic>) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun BubbleScaleRow(scale: Float, onScaleCommitted: (Float) -> Unit) {
+    var dragged by remember(scale) { mutableStateOf(scale) }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = "%.1f×".format(dragged),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.width(BubbleScaleLabelWidth),
+        )
+        Slider(
+            value = dragged,
+            onValueChange = { dragged = it },
+            onValueChangeFinished = { onScaleCommitted(dragged) },
+            valueRange = BUBBLE_SCALE_RANGE,
+            steps = BUBBLE_SCALE_STEPS,
+            modifier = Modifier.width(BubbleScaleSliderWidth),
+        )
     }
 }
 

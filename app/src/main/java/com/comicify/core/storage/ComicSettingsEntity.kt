@@ -10,4 +10,5 @@ data class ComicSettingsEntity(
     val coverAlone: Boolean,
     val bubblesEnlarged: Boolean?,
     val guided: Boolean?,
+    val bubbleScale: Float? = null,
 )

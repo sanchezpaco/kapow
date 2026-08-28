@@ -7,6 +7,7 @@ data class ComicSettings(
     val coverAlone: Boolean = false,
     val bubblesEnlarged: Boolean? = null,
     val guided: Boolean? = null,
+    val bubbleScale: Float? = null,
 ) {
     companion object {
         val Default = ComicSettings()

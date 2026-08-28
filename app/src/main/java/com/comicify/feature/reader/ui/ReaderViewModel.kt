@@ -109,13 +109,22 @@ class ReaderViewModel(
     }
 
     fun setBubbleScale(scale: Float) {
-        viewModelScope.launch { preferencesRepository.setBubbleScale(scale) }
+        viewModelScope.launch {
+            val override = comicSettingsDao.find(uri.toString())?.takeIf { it.bubbleScale != null }
+            if (override == null) {
+                preferencesRepository.setBubbleScale(scale)
+            } else {
+                comicSettingsDao.upsert(override.copy(bubbleScale = scale))
+            }
+        }
     }
 
     private fun observeBubbleScale() {
         viewModelScope.launch {
-            preferencesRepository.bubbleScale.collect { scale ->
-                _state.update { it.copy(bubbleScale = scale ?: BUBBLE_ENLARGE_SCALE) }
+            combine(preferencesRepository.bubbleScale, comicSettingsDao.observe(uri.toString())) { global, settings ->
+                settings?.bubbleScale ?: global ?: BUBBLE_ENLARGE_SCALE
+            }.collect { scale ->
+                _state.update { it.copy(bubbleScale = scale) }
             }
         }
     }

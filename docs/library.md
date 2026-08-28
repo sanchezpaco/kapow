@@ -161,7 +161,9 @@ inside the series screen for individual tweaks.
 - Header washed with the cover's ambient colour (cover shared with the card).
 - Reading direction (default / LTR / RTL), cover alone in the spread (pairing
   parity), enlarged bubbles on open and Guided View on open (default / on /
-  off). Saved in `comic_settings` through `LibraryRepository.saveSettings`; a
+  off). Turning bubbles on reveals a scale slider (same range and steps as the
+  reader's HUD slider) stored as the comic's `bubbleScale`; a series-wide
+  change writes it to every issue. Saved in `comic_settings` through `LibraryRepository.saveSettings`; a
   row equal to `ComicSettings.Default` is deleted rather than stored.
   `docs/reading-modes.md` describes how the reader consumes them.
 - "Clear panel and bubble detections" drops the comic's `page_detections` rows
