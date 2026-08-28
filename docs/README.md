@@ -11,6 +11,7 @@ How Comicify works, one concern per file.
 - [ml-runtime.md](ml-runtime.md) — minimal ONNX Runtime build and ORT-format models: how the AAR and the `.ort` assets are produced
 - [library.md](library.md) — import, storage, metadata, persistence
 - [i18n.md](i18n.md) — the bilingual (ES/EN) resource strategy
+- [performance.md](performance.md) — fluidity baseline on the Fold, how to measure, ranked findings
 
 Keep these in sync with the code. If behavior changes, update the matching doc in
 the same change.

@@ -65,9 +65,9 @@ class PageLoader(
         }
     }
 
-    private suspend fun decode(index: Int): PageArt {
+    private suspend fun decode(index: Int): PageArt = timed("decode", index) {
         val decoded = source.decodePage(index, TARGET_WIDTH_PX)
-        return withContext(Dispatchers.Default) {
+        withContext(Dispatchers.Default) {
             val bitmap = if (CROP_MARGINS) decoded.contentCropped() else decoded
             val analysis = bitmap.atAnalysisSize()
             val image = bitmap.copy(Bitmap.Config.HARDWARE, false) ?: bitmap

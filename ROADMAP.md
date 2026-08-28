@@ -213,10 +213,30 @@ Goal: the details that make it feel premium.
       387 ms cold; page turns 3–5 ms from Room; off/on 0 ms. `drawBubbles`
       is not per-frame (layer-cached), so nothing to gain there. See
       `docs/speech-bubbles.md`
-- [ ] App-wide fluidity research: after the bubble latency item, profile
-      the whole app (library scroll, opening a comic, page turns, zoom,
-      Guided View, HUD) with `gfxinfo`, systrace/Perfetto and the
-      `PageLoader` timings, and list the points worth improving
+- [x] App-wide fluidity research (2026-08-28, release on the Fold, folded,
+      60 Hz): `gfxinfo` per interaction, `PageLoader` timings (`decode` now
+      logged next to the detections) and a Perfetto trace. Library scroll
+      0.7 % janky, cold start 117 ms, page turns 2.1–2.6 % (p99 ≤ 13 ms),
+      zoom 1.6–3.3 %, Guided View 3–3.6 %, HUD 3.9 %, no slow bitmap
+      uploads; 469/474 traced frames under 8.4 ms. Baseline table, method
+      and ranked findings in `docs/performance.md`; the follow-ups are the
+      next five items
+- [ ] Bubble overlay GPU cost: with bubbles on, page-turn GPU time doubles
+      (p90 11 vs 5 ms) and the toggle renders ≈ 50 frames at 14 ms GPU — the
+      per-bubble bitmaps are composited every frame of the pager animation
+- [ ] First-frame display-list re-record: every gesture's first frame spends
+      9–11 ms in `Record View#draw()` (HUD, settings, page turn, guided
+      step); isolate chrome and page layers so toggling the HUD does not
+      invalidate the page
+- [ ] Open latency vs archive size: SAF → cache copy ≈ 2.4 ms/MB before the
+      archive opens (Blacksad 165 MB RAR: first page at 509 ms), and CBR
+      extracts every item to disk again; open CBZ/PDF from the descriptor,
+      extract RAR items in reading order from the saved page
+- [ ] Cold detections are serial per page (≈ 250 ms in bubble mode; Guided
+      View panels 130–210 ms, started only when the page becomes current):
+      preload panels with the pages when Guided View is on
+- [ ] Reader → library exit renders one 20–27 ms frame (library
+      recomposition + cover re-bind); measure unfolded posture too
 - [x] APK size (release, `apkanalyzer`, 2026-08-28): 50.4 → 20.8 MB
       (download 32.8 → 14.0 MB). Both models' Conv weights in fp16 (9.8 →
       5.2 MB each; identical boxes on the 147-page ground truth, bit-identical

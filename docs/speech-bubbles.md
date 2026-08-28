@@ -41,8 +41,9 @@ Every row carries `modelVersion` = `DETECTIONS_VERSION` (`PanelDetector.kt`,
 e.g. `panels-v1+bubbles-v4`). Bump it whenever a bundled ONNX model, the
 outliner or the panel heuristic changes; rows with another version are
 ignored and overwritten lazily on the next visit, so there is no migration
-to write when a model ships. `PageLoader` logs `detected bubbles on page N
-in M ms` at debug level on every real model run; a second open of a comic in
+to write when a model ships. `PageLoader` logs `bubbles on page N in M ms`
+at debug level on every real model run (`decode`, `panels` and `bubble plan`
+share the line, see `performance.md`); a second open of a comic in
 bubble mode must log none. Measured on the Z Fold (Doctor Doom #1 pp. 5-12,
 bubble mode, 4 page turns): first open 8 runs of 60–645 ms (page 5, the one
 the toggle waits for: 645 ms); second open after a process kill 0 runs, the
