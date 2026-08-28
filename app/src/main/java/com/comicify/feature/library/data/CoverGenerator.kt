@@ -19,7 +19,7 @@ class CoverGenerator @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     suspend fun generate(comicId: Long, documentUri: Uri): GeneratedCover = withContext(Dispatchers.IO) {
-        val source = ComicSourceFactory.open(context, documentUri)
+        val source = ComicSourceFactory.open(context, documentUri, startPage = 0)
         try {
             val bitmap = source.decodePage(0, COVER_WIDTH_PX)
             GeneratedCover(pageCount = source.pageCount, coverPath = writeCover(comicId, bitmap).absolutePath)

@@ -15,7 +15,7 @@ class ComicSourceFactoryTest {
         val file = temporaryFolder.newFile("comic.dat")
         file.writeBytes(byteArrayOf(0x50, 0x4B, 0x03, 0x04))
 
-        assertEquals(ComicFileFormat.Zip, ComicSourceFactory.detectFormat(file))
+        assertEquals(ComicFileFormat.Zip, ComicSourceFactory.detectFormat(file.inputStream().channel))
     }
 
     @Test
@@ -23,7 +23,7 @@ class ComicSourceFactoryTest {
         val file = temporaryFolder.newFile("comic.dat")
         file.writeBytes(byteArrayOf('R'.code.toByte(), 'a'.code.toByte(), 'r'.code.toByte(), '!'.code.toByte()))
 
-        assertEquals(ComicFileFormat.Rar, ComicSourceFactory.detectFormat(file))
+        assertEquals(ComicFileFormat.Rar, ComicSourceFactory.detectFormat(file.inputStream().channel))
     }
 
     @Test
@@ -31,13 +31,13 @@ class ComicSourceFactoryTest {
         val file = temporaryFolder.newFile("comic.dat")
         file.writeBytes(byteArrayOf(0x25, 0x50, 0x44, 0x46))
 
-        assertEquals(ComicFileFormat.Pdf, ComicSourceFactory.detectFormat(file))
+        assertEquals(ComicFileFormat.Pdf, ComicSourceFactory.detectFormat(file.inputStream().channel))
     }
 
     @Test
     fun classifiesEmptyFileAsUnsupported() {
         val file = temporaryFolder.newFile("comic.dat")
 
-        assertEquals(ComicFileFormat.Unsupported, ComicSourceFactory.detectFormat(file))
+        assertEquals(ComicFileFormat.Unsupported, ComicSourceFactory.detectFormat(file.inputStream().channel))
     }
 }

@@ -2,17 +2,23 @@ package com.comicify.feature.reader.data
 
 import android.content.Context
 import android.net.Uri
+import android.os.ParcelFileDescriptor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.channels.FileChannel
+import java.nio.file.Files
 
 object ComicSourceFactory {
 
-    suspend fun open(context: Context, uri: Uri): ComicSource =
+    suspend fun open(context: Context, uri: Uri, startPage: Int): ComicSource =
         withContext(Dispatchers.IO) {
-            val cacheFile = copyToCacheFile(context, uri)
-            val source = openSource(cacheFile)
+            val descriptor = context.contentResolver.openFileDescriptor(uri, "r")
+                ?: throw ComicSourceException.ReadFailure(IOException("Cannot open comic descriptor"))
+            val source = openSource(context, descriptor, startPage)
             if (source.pageCount == 0) {
                 source.close()
                 throw ComicSourceException.EmptyArchive()
@@ -23,41 +29,39 @@ object ComicSourceFactory {
     suspend fun openFolder(context: Context, treeUri: Uri): ComicSource =
         FolderComicSource.fromTree(context, treeUri)
 
-    private fun copyToCacheFile(context: Context, uri: Uri): File {
-        val cacheFile = File.createTempFile("comic", ".dat", context.cacheDir)
+    private suspend fun openSource(context: Context, descriptor: ParcelFileDescriptor, startPage: Int): ComicSource =
         try {
-            val input = context.contentResolver.openInputStream(uri)
-                ?: throw ComicSourceException.ReadFailure(IOException("Cannot open comic stream"))
-            input.use { stream -> cacheFile.outputStream().use { output -> stream.copyTo(output) } }
+            when (detectFormat(FileInputStream(descriptor.fileDescriptor).channel)) {
+                ComicFileFormat.Pdf -> PdfComicSource.fromDescriptor(descriptor)
+                ComicFileFormat.Rar -> CbrComicSource.fromDescriptor(descriptor, freshExtractDir(context), startPage)
+                ComicFileFormat.Zip -> CbzComicSource.fromFile(copyToCacheFile(context, descriptor))
+                ComicFileFormat.Unsupported -> throw ComicSourceException.UnsupportedFormat()
+            }
         } catch (e: ComicSourceException) {
-            cacheFile.delete()
+            descriptor.close()
             throw e
         } catch (e: IOException) {
-            cacheFile.delete()
+            descriptor.close()
             throw ComicSourceException.ReadFailure(e)
+        }
+
+    private fun copyToCacheFile(context: Context, descriptor: ParcelFileDescriptor): File {
+        val cacheFile = File.createTempFile("comic", ".dat", context.cacheDir)
+        try {
+            descriptor.use { FileInputStream(it.fileDescriptor).use { input -> cacheFile.outputStream().use(input::copyTo) } }
+        } catch (e: IOException) {
+            cacheFile.delete()
+            throw e
         }
         return cacheFile
     }
 
-    private suspend fun openSource(cacheFile: File): ComicSource =
-        try {
-            when (detectFormat(cacheFile)) {
-                ComicFileFormat.Pdf -> PdfComicSource.fromFile(cacheFile)
-                ComicFileFormat.Rar -> CbrComicSource.fromFile(cacheFile)
-                ComicFileFormat.Zip -> CbzComicSource.fromFile(cacheFile)
-                ComicFileFormat.Unsupported -> throw ComicSourceException.UnsupportedFormat()
-            }
-        } catch (e: ComicSourceException) {
-            cacheFile.delete()
-            throw e
-        } catch (e: IOException) {
-            cacheFile.delete()
-            throw ComicSourceException.ReadFailure(e)
-        }
+    private fun freshExtractDir(context: Context): File =
+        Files.createTempDirectory(context.cacheDir.toPath(), "comic_pages").toFile()
 
-    internal fun detectFormat(file: File): ComicFileFormat {
-        val magic = ByteArray(MAGIC_BYTE_COUNT)
-        file.inputStream().use { it.read(magic) }
-        return detectComicFileFormat(magic)
+    internal fun detectFormat(channel: FileChannel): ComicFileFormat {
+        val magic = ByteBuffer.allocate(MAGIC_BYTE_COUNT)
+        channel.read(magic, 0)
+        return detectComicFileFormat(magic.array())
     }
 }

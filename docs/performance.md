@@ -125,3 +125,11 @@ startup, thumbnail scrubber, zoom/pan, decode placement.
   "Buffer Stuffing" in the frame timeline) on the first frame after idle,
   and `gfxinfo` still counts it as one janky frame per gesture. Nothing to
   fix on the app side; it is invisible at 60 Hz.
+- **3, open latency** — RAR and PDF now open on the SAF descriptor
+  (`DescriptorInStream`, `PdfRenderer(descriptor)`), and RAR extraction starts
+  at the page the reader resumes on when the archive is not solid; ZIP keeps
+  its cache copy (`ZipFile` needs a path; `/proc/self/fd` reopen is `EACCES`
+  under scoped storage). Blacksad #1 (165 MB RAR): first page 509 → 361 ms;
+  Muerte (62-page RAR) resumed at page 19: ≈ 800 → 222 ms. The remaining
+  ≈ 240 ms before the first Blacksad decode is the archive listing plus the
+  first three 7 MB items coming out of the extractor. See `file-formats.md`.

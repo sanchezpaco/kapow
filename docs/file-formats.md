@@ -29,8 +29,13 @@ interface ComicSource {
 ## Format detection by content
 
 Extensions lie: many `.cbr` files are actually ZIP archives. `ComicSourceFactory`
-copies the picked document to a cache file, reads the leading magic bytes, and
-routes on content, not extension:
+opens the picked document as a read-only `ParcelFileDescriptor`, reads the
+leading magic bytes through a positional `FileChannel` read, and routes on
+content, not extension. Only ZIP is copied to a cache file (`java.util.zip.ZipFile`
+needs a path, and reopening the descriptor through `/proc/self/fd` is refused
+with `EACCES` by scoped storage); RAR and PDF read the descriptor directly, so
+opening no longer scales with the archive size (Blacksad #1, 165 MB RAR, on
+the Fold: first page 509 → 361 ms):
 
 - `Rar!…` → RAR (both RAR4 and RAR5) → `CbrComicSource`.
 - `%PDF…` → PDF → `PdfComicSource`.
@@ -44,11 +49,16 @@ and is unit-tested independently of any file IO.
 - Read with **7-Zip-JBinding** (`com.github.omicronapps:7-Zip-JBinding-4Android`,
   via JitPack), which ships native `.so` per ABI and handles both RAR4 and RAR5.
   `junrar` was dropped because it cannot read RAR5.
-- The archive is opened once over a `RandomAccessFileInStream` and then
-  **extracted once, sequentially, in the background** into a per-comic
-  directory next to the cached archive (`<cache>_pages/<itemIndex>`), through a
-  single `extract(allIndices, …)` call whose `IArchiveExtractCallback` streams
-  each item to its own file.
+- The archive is opened once over `DescriptorInStream` (an `IInStream` doing
+  positional reads on the document's descriptor) and then **extracted once,
+  sequentially, in the background** into a per-comic temp directory in the
+  cache (`comic_pages*/<itemIndex>`), through `extract(indices, …)` calls whose
+  `IArchiveExtractCallback` streams each item to its own file. The caller
+  passes the page the reader will show first: for non-solid archives the items
+  from that page to the end are extracted first and the head afterwards, so
+  resuming a 62-page RAR at page 19 shows it after 222 ms instead of ~800 ms;
+  solid archives (`PropID.SOLID`) keep the single ascending pass, since 7-Zip
+  has to decompress the block from the start anyway.
 - Why: real `.cbr` files are usually *solid* RAR archives, so extracting a
   single item makes 7-Zip decompress the whole solid block from the start up to
   that item. Per-page extraction therefore costs O(N) for page N and page turns
@@ -61,7 +71,7 @@ and is unit-tested independently of any file IO.
   the pending deferreds with `ComicSourceException.ReadFailure`.
 - The extraction directory is wiped before extracting and deleted on `close()`.
   Closing while extraction is still running aborts it at the next item, and the
-  archive, cache file and directory are released from the extraction thread.
+  archive, descriptor and directory are released from the extraction thread.
 - Same image filtering/natural sorting as CBZ, behind the same `ComicSource`.
 - The bundled native library loads on 16 KB-page devices (verified on the
   API 37.1 foldable emulator).
@@ -81,8 +91,8 @@ and is unit-tested independently of any file IO.
 
 - Rendered with the framework `android.graphics.pdf.PdfRenderer` in
   `PdfComicSource`, behind the same `ComicSource` interface as CBZ/CBR.
-- The cache file is opened as a read-only `ParcelFileDescriptor`; the renderer
-  and descriptor are closed in `close()`, and the cache file is deleted.
+- The renderer is created straight on the document's `ParcelFileDescriptor`
+  (no cache copy); renderer and descriptor are closed in `close()`.
 - Each page is a `PdfRenderer.Page` rasterized to an `ARGB_8888` bitmap at the
   reader's target width, with height derived from the page aspect ratio. The
   bitmap is pre-filled white before `render` so transparent PDF backgrounds show

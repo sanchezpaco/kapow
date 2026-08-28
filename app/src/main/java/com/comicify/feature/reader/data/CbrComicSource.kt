@@ -15,18 +15,17 @@ import net.sf.sevenzipjbinding.ISequentialOutStream
 import net.sf.sevenzipjbinding.PropID
 import net.sf.sevenzipjbinding.SevenZip
 import net.sf.sevenzipjbinding.SevenZipException
-import net.sf.sevenzipjbinding.impl.RandomAccessFileInStream
+import android.os.ParcelFileDescriptor
 import java.io.File
 import java.io.IOException
 import java.io.OutputStream
-import java.io.RandomAccessFile
 
 class CbrComicSource private constructor(
-    private val cacheFile: File,
     private val extractDir: File,
-    private val randomAccessFile: RandomAccessFile,
+    private val stream: DescriptorInStream,
     private val archive: IInArchive,
     private val itemIndices: List<Int>,
+    private val extractionBatches: List<IntArray>,
 ) : ComicSource {
 
     private val extractedFiles: Map<Int, CompletableDeferred<File>> =
@@ -49,9 +48,7 @@ class CbrComicSource private constructor(
 
     private fun extractAllItems() {
         try {
-            if (itemIndices.isNotEmpty()) {
-                archive.extract(itemIndices.sorted().toIntArray(), false, ItemToFileCallback())
-            }
+            extractionBatches.forEach { batch -> archive.extract(batch, false, ItemToFileCallback()) }
         } catch (e: SevenZipException) {
             failPendingItems(ComicSourceException.ReadFailure(e))
         } finally {
@@ -114,31 +111,30 @@ class CbrComicSource private constructor(
 
     private fun release() {
         runCatching { archive.close() }
-        runCatching { randomAccessFile.close() }
-        runCatching { cacheFile.delete() }
+        runCatching { stream.close() }
         runCatching { extractDir.deleteRecursively() }
     }
 
     companion object {
-        private const val EXTRACT_DIR_SUFFIX = "_pages"
-
-        suspend fun fromFile(cacheFile: File): CbrComicSource =
+        suspend fun fromDescriptor(descriptor: ParcelFileDescriptor, extractDir: File, startPage: Int): CbrComicSource =
             withContext(Dispatchers.IO) {
-                val extractDir = freshExtractDir(cacheFile)
-                val randomAccessFile = RandomAccessFile(cacheFile, "r")
-                val archive = SevenZip.openInArchive(null, RandomAccessFileInStream(randomAccessFile))
+                val stream = DescriptorInStream(descriptor)
+                val archive = SevenZip.openInArchive(null, stream)
                 val itemIndices = (0 until archive.numberOfItems)
                     .filter { !isFolder(archive, it) && pathOf(archive, it).hasImageExtension() }
                     .sortedWith(compareBy(naturalOrder) { pathOf(archive, it) })
-                CbrComicSource(cacheFile, extractDir, randomAccessFile, archive, itemIndices)
+                CbrComicSource(extractDir, stream, archive, itemIndices, extractionBatches(archive, itemIndices, startPage))
             }
 
-        private fun freshExtractDir(cacheFile: File): File {
-            val dir = File(cacheFile.parentFile, cacheFile.nameWithoutExtension + EXTRACT_DIR_SUFFIX)
-            dir.deleteRecursively()
-            if (!dir.mkdirs()) throw ComicSourceException.ReadFailure(IOException("Cannot create $dir"))
-            return dir
+        private fun extractionBatches(archive: IInArchive, itemIndices: List<Int>, startPage: Int): List<IntArray> {
+            if (itemIndices.isEmpty()) return emptyList()
+            val start = startPage.coerceIn(0, itemIndices.size - 1)
+            if (isSolid(archive) || start == 0) return listOf(itemIndices.sorted().toIntArray())
+            return listOf(itemIndices.drop(start), itemIndices.take(start)).map { it.sorted().toIntArray() }
         }
+
+        private fun isSolid(archive: IInArchive): Boolean =
+            archive.getArchiveProperty(PropID.SOLID) as? Boolean ?: false
 
         private fun isFolder(archive: IInArchive, index: Int): Boolean =
             archive.getProperty(index, PropID.IS_FOLDER) as? Boolean ?: false

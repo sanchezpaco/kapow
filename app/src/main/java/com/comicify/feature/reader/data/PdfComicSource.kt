@@ -8,10 +8,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.io.File
 
 class PdfComicSource private constructor(
-    private val cacheFile: File,
     private val descriptor: ParcelFileDescriptor,
     private val renderer: PdfRenderer,
 ) : ComicSource {
@@ -38,16 +36,10 @@ class PdfComicSource private constructor(
     override fun close() {
         runCatching { renderer.close() }
         runCatching { descriptor.close() }
-        runCatching { cacheFile.delete() }
     }
 
     companion object {
-        suspend fun fromFile(cacheFile: File): PdfComicSource =
-            withContext(Dispatchers.IO) {
-                val descriptor =
-                    ParcelFileDescriptor.open(cacheFile, ParcelFileDescriptor.MODE_READ_ONLY)
-                val renderer = PdfRenderer(descriptor)
-                PdfComicSource(cacheFile, descriptor, renderer)
-            }
+        suspend fun fromDescriptor(descriptor: ParcelFileDescriptor): PdfComicSource =
+            withContext(Dispatchers.IO) { PdfComicSource(descriptor, PdfRenderer(descriptor)) }
     }
 }

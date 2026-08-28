@@ -233,10 +233,12 @@ Goal: the details that make it feel premium.
       hardware bitmaps. The remaining one-slow-frame-per-gesture on page
       turns is SurfaceFlinger buffer stuffing after idle, not app work. See
       `docs/performance.md`
-- [ ] Open latency vs archive size: SAF → cache copy ≈ 2.4 ms/MB before the
-      archive opens (Blacksad 165 MB RAR: first page at 509 ms), and CBR
-      extracts every item to disk again; open CBZ/PDF from the descriptor,
-      extract RAR items in reading order from the saved page
+- [x] Open latency vs archive size (2026-08-28): RAR and PDF open on the SAF
+      descriptor without the cache copy (`DescriptorInStream`), and non-solid
+      RARs extract from the resumed page first. Blacksad 165 MB: first page
+      509 → 361 ms; Muerte resumed at p.19: ≈ 800 → 222 ms. ZIP keeps the
+      copy (`ZipFile` needs a path, `/proc/self/fd` is refused by scoped
+      storage). See `docs/file-formats.md`
 - [ ] Cold detections are serial per page (≈ 250 ms in bubble mode; Guided
       View panels 130–210 ms, started only when the page becomes current):
       preload panels with the pages when Guided View is on

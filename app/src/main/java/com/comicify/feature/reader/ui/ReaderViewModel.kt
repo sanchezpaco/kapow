@@ -50,7 +50,7 @@ class ReaderViewModel(
 
     private fun openComic() {
         viewModelScope.launch {
-            runCatching { ComicSourceFactory.open(getApplication(), uri) }
+            runCatching { ComicSourceFactory.open(getApplication(), uri, state.value.position.pageIndex) }
                 .onSuccess { opened ->
                     source = opened
                     pageLoader = PageLoader(opened, viewModelScope, PanelDetector.forContext(getApplication()), detectionStore())
