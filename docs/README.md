@@ -12,6 +12,7 @@ How Kapow works, one concern per file.
 - [library.md](library.md) — import, storage, metadata, persistence
 - [i18n.md](i18n.md) — the bilingual (ES/EN) resource strategy
 - [performance.md](performance.md) — fluidity baseline on the Fold, how to measure, ranked findings
+- [release.md](release.md) — upload key, signed AAB, bundletool install, Play upload
 
 Keep these in sync with the code. If behavior changes, update the matching doc in
 the same change.

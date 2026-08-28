@@ -326,17 +326,20 @@ Goal: the details that make it feel premium.
 
 ## Phase 6 — Last tasks to 1.0
 
-Goal: a signed bundle on Google Play (internal testing first). App name, logo
-and store artwork are decided later and are not on this list.
+Goal: a signed bundle on Google Play (internal testing first). The app is
+Kapow (`com.sanchezpaco.kapow`, decided 2026-08-28); logo and store artwork
+are decided later and are not on this list.
 
 Blocking:
 
-- [ ] Release signing: upload keystore outside the repo (`local.properties` /
-      env), `signingConfigs.release`, Play App Signing. Today release is
-      installed with the debug key
-- [ ] AAB pipeline: `bundleRelease` with R8 + resource shrinking, confirm the
+- [x] Release signing: upload keystore outside the repo (`local.properties` /
+      env), `signingConfigs.release`, Play App Signing. See `docs/release.md`
+- [x] AAB pipeline: `bundleRelease` with R8 + resource shrinking, confirm the
       7-Zip-JBinding keep rules and the arm64-only `abiFilter` survive the
-      bundle, install the bundle-derived APK on the Fold
+      bundle, install the bundle-derived APK (`make deploy-bundle`; verified
+      on the emulator, Fold pending)
+- [ ] Play Console: create the app as Kapow, upload the first bundle by hand,
+      link a service account for `make publish-internal`
 - [ ] Onboarding on first launch (≤ 3 steps): choose the folder, reader
       gestures over the first page (centre = HUD, edges = page turn, pinch =
       zoom), Guided View + enlarged bubbles with the HUD toggles pointed out;

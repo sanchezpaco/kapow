@@ -1,5 +1,6 @@
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -21,6 +22,16 @@ val buildLabel = (findProperty("buildLabel") as String?) ?: run {
     "$time $gitSha"
 }
 
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use(::load)
+}
+
+fun releaseSecret(name: String): String? =
+    localProperties.getProperty("kapow.keystore.$name") ?: System.getenv("KAPOW_KEYSTORE_${name.uppercase()}")
+
+val uploadKeystorePath = releaseSecret("path")
+
 android {
     namespace = "com.comicify"
     compileSdk = 37
@@ -40,6 +51,17 @@ android {
         }
     }
 
+    signingConfigs {
+        if (uploadKeystorePath != null) {
+            create("upload") {
+                storeFile = file(uploadKeystorePath)
+                storePassword = releaseSecret("storePassword")
+                keyAlias = releaseSecret("keyAlias")
+                keyPassword = releaseSecret("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -48,6 +70,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("upload")
         }
     }
 

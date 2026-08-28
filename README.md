@@ -36,7 +36,8 @@ JBR works). A JDK 17 toolchain is resolved automatically for compilation.
 ./gradlew :app:installDebug
 ```
 
-The debug build uses the `com.sanchezpaco.kapow.debug` application id.
+The debug build uses the `com.sanchezpaco.kapow.debug` application id. Release
+signing and the Play bundle are covered in `docs/release.md`.
 
 ### Trying it on a foldable emulator
 
