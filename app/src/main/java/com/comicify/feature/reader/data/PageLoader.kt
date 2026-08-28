@@ -1,5 +1,6 @@
 package com.comicify.feature.reader.data
 
+import android.graphics.Bitmap
 import android.util.LruCache
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -60,7 +61,10 @@ class PageLoader(
         val decoded = source.decodePage(index, TARGET_WIDTH_PX)
         return withContext(Dispatchers.Default) {
             val bitmap = if (CROP_MARGINS) decoded.contentCropped() else decoded
-            PageArt(bitmap.asImageBitmap(), Color(bitmap.ambientColorInt()))
+            val analysis = bitmap.atAnalysisSize()
+            val image = bitmap.copy(Bitmap.Config.HARDWARE, false) ?: bitmap
+            if (image !== bitmap && analysis !== bitmap) bitmap.recycle()
+            PageArt(image.asImageBitmap(), analysis.asImageBitmap(), Color(analysis.ambientColorInt()))
         }
     }
 
@@ -70,7 +74,7 @@ class PageLoader(
     suspend fun panels(index: Int): List<Rect> {
         panelCache[index]?.let { return it }
         val art = load(index)
-        return withContext(Dispatchers.Default) { panelDetector.detect(art.image.asAndroidBitmap()) }
+        return withContext(Dispatchers.Default) { panelDetector.detect(art.analysis.asAndroidBitmap()) }
             .also { panelCache.put(index, it) }
     }
 
@@ -85,7 +89,7 @@ class PageLoader(
     private suspend fun detectBubbles(index: Int): List<SpeechBubble> {
         val art = load(index)
         return detectionSlots.withPermit {
-            withContext(Dispatchers.Default) { panelDetector.bubbles(art.image.asAndroidBitmap()) }
+            withContext(Dispatchers.Default) { panelDetector.bubbles(art.analysis.asAndroidBitmap()) }
         }
     }
 

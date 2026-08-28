@@ -9,10 +9,8 @@ import com.comicify.feature.reader.domain.PanelLayout
 import com.comicify.feature.reader.domain.PixelClasses
 import com.comicify.feature.reader.domain.SpeechBubble
 import com.comicify.feature.reader.domain.SpeechBubbles
-import kotlin.math.min
 import kotlin.math.roundToInt
 
-private const val ANALYSIS_SIDE = 1000
 private const val ORDERING_GRID = 1000
 private const val PANELS_MODEL = "models/panels.onnx"
 private const val BUBBLES_MODEL = "models/bubbles.onnx"
@@ -49,11 +47,6 @@ class PanelDetector(private val panelModel: OnnxBoxDetector, private val bubbleM
         return detect(PixelClasses.classify(pixels, analysed.width, analysed.height, 1))
     }
 
-    private fun Bitmap.atAnalysisSize(): Bitmap {
-        val scale = ANALYSIS_SIDE / min(width, height).toFloat()
-        if (scale >= 1f) return this
-        return Bitmap.createScaledBitmap(this, (width * scale).roundToInt(), (height * scale).roundToInt(), true)
-    }
 
     companion object {
         fun forContext(context: Context) = PanelDetector(

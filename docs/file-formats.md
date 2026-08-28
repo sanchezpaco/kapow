@@ -132,7 +132,17 @@ bitmap and average/quantize edge rows/columns.
 
 ## Memory strategy
 
-- Decode to target width, never full-res for paging.
-- Coil memory + disk cache handles reuse and preloading.
-- On low memory, reduce preload count and evict non-visible full-res zoom
-  bitmaps first.
+- Decode to target width (2160 px, power-of-two subsampling), never full-res
+  for paging; an `LruCache` of 8 pages plus a thumbnail cache in `PageLoader`.
+- The displayed page is a **hardware bitmap** (`Bitmap.Config.HARDWARE`,
+  2026-08-28). Software bitmaps of 1988 × 3056 (24 MB each, three resident
+  around the pager) blew HWUI's 72 MB texture cache on the Z Fold, so every
+  frame of a page turn re-uploaded a page: 78 % janky frames, 73 ms median,
+  93 slow bitmap uploads in 121 frames on Doctor Doom #1. GPU-resident pages
+  need no upload: 1.8 % janky, 5 ms median, 0 slow uploads on the same turns.
+- Hardware bitmaps cannot be read, so `PageArt` also keeps a software
+  `analysis` copy at the detector's size (shorter side 1000 px, what
+  `PanelDetector` already rescaled to): margin crop runs before the copy,
+  ambient colour, panel/bubble detection and the paper-colour sampling of
+  enlarged bubbles read the analysis bitmap; drawing (page, bubble copies,
+  Guided View) uses the hardware one.

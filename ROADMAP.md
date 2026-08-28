@@ -179,6 +179,13 @@ Goal: the details that make it feel premium.
       emulator, so the shipped fill must be far cheaper (small crop / tiny
       model / classical fill for thin crescents). Decide after the item above
       shows how much area is actually left. See `docs/speech-bubbles.md`
+- [x] Page-turn lag on the Z Fold (2026-08-28, reported on Doctor Doom #1
+      pp. 18-21, bubbles off): software page bitmaps (24 MB each) thrashed
+      HWUI's 72 MB texture cache, re-uploading a page per frame. Pages are
+      now hardware bitmaps with a small software analysis copy for crop,
+      ambient colour and ML. `gfxinfo` on the same turns: janky frames
+      78 % → 1.8 %, median 73 → 5 ms, slow bitmap uploads 93 → 0. See
+      `docs/file-formats.md`
 - [ ] Verify bubble student v4 on the physical Z Fold (`make deploy`; 2099
       Vol1 04 p.7 caption, Blacksad 1 p.13, Doom #9 pp. 5-8) — closes v4
       before anything else changes
