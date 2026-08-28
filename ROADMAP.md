@@ -221,8 +221,17 @@ Goal: the details that make it feel premium.
       Graphics: ~125 MB of page textures for 5 pages plus ~185 MB EGL
       (window buffers, the page-turn and zoom `graphicsLayer`s); not worth
       touching without a reason
-- [ ] Battery: last, since it inherits the items above; `batterystats` over a
-      fixed 20-page read, touch preload/parallelism only if the numbers say so
+- [x] Battery (2026-08-28, release on the Fold, `dumpsys battery unplug` +
+      `batterystats --reset`, 20 page turns ≈ 1 m 50 s, Android's power model
+      so relative numbers only): bubbles off 5.3 mAh (screen 3.5, cpu 1.9,
+      11 s user CPU); bubbles on, first read 7.4 mAh (cpu 3.7, 24 s CPU);
+      bubbles on, detections from Room 6.5 mAh (cpu 2.8, 17 s CPU). So
+      bubble mode costs +40 % on a first read and +22 % on a re-read; the
+      model is about half of the bubble cost, layout + overlay the other
+      half (~0.3 s CPU per page — the latency item's target). Extrapolated:
+      ~3.6 % of the battery per hour reading, ~5 % with bubbles, screen
+      dominating. Nothing to change in preload or parallelism
+      (`PARALLEL_DETECTIONS` = 1 already)
 - [ ] Outliner: idea 3b (paper body leaking into pale art beside the rim) and
       a merge of ML boxes nested inside one paper body (2099 p.7 offline);
       independent of the resource items, scored on the silhouette ground truth
