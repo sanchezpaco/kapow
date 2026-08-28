@@ -7,16 +7,19 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.comicify.core.storage.DatabaseEntryPoint
 import com.comicify.core.storage.ReaderPreferencesRepository
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.domain.model.ReadingPosition
 import com.comicify.feature.reader.data.ComicSource
 import com.comicify.feature.reader.data.ComicSourceException
 import com.comicify.feature.reader.data.ComicSourceFactory
+import com.comicify.feature.reader.data.PageDetectionStore
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.data.PanelDetector
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.ComicOpenError
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,7 +53,7 @@ class ReaderViewModel(
             runCatching { ComicSourceFactory.open(getApplication(), uri) }
                 .onSuccess { opened ->
                     source = opened
-                    pageLoader = PageLoader(opened, viewModelScope, PanelDetector.forContext(getApplication()))
+                    pageLoader = PageLoader(opened, viewModelScope, PanelDetector.forContext(getApplication()), detectionStore())
                     _state.update { it.copy(loading = false, pageCount = opened.pageCount) }
                 }
                 .onFailure { throwable ->
@@ -58,6 +61,11 @@ class ReaderViewModel(
                     _state.update { it.copy(loading = false, error = error) }
                 }
         }
+    }
+
+    private fun detectionStore(): PageDetectionStore {
+        val dao = EntryPointAccessors.fromApplication(getApplication(), DatabaseEntryPoint::class.java).pageDetectionDao()
+        return PageDetectionStore(dao, uri.toString())
     }
 
     fun onPageChanged(pageIndex: Int) {

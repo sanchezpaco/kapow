@@ -110,7 +110,9 @@ robust structural facts rather than a single threshold:
    auto-crops margins on splashes.
 
 Output: `List<Rect>` in normalized page coordinates (0..1), cached per page in
-`PageLoader` (only computed when Guided View is used). The heuristic takes
+`PageLoader` (only computed when Guided View is used) and persisted in the
+`page_detections` Room table so a re-read never re-runs the model (see
+`docs/speech-bubbles.md`, "Persisted detections"). The heuristic takes
 ~100–250 ms per page on the JVM and is frozen since 2026-08-23: the remaining
 failures are not separable by pixel rules, which is why the ML model is the
 default path.

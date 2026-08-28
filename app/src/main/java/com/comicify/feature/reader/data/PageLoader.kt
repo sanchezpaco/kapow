@@ -1,6 +1,7 @@
 package com.comicify.feature.reader.data
 
 import android.graphics.Bitmap
+import android.util.Log
 import android.util.LruCache
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -24,11 +25,13 @@ private const val CACHE_SIZE = 8
 private const val CROP_MARGINS = true
 private const val THUMB_CACHE_SIZE = 64
 private const val PARALLEL_DETECTIONS = 1
+private const val LOG_TAG = "PageLoader"
 
 class PageLoader(
     private val source: ComicSource,
     private val scope: CoroutineScope,
     private val panelDetector: PanelDetector,
+    private val detectionStore: PageDetectionStore,
 ) {
     private val cache = LruCache<Int, PageArt>(CACHE_SIZE)
     private val thumbCache = LruCache<Int, ImageBitmap>(THUMB_CACHE_SIZE)
@@ -73,24 +76,30 @@ class PageLoader(
 
     suspend fun panels(index: Int): List<Rect> {
         panelCache[index]?.let { return it }
+        return (detectionStore.panels(index) ?: detectPanels(index)).also { panelCache.put(index, it) }
+    }
+
+    private suspend fun detectPanels(index: Int): List<Rect> {
         val art = load(index)
+        Log.d(LOG_TAG, "detecting panels on page $index")
         return withContext(Dispatchers.Default) { panelDetector.detect(art.analysis.asAndroidBitmap()) }
-            .also { panelCache.put(index, it) }
+            .also { detectionStore.savePanels(index, it) }
     }
 
     suspend fun bubbles(index: Int): List<SpeechBubble> {
         bubbleCache[index]?.let { return it }
         val mutex = synchronized(bubbleLocks) { bubbleLocks.getOrPut(index) { Mutex() } }
         return mutex.withLock {
-            bubbleCache[index] ?: detectBubbles(index).also { bubbleCache.put(index, it) }
+            bubbleCache[index] ?: (detectionStore.bubbles(index) ?: detectBubbles(index)).also { bubbleCache.put(index, it) }
         }
     }
 
     private suspend fun detectBubbles(index: Int): List<SpeechBubble> {
         val art = load(index)
+        Log.d(LOG_TAG, "detecting bubbles on page $index")
         return detectionSlots.withPermit {
             withContext(Dispatchers.Default) { panelDetector.bubbles(art.analysis.asAndroidBitmap()) }
-        }
+        }.also { detectionStore.saveBubbles(index, it) }
     }
 
     fun preload(around: Int, indices: Iterable<Int>, withBubbles: Boolean) {

@@ -22,7 +22,28 @@ page is scaled so its **shorter** side is ~1000 px, so a double-page spread
 keeps the same cell size as a single page and its small bubbles survive). `SpeechBubbles` and `BubbleLayout` are pure
 Kotlin in `feature/reader/domain`, unit-tested on synthetic pages. Detection
 runs off the main thread and is cached per page in `PageLoader` (only when the
-toggle is used).
+toggle is used), first in memory and then in Room (see below).
+
+## Persisted detections (`page_detections`)
+
+Detections are never recomputed for a page already seen. `PageLoader.panels`
+and `bubbles` check their `LruCache`, then `PageDetectionStore`, and only then
+run `PanelDetector`, writing the result through to Room. The
+`page_detections` table (`core/storage`, DB version 3) is keyed by document
+URI and page index — the reader opens by URI, and a library rescan that
+recreates the `comics` row does not invalidate detections — with nullable
+`panels` and `bubbles` columns so Guided View and bubble mode fill their
+own half independently. Rects and outlines are normalised page coordinates
+serialised by `PageDetectionCodec` (pure Kotlin, round-trip tested): panels
+`l,t,r,b;…`, bubbles `l,t,r,b|x,y,x,y,…/…;…`.
+
+Every row carries `modelVersion` = `DETECTIONS_VERSION` (`PanelDetector.kt`,
+e.g. `panels-v1+bubbles-v4`). Bump it whenever a bundled ONNX model, the
+outliner or the panel heuristic changes; rows with another version are
+ignored and overwritten lazily on the next visit, so there is no migration
+to write when a model ships. `PageLoader` logs `detecting bubbles on page N`
+at debug level on every real model run; a second open of a comic in bubble
+mode must log none.
 
 ## ML boxes (`OnnxBoxDetector`)
 

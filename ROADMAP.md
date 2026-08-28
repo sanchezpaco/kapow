@@ -186,13 +186,19 @@ Goal: the details that make it feel premium.
       ambient colour and ML. `gfxinfo` on the same turns: janky frames
       78 % → 1.8 %, median 73 → 5 ms, slow bitmap uploads 93 → 0. See
       `docs/file-formats.md`
-- [ ] Verify bubble student v4 on the physical Z Fold (`make deploy`; 2099
-      Vol1 04 p.7 caption, Blacksad 1 p.13, Doom #9 pp. 5-8) — closes v4
-      before anything else changes
-- [ ] Persist page detections (panels + bubbles) in Room, keyed by comic,
-      page and model version, so re-reading never re-runs the ML. Do this
-      first among the resource items: it changes behaviour, so RAM and
-      battery must be measured after it, not before
+- [x] Verify bubble student v4 on the physical Z Fold (2026-08-28: 2099
+      Vol1 04 p.7 caption, Blacksad 1 p.13, Doom #9 pp. 5-8 all looked right)
+- [x] Persist page detections (panels + bubbles) in Room (2026-08-28):
+      `page_detections` keyed by document URI and page, tagged with
+      `DETECTIONS_VERSION`; `PageLoader` reads the row before running a
+      model and writes through after. Second open of a 5-page comic in
+      bubble mode: 5 → 0 bubble runs. RAM and battery are measured after
+      this, not before. See `docs/speech-bubbles.md`
+- [ ] Bubble enlarge latency: investigate whether the time from toggling
+      bubbles to seeing them enlarged can be cut. Profile the chain on the
+      Fold (ML boxes ~35 ms, outlining, `BubbleLayout` ≈50 ms JVM / 0.8 s
+      worst case, paper sampling, overlay composition) on a cold page and on
+      a Room-cached page, and attack whichever step dominates
 - [ ] APK size: arm64-v8a only (ABI split), ONNX Runtime minimal build with
       just the YOLO26 ops, drop unused 7-Zip-JBinding ABIs, R8 already on.
       Orthogonal to runtime behaviour; measure with `apkanalyzer` before/after
