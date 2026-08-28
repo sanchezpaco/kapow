@@ -10,6 +10,7 @@ How Kapow works, one concern per file.
 - [speech-bubbles.md](speech-bubbles.md) — enlarged speech bubbles toggle (detection, layout, overlay)
 - [ml-runtime.md](ml-runtime.md) — minimal ONNX Runtime build and ORT-format models: how the AAR and the `.ort` assets are produced
 - [library.md](library.md) — import, storage, metadata, persistence
+- [onboarding.md](onboarding.md) — first-launch steps, the DataStore flag, replay from Settings
 - [i18n.md](i18n.md) — the bilingual (ES/EN) resource strategy
 - [performance.md](performance.md) — fluidity baseline on the Fold, how to measure, ranked findings
 - [release.md](release.md) — upload key, signed AAB, bundletool install, Play upload

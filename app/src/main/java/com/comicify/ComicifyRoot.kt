@@ -35,6 +35,8 @@ import com.comicify.feature.library.ui.LibraryScreen
 import com.comicify.feature.library.ui.LibraryViewModel
 import com.comicify.feature.library.ui.LocalAnimatedVisibilityScope
 import com.comicify.feature.library.ui.LocalSharedTransitionScope
+import com.comicify.feature.onboarding.ui.OnboardingScreen
+import com.comicify.feature.onboarding.ui.OnboardingViewModel
 import com.comicify.feature.reader.ui.ReaderScreen
 import com.comicify.feature.settings.ui.AppSettingsScreen
 
@@ -44,6 +46,7 @@ private const val READER_ENTER_SCALE = 0.94f
 private data class OpenRequest(val uri: Uri, val comicId: Long?, val initialPage: Int, val ambient: Color?)
 
 private sealed interface Screen {
+    data object Onboarding : Screen
     data object Library : Screen
     data class Settings(val comics: List<LibraryComic>) : Screen
     data object AppSettings : Screen
@@ -55,13 +58,17 @@ private sealed interface Screen {
 fun ComicifyRoot(initialUri: Uri? = null) {
     val viewModel: LibraryViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val onboarding: OnboardingViewModel = hiltViewModel()
+    val onboardingSeen by onboarding.seen.collectAsStateWithLifecycle()
     var open by remember {
         mutableStateOf(initialUri?.let { OpenRequest(uri = it, comicId = null, initialPage = 0, ambient = null) })
     }
     var settingsOf by remember { mutableStateOf<List<LibraryComic>?>(null) }
     var appSettingsOpen by remember { mutableStateOf(false) }
+    val seen = onboardingSeen ?: return
     val screen: Screen = open?.let { Screen.Reader(it) }
-        ?: settingsOf?.let { Screen.Settings(it) }
+        ?: if (!seen) Screen.Onboarding
+        else settingsOf?.let { Screen.Settings(it) }
         ?: if (appSettingsOpen) Screen.AppSettings else Screen.Library
 
     Surface(
@@ -84,6 +91,10 @@ fun ComicifyRoot(initialUri: Uri? = null) {
                     LocalAnimatedVisibilityScope provides this@AnimatedContent,
                 ) {
                     when (target) {
+                        Screen.Onboarding -> OnboardingScreen(
+                            onFolderPicked = viewModel::onFolderPicked,
+                            onFinished = { appSettingsOpen = false; onboarding.finish() },
+                        )
                         Screen.Library -> LibraryScreen(
                             state = state,
                             onFolderPicked = viewModel::onFolderPicked,
@@ -134,6 +145,7 @@ fun ComicifyRoot(initialUri: Uri? = null) {
 }
 
 private fun Screen.key(): Any = when (this) {
+    Screen.Onboarding -> "onboarding"
     Screen.Library -> "library"
     is Screen.Settings -> "settings-${comics.first().id}"
     Screen.AppSettings -> "app-settings"

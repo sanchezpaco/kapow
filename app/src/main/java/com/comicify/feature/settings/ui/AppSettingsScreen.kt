@@ -101,7 +101,7 @@ fun AppSettingsScreen(scanning: Boolean, onFolderPicked: (Uri) -> Unit, onRefres
         ScreenSection(state, viewModel)
         LibrarySection(state.folderUri, scanning, onPickFolder = { folderLauncher.launch(null) }, onRefresh = onRefresh)
         AppearanceSection(state.theme, onThemeSelected = viewModel::onThemeSelected)
-        AboutSection()
+        AboutSection(onReplayOnboarding = viewModel::onReplayOnboarding)
     }
 }
 
@@ -270,12 +270,22 @@ private fun ThemeAccent.labelRes(): Int = when (this) {
 }
 
 @Composable
-private fun AboutSection() {
+private fun AboutSection(onReplayOnboarding: () -> Unit) {
     val palette = ComicifyTheme.palette
     SectionHeader(eyebrow = stringResource(R.string.app_name), title = stringResource(R.string.app_settings_about))
     Text(
         text = stringResource(R.string.app_settings_version, BuildConfig.VERSION_NAME, BuildConfig.BUILD_LABEL),
         style = MaterialTheme.typography.bodyMedium,
         color = palette.inkDim,
+    )
+    Text(
+        text = stringResource(R.string.app_settings_replay_onboarding),
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = palette.accent,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onReplayOnboarding)
+            .padding(vertical = 6.dp),
     )
 }

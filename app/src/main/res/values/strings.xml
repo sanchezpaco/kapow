@@ -102,6 +102,20 @@
     <string name="app_settings_accent_dynamic">Material You (wallpaper colour)</string>
     <string name="app_settings_about">About</string>
     <string name="app_settings_version">Version %1$s · build %2$s</string>
+    <string name="app_settings_replay_onboarding">Show the introduction again</string>
+
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_start">Start reading</string>
+    <string name="onboarding_folder_title">Your comics, your folder</string>
+    <string name="onboarding_folder_body">Point Kapow at the folder where you keep your CBZ, CBR and PDF files. It builds the bookshelf and keeps it up to date.</string>
+    <string name="onboarding_folder_sample">You can do this later from Settings. A sample comic is already on the shelf.</string>
+    <string name="onboarding_gestures_title">Reading gestures</string>
+    <string name="onboarding_gestures_body">Tap the left or right edge to turn the page, tap the middle for the controls. Pinch or double-tap to zoom in; swipe to move between pages.</string>
+    <string name="onboarding_modes_title">Two ways to read</string>
+    <string name="onboarding_modes_body">Both live in the reader controls and can be turned on by default in Settings.</string>
+    <string name="onboarding_guided_body">Reads panel by panel: each tap moves to the next one, framed for the screen.</string>
+    <string name="onboarding_bubbles_body">Redraws speech bubbles bigger so the lettering stays readable on a small screen.</string>
 
     <string name="reader_loading">Loading comic…</string>
     <string name="reader_page_of">Page %1$d of %2$d</string>

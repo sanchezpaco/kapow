@@ -64,6 +64,7 @@ class AppSettingsViewModel @Inject constructor(
     fun onNightTintChanged(enabled: Boolean) = save { preferences.setNightTintEnabled(enabled) }
     fun onKeepScreenOnChanged(enabled: Boolean) = save { preferences.setKeepScreenOn(enabled) }
     fun onThemeSelected(theme: ThemeChoice) = save { preferences.setTheme(theme) }
+    fun onReplayOnboarding() = save { preferences.setOnboardingSeen(false) }
 
     private fun save(write: suspend () -> Unit) {
         viewModelScope.launch { write() }

@@ -340,10 +340,10 @@ Blocking:
       on the emulator, Fold pending)
 - [ ] Play Console: create the app as Kapow, upload the first bundle by hand,
       link a service account for `make publish-internal`
-- [ ] Onboarding on first launch (≤ 3 steps): choose the folder, reader
-      gestures over the first page (centre = HUD, edges = page turn, pinch =
-      zoom), Guided View + enlarged bubbles with the HUD toggles pointed out;
-      "Show again" from Settings → About. Flag in DataStore
+- [x] Onboarding on first launch (3 steps): choose the folder, reader
+      gestures (centre = HUD, edges = page turn, pinch = zoom), Guided View +
+      enlarged bubbles with the HUD icons; "Show the introduction again" from
+      Settings → About. Flag in DataStore. See `docs/onboarding.md`
 - [ ] Privacy policy URL + Play "Data safety" form (no data collected), and
       explicit `dataExtractionRules` / `fullBackupContent` so auto-backup
       restores Room + DataStore but not the cache

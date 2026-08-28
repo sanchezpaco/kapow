@@ -34,6 +34,9 @@ class ReaderPreferencesRepository(private val context: Context) {
     val keepScreenOn: Flow<Boolean> = flag(KEEP_SCREEN_ON, default = true)
     suspend fun setKeepScreenOn(enabled: Boolean) = set(KEEP_SCREEN_ON, enabled)
 
+    val onboardingSeen: Flow<Boolean> = flag(ONBOARDING_SEEN, default = false)
+    suspend fun setOnboardingSeen(seen: Boolean) = set(ONBOARDING_SEEN, seen)
+
     val bubblesOnOpen: Flow<Boolean> = flag(BUBBLES_ON_OPEN, default = false)
     suspend fun setBubblesOnOpen(enabled: Boolean) = set(BUBBLES_ON_OPEN, enabled)
 
@@ -80,6 +83,7 @@ class ReaderPreferencesRepository(private val context: Context) {
         val VOLUME_KEY_PAGE_TURN_ENABLED = booleanPreferencesKey("volume_key_page_turn_enabled")
         val NIGHT_TINT_ENABLED = booleanPreferencesKey("night_tint_enabled")
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
+        val ONBOARDING_SEEN = booleanPreferencesKey("onboarding_seen")
         val BUBBLES_ON_OPEN = booleanPreferencesKey("bubbles_on_open")
         val GUIDED_ON_OPEN = booleanPreferencesKey("guided_on_open")
         val READING_DIRECTION_RTL = booleanPreferencesKey("reading_direction_rtl")

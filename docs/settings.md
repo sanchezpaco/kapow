@@ -20,7 +20,8 @@ preferences; the reader HUD still toggles some of them in place.
   scanning/error state; the settings screen only shows the spinner on the
   Refresh button while a scan runs.
 - **Appearance** — theme picker, below.
-- **About** — version name and build label.
+- **About** — version name and build label, and "Show the introduction
+  again" (`docs/onboarding.md`).
 
 Everything is stored in `ReaderPreferencesRepository` (DataStore
 `reader_preferences`); the folder Uri stays in `LibraryPreferences`.
