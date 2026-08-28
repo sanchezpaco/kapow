@@ -1,6 +1,7 @@
 package com.comicify.feature.reader.data
 
 import android.graphics.Bitmap
+import android.os.SystemClock
 import android.util.Log
 import android.util.LruCache
 import androidx.compose.ui.geometry.Rect
@@ -81,8 +82,7 @@ class PageLoader(
 
     private suspend fun detectPanels(index: Int): List<Rect> {
         val art = load(index)
-        Log.d(LOG_TAG, "detecting panels on page $index")
-        return withContext(Dispatchers.Default) { panelDetector.detect(art.analysis.asAndroidBitmap()) }
+        return timed("panels", index) { withContext(Dispatchers.Default) { panelDetector.detect(art.analysis.asAndroidBitmap()) } }
             .also { detectionStore.savePanels(index, it) }
     }
 
@@ -96,10 +96,14 @@ class PageLoader(
 
     private suspend fun detectBubbles(index: Int): List<SpeechBubble> {
         val art = load(index)
-        Log.d(LOG_TAG, "detecting bubbles on page $index")
         return detectionSlots.withPermit {
-            withContext(Dispatchers.Default) { panelDetector.bubbles(art.analysis.asAndroidBitmap()) }
+            timed("bubbles", index) { withContext(Dispatchers.Default) { panelDetector.bubbles(art.analysis.asAndroidBitmap()) } }
         }.also { detectionStore.saveBubbles(index, it) }
+    }
+
+    private suspend fun <T> timed(what: String, index: Int, detect: suspend () -> T): T {
+        val started = SystemClock.elapsedRealtime()
+        return detect().also { Log.d(LOG_TAG, "detected $what on page $index in ${SystemClock.elapsedRealtime() - started} ms") }
     }
 
     fun preload(around: Int, indices: Iterable<Int>, withBubbles: Boolean) {
