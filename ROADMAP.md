@@ -164,14 +164,15 @@ Goal: the details that make it feel premium.
       (luminance 200-235) is classified relative to it, digital pages keep
       the global threshold. Spiderman 2099 box fallbacks 17 → 0, mean IoU
       0.758 → 0.879; digital series unchanged. See `docs/speech-bubbles.md`
-- [ ] Bubble student v4: retrain on every comic in `comics/` (120 files
-      since 2026-08-27, 73 of them new in 12 series: Doctor Doom #5-#9,
-      Absolute Carnage #1-#5, Escuadrón Suicida #0-#30, Loki, Marvel Zombies
-      #1-#5, Marvels: Ruinas, Black Cat Strikes #1-#5, Vader Down 1-6, two
-      Panini tomo scans and the first European albums, Blacksad 1-7 and
-      Rapaces — none seen by v3) and add the new styles to the
-      box ground truth. Prioritised ahead of the outlining ideas 3/3b on
-      2026-08-27 because the new comics arrived
+- [x] Bubble student v4 (2026-08-28): retrained on every comic in `comics/`
+      (121 files, 4,723 training pages of 31 series, 73 issues in 12 series
+      never seen by v3, incl. the first European albums Blacksad and Rapaces
+      and the painted Marvels: Ruinas), teacher pseudo-labels plus 57
+      subagent-reviewed corrections on the new styles. Box ground truth
+      98 → 147 pages (21 series). F1 0.968 → 0.971 (teacher 0.967), new
+      series 0.92-1.00 except Blacksad 0.88 (ground-truth geometry, all
+      three models equal), silhouette IoU 0.879 → 0.881, corpus uncovered
+      0.2269 → 0.2212, 29 ms/page. See `docs/speech-bubbles.md`
 - [ ] Bubble enlarge: fill the residual vacated area. LaMa spike (2026-08-26)
       proved ML inpainting blends the hole into the art (≈90 % judged good on
       138 real bubbles, six styles) but costs ≈4 s per 512² crop on the Fold

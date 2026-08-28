@@ -2,19 +2,19 @@
 
 Ideas worth trying that are not scheduled in `ROADMAP.md`. Each entry says what
 we measured, what we would change and how we would know it worked. Numbers date
-from 2026-08-27.
+from 2026-08-28.
 
 ## Where the numbers stand
 
 | Metric | Value |
 |---|---|
-| Bubble box F1, 98-page ground truth (student v3, on device) | 0.96 (teacher 0.96, heuristic 0.78) |
-| Bubble box F1, worst series (Defensores, 1970s halftone) | 0.88 (teacher 0.90) |
+| Bubble box F1, 147-page ground truth (student v4, laptop) | 0.971 (v3 0.968, teacher 0.967) |
+| Bubble box F1, worst series (Blacksad, ground-truth boxes offset) | 0.88 (v3 and teacher 0.88); Defensores 0.98 |
 | Panel box F1 | 0.93 (heuristic 0.77) |
 | Uncovered area after enlarge, Ben Reilly #01 (271 bubbles) | 0.0265 page-areas |
-| Uncovered area, 98-page corpus (870 bubbles) | 0.2268 |
-| Uncovered area, Doom #7/#9 (70 bubbles) | 0.0036 |
-| Silhouette IoU, 115 hand-validated outlines (`gt/silhouettes.json`) | mean 0.879, 76/115 ≥ 0.9, 0 box fallbacks; series 0.83-0.91 |
+| Uncovered area, 98-page corpus (876 bubbles) | 0.2212 |
+| Uncovered area, Doom #7/#9 (78 bubbles, 6 borderless captions now boxed) | 0.0072 |
+| Silhouette IoU, 115 hand-validated outlines (`gt/silhouettes.json`) | mean 0.881, 78/115 ≥ 0.9, 0 box fallbacks; series 0.83-0.91 |
 | LaMa inpainting (spike) | 70-90 % judged good, ~4 s per crop — not shipped |
 
 Box F1 at IoU ≥ 0.5 says whether a box exists, not whether it is tight; the
@@ -47,15 +47,16 @@ UMANO", Spiderman 2099 "AAAARON"), and the copy loses part of the line.
 taller than the body; a similar rule could close notches whose mouth lies on a
 text row inside the box. Measurable against the ground truth since idea 1.
 
-## 4. Student v4 retrain (scheduled, low urgency)
+## 4. Student v4 retrain (done 2026-08-28 — see ROADMAP Phase 5)
 
-Expected F1 gain is small (0.96 already). What it would buy is tighter boxes
-on unseen caption styles (Doom) and fewer near-duplicate boxes. Concrete
-case: Spiderman 2099 Vol1 04 p.7, caption "POR CULPA DE ESE SPIDERMAN" gets a
-second box over its last two lines (IoU too low for the NMS merge), and that
-sub-bubble's copy hides the line "A POR MÍ. DE HECHO" above it — the outline
-itself is complete, before and after idea 2. Do it after
-idea 1 so box tightness can be scored, not just presence.
+F1 0.968 → 0.971 on the ground truth grown to 147 pages; the gain is in
+recall (0.971 → 0.977) and on Titanes, Ben Reilly #03 and the Panini tomo.
+The Spiderman 2099 Vol1 04 p.7 split caption ("POR CULPA DE ESE
+SPIDERMAN") renders complete on the emulator with v4; offline at 2000 px the
+nested second box still appears, so a merge of boxes nested in one paper body
+remains a cheap safety net worth adding to the outliner. v4 also
+boxes borderless lettering over art (Doom #7 character captions), which the
+outliner turns into box fallbacks — a candidate for idea 3's family.
 
 ## 5. Cheap fill of the vacated crescents
 

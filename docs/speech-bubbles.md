@@ -73,6 +73,37 @@ exercise didn't benefit. A page where the model finds
 nothing yields no bubbles: falling back to the heuristic there was tried and
 only added false positives (manga pages without bubbles).
 
+Student v4 (2026-08-28) is a fine-tune of v3 on the whole `comics/` folder:
+4,723 pages of 31 series (250 per series, 8 % validation), 73 of the issues
+new — Doctor Doom, Absolute Carnage, Escuadrón Suicida, Loki, Marvel
+Zombies, Marvels: Ruinas (painted), Black Cat Strikes, Vader Down, two Panini
+tomo scans and the first European albums, Blacksad and Rapaces. The teacher
+labelled the pages (29,546 boxes); 500 training pages of the seven new
+styles were then reviewed by vision subagents for missed balloons and
+captions, which added 57 boxes on 33 pages (`v4_bubble_corrections.json`:
+"?" / "?!" mini-balloons, borderless narration captions, the Marvel Zombies
+recap captions on credits pages). 60 epochs, 4.6 h on MPS, val mAP50 0.992.
+The box ground truth grew to 147 pages of 21 series (`gt_{doom,ruinas,
+blacksad,rapaces,escuadron,vengadores174,carnage}.json`, 7 pages each).
+On it, bubble F1 v3 0.968 → v4 0.971 (teacher 0.967; precision 0.964 →
+0.965, recall 0.971 → 0.977), 29 ms per page on the laptop CPU. Per series
+v4 gains Titanes 0.93 → 0.96, Ben Reilly #03 0.96 → 0.98, Vengadores tomo
+0.97 → 0.99, Rapaces 0.99 → 1.00, loses Escuadrón and Ruinas 0.99 → 0.97;
+Defensores 0.98, Doom 0.97, Carnage 0.92. Blacksad reads 0.88 for v3, v4
+and the teacher alike with every balloon found on all seven pages — the
+subagent-drawn ground-truth boxes are offset on a few tall balloons and
+miss the IoU 0.3 match, a ground-truth artefact rather than a detector
+miss. Silhouette IoU 0.879 → 0.881 (76 → 78 of 115 ≥ 0.9, 0 fallbacks),
+98-page corpus uncovered area 0.2269 → 0.2212. Doom #7/#9 uncovered
+0.0036 → 0.0072 because v4 now boxes six borderless character-introduction
+captions (white lettering straight over art, so they fall back to the box)
+and two false positives on a "LIVE STREAM" screen graphic. The Spiderman
+2099 Vol1 04 p.7 split caption ("POR CULPA DE ESE SPIDERMAN", whose second
+box over the last line hid "A POR MÍ. DE HECHO" once enlarged) still shows
+the nested box on the 2000 px offline page, but on the Fold emulator — the
+analysis runs at 1000 px there — v4 yields one box and the enlarged caption
+reads complete; verified on the emulator, not yet on the physical Fold.
+
 Compression of the teacher, for the record: weight-only int8 (per-channel
 int8 Conv weights + `DequantizeLinear`, fp32 activations,
 `.claude/ml-spike-kit/quant_wo.py`) kept identical detections at 26 MB and
