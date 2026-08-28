@@ -106,8 +106,7 @@ and is unit-tested independently of any file IO.
 classified into a sealed `ComicOpenError` (`feature/reader/domain`) with three
 cases, each carried to the reader as a distinct localized message:
 
-- `UnsupportedFormat` — the magic bytes are not ZIP or RAR (PDF included, since
-  `PdfComicSource` does not exist yet).
+- `UnsupportedFormat` — the magic bytes are not ZIP, RAR or PDF.
 - `EmptyArchive` — the archive opened but contains zero readable image pages.
 - `ReadFailure` — the stream could not be read, or the archive is corrupted.
 

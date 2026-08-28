@@ -97,9 +97,10 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
 
 Goal: the details that make it feel premium.
 
-- [~] More formats: format is detected by content (magic bytes), not extension.
-      ZIP (CBZ, and `.cbr` files that are really ZIP) and RAR4/RAR5 (via
-      7-Zip-JBinding) all work. PDF (`PdfRenderer`) still pending.
+- [x] More formats: format is detected by content (magic bytes), not extension.
+      ZIP (CBZ, and `.cbr` files that are really ZIP), RAR4/RAR5 (via
+      7-Zip-JBinding) and PDF (`PdfRenderer`, verified 2026-08-28: scan,
+      cover, series stacking and reading) all work
 - [x] Night tint (amber) toggle
 - [x] ML panel detection: YOLO26n (manga-frame fine-tune) via ONNX Runtime is
       the default `PanelDetector` path, heuristic kept as fallback. 77-page
