@@ -365,6 +365,13 @@ Strongly recommended:
       the emulator's >10 s splash is the emulator
 - [ ] Accessibility floor: `contentDescription` everywhere, 48 dp touch
       targets (ghost actions are 44 dp), TalkBack pass on library + settings
+- [ ] "Report a visual glitch" from the reader HUD menu: shares (ACTION_SEND
+      via FileProvider, to our address, user picks the app) the composed page
+      as seen (overlay included, HUD excluded) plus a `report.json` with file
+      name, page, mode (guided / bubbles + scale), posture, device, version,
+      build and the page's detections (boxes + silhouettes) so it can be
+      reproduced offline without the comic; optional free-text field. No
+      backend, no SDK. Agreed in principle 2026-08-28, details to confirm
 
 Deferred to 1.1: reading stats / recently read, home-screen widget, automatic
 day/night theme, ComicVine metadata, panel-level posture transition,
