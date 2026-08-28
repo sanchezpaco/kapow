@@ -17,8 +17,9 @@ object BubblePlan {
         if (big.isEmpty()) return emptyList()
         val pixels = IntArray(page.width * page.height)
         page.asAndroidBitmap().getPixels(pixels, 0, page.width, 0, 0, page.width, page.height)
+        val all = bubbles.map { it.bubble }
         return big.map { item ->
-            val fill = CrescentFill.of(pixels, page.width, page.height, item.bubble)
+            val fill = CrescentFill.of(pixels, page.width, page.height, item.bubble, all)
             val bitmap = Bitmap.createBitmap(fill.argb, fill.width, fill.height, Bitmap.Config.ARGB_8888)
             val rect = Rect(
                 fill.left.toFloat() / page.width, fill.top.toFloat() / page.height,

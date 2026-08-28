@@ -63,7 +63,7 @@ class SpeechBubbleVisualizer {
             scores.addAll(pageScores)
             val preview = scaled(page, PREVIEW_WIDTH, PREVIEW_WIDTH * page.height / page.width)
             val fillStarted = System.nanoTime()
-            val fills = enlarged.filter { it.scale > 1f }.map { CrescentFill.of(pixels, page.width, page.height, it.bubble) }
+            val fills = enlarged.filter { it.scale > 1f }.map { CrescentFill.of(pixels, page.width, page.height, it.bubble, bubbles) }
             val fillMillis = (System.nanoTime() - fillStarted) / 1_000_000
             val flat = withEnlarged(preview, page, enlarged, null)
             val filled = withEnlarged(preview, page, enlarged, fills)

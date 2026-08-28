@@ -1,6 +1,7 @@
 package com.comicify.feature.reader.domain
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -14,13 +15,14 @@ private const val CHAMFER_DIAGONAL = 4
 private const val UNREACHED = Int.MAX_VALUE / 2
 private const val OPAQUE = 0xff shl 24
 private const val MIN_SMOOTH_RADIUS = 3
+private const val HALO_PX = 2
 private const val SMOOTH_RADIUS_FRACTION = 0.06f
 
 class BubbleFill(val left: Int, val top: Int, val width: Int, val height: Int, val argb: IntArray)
 
 object CrescentFill {
 
-    fun of(pixels: IntArray, pageWidth: Int, pageHeight: Int, bubble: SpeechBubble): BubbleFill {
+    fun of(pixels: IntArray, pageWidth: Int, pageHeight: Int, bubble: SpeechBubble, neighbours: List<SpeechBubble>): BubbleFill {
         val box = bubble.box
         val margin = max(MIN_MARGIN_PX, (MARGIN_FRACTION_OF_BOX * max(box.width * pageWidth, box.height * pageHeight)).roundToInt())
         val pad = margin + 1
@@ -34,7 +36,11 @@ object CrescentFill {
         val mask = BooleanArray(w * h)
         val toSilhouette = chamfer(inside, w, h)
         for (i in mask.indices) mask[i] = toSilhouette[i] <= margin * CHAMFER_STRAIGHT
-        val known = BooleanArray(w * h) { !mask[it] }
+        val crop = Rect(left.toFloat() / pageWidth, top.toFloat() / pageHeight, right.toFloat() / pageWidth, bottom.toFloat() / pageHeight)
+        val foreign = neighbours.filter { it !== bubble && it.box.overlaps(crop) }
+            .map { chamfer(rasterize(it.outlines, left, top, w, h, pageWidth, pageHeight), w, h) }
+        val beyondHalo = chamfer(mask, w, h)
+        val known = BooleanArray(w * h) { i -> beyondHalo[i] > HALO_PX * CHAMFER_STRAIGHT && foreign.none { it[i] <= (margin + HALO_PX) * CHAMFER_STRAIGHT } }
         val order = chamfer(known, w, h)
         val argb = IntArray(w * h)
         for (y in 0 until h) for (x in 0 until w) if (known[y * w + x]) argb[y * w + x] = pixels[(top + y) * pageWidth + left + x] or OPAQUE
