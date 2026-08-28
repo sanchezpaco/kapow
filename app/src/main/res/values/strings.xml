@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Comicify</string>
+    <string name="app_name">Kapow</string>
 
     <string name="library_title">Library</string>
     <string name="library_empty_title">Your library is empty</string>
@@ -116,7 +116,7 @@
     <string name="reader_action_direction_rtl">Reading direction: right to left</string>
     <string name="reader_action_next_page">Next page</string>
     <string name="reader_action_previous_page">Previous page</string>
-    <string name="reader_error_unsupported_format">This file format is not supported. Comicify reads CBZ, CBR and PDF files.</string>
+    <string name="reader_error_unsupported_format">This file format is not supported. Kapow reads CBZ, CBR and PDF files.</string>
     <string name="reader_error_empty_archive">This archive does not contain any readable pages.</string>
     <string name="reader_error_read_failure">This comic could not be read. The file may be corrupted or unavailable.</string>
     <string name="reader_thumbnail_go_to_page">Go to page %1$d</string>

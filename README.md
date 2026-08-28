@@ -1,12 +1,12 @@
-# Comicify
+# Kapow
 
 A native Android comic reader built for personal use, designed first for the
 **Samsung Z Fold**. The reading experience adapts to device posture: full pages
 unfolded, a two-page spread in landscape, and panel-by-panel guided reading on
 the cover screen. Bilingual UI (Spanish / English), pure-black OLED theme.
 
-Comicify reads comic archives you already own (`.cbz` today; `.cbr` and `.pdf`
-planned). It is not a store and downloads no copyrighted content.
+Kapow reads comic archives you already own (`.cbz`, `.cbr` and `.pdf`). It is
+not a store and downloads no copyrighted content.
 
 ## Status
 
@@ -36,7 +36,7 @@ JBR works). A JDK 17 toolchain is resolved automatically for compilation.
 ./gradlew :app:installDebug
 ```
 
-The debug build uses the `com.comicify.debug` application id.
+The debug build uses the `com.sanchezpaco.kapow.debug` application id.
 
 ### Trying it on a foldable emulator
 

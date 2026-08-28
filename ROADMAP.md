@@ -1,6 +1,6 @@
 # Roadmap
 
-Comicify — a comic reader for any Android phone or tablet, developed and
+Kapow — a comic reader for any Android phone or tablet, developed and
 tuned on the Z Fold so foldables are first-class rather than an afterthought.
 Built incrementally: every phase ends with something that already feels good
 to use.
@@ -381,6 +381,6 @@ outliner idea 3b.
 
 ## Non-goals
 
-- No online store, DRM, or downloading of copyrighted content. Comicify reads
+- No online store, DRM, or downloading of copyrighted content. Kapow reads
   files the user already owns and supplies.
 - No iOS / cross-platform. Native Android only, to fully exploit foldable APIs.

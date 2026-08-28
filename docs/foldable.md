@@ -1,6 +1,6 @@
 # Foldable
 
-The core differentiator. Comicify treats the Z Fold as the primary device and
+The core differentiator. Kapow treats the Z Fold as the primary device and
 adapts the reading surface to **device posture** and **window size**, keeping the
 reader's exact position across a fold/unfold.
 

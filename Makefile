@@ -7,7 +7,7 @@ APK := app/build/outputs/apk/debug/app-debug.apk
 RELEASE_UNSIGNED := app/build/outputs/apk/release/app-release-unsigned.apk
 RELEASE_APK := app/build/outputs/apk/release/app-release-signed.apk
 DEBUG_KEYSTORE := $(HOME)/.android/debug.keystore
-APP_ID := com.comicify.debug
+APP_ID := com.sanchezpaco.kapow.debug
 DEFAULT_DEVICE := R3GL60C82WD
 BUILD_LABEL := $(shell date +'%Y-%m-%d %H:%M') $(shell git rev-parse --short HEAD)
 
@@ -16,7 +16,7 @@ export JAVA_HOME
 .PHONY: help build install run deploy devices clean release install-release deploy-release
 
 help:
-	@echo "Comicify build targets:"
+	@echo "Kapow build targets:"
 	@echo "  make build          - assemble the debug APK"
 	@echo "  make install        - install the debug APK on a device"
 	@echo "  make run            - launch the app on the device"

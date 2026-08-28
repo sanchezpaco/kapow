@@ -26,7 +26,7 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.comicify"
+        applicationId = "com.sanchezpaco.kapow"
         minSdk = 30
         targetSdk = 37
         versionCode = 1

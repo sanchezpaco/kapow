@@ -1,6 +1,6 @@
 # Docs
 
-How Comicify works, one concern per file.
+How Kapow works, one concern per file.
 
 - [architecture.md](architecture.md) — layers, modules, state flow, DI
 - [foldable.md](foldable.md) — postures, adaptive reading modes, position continuity

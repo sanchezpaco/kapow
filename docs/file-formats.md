@@ -1,6 +1,6 @@
 # File formats
 
-Comicify reads comic archives the user owns. A single abstraction hides the
+Kapow reads comic archives the user owns. A single abstraction hides the
 container format from the reader.
 
 ## Abstraction
