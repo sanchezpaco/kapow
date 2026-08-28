@@ -7,6 +7,7 @@ data class LibraryComic(
     val series: String,
     val issueNumber: Int?,
     val coverPath: String?,
+    val coverAmbient: Int?,
     val pageCount: Int?,
     val pageIndex: Int,
     val completed: Boolean,

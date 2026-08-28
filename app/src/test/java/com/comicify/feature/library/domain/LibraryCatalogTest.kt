@@ -23,6 +23,7 @@ class LibraryCatalogTest {
         series = series,
         issueNumber = issueNumber,
         coverPath = null,
+        coverAmbient = null,
         pageCount = pageCount,
         pageIndex = pageIndex,
         completed = completed,
@@ -72,6 +73,14 @@ class LibraryCatalogTest {
         assertEquals(listOf(1L, 3L), LibraryCatalog.filtered(input, LibraryFilter.UNREAD).map { it.id })
         assertEquals(listOf(2L), LibraryCatalog.filtered(input, LibraryFilter.READ).map { it.id })
         assertEquals(listOf(3L), LibraryCatalog.filtered(input, LibraryFilter.FAVORITES).map { it.id })
+    }
+
+    @Test
+    fun minutesLeftRoundsUpRemainingPages() {
+        assertEquals(0, LibraryCatalog.minutesLeft(pageIndex = 19, pageCount = 20))
+        assertEquals(1, LibraryCatalog.minutesLeft(pageIndex = 18, pageCount = 20))
+        assertEquals(15, LibraryCatalog.minutesLeft(pageIndex = 0, pageCount = 20))
+        assertEquals(0, LibraryCatalog.minutesLeft(pageIndex = 5, pageCount = 0))
     }
 
     @Test

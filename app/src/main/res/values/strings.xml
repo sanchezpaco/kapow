@@ -20,6 +20,8 @@
     <string name="library_resume">Resume</string>
     <string name="library_completed">Completed</string>
     <string name="library_progress">%1$d / %2$d</string>
+    <string name="library_time_left">≈ %1$d min left</string>
+    <string name="library_hero_eyebrow">Where you left off</string>
     <string name="library_empty_folder_subtitle">Choose a comics folder to build your bookshelf, or open a single file.</string>
     <string name="library_filter_all">All</string>
     <string name="library_filter_unread">Unread</string>

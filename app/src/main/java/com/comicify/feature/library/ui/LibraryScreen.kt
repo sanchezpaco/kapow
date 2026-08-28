@@ -15,6 +15,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -70,6 +72,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -94,6 +97,10 @@ private val InkFaint = Color(0xFF807571)
 private val Surface2 = Color(0xFF171414)
 private val CardLine = Color(0x12FFFFFF)
 private val CoverTrack = Color(0x24FFFFFF)
+private val HeroGround = Color(0xFF0A0A0D)
+private const val HeroGlowMix = 0.55f
+private const val HeroTintMix = 0.35f
+private val HeroCoverWidth = 132.dp
 
 private val CoverGradients = listOf(
     listOf(Color(0xFF7A2222), Color(0xFF2A0E0E)),
@@ -339,7 +346,7 @@ private fun LibraryHeader(
             if (BuildConfig.DEBUG) DebugBadge()
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            PrimaryAction(icon = Icons.Filled.CreateNewFolder, label = stringResource(R.string.library_pick_folder), onClick = onPickFolder)
+            GhostAction(icon = Icons.Filled.CreateNewFolder, contentDescription = stringResource(R.string.library_pick_folder), onClick = onPickFolder)
             GhostAction(
                 icon = if (grouped) Icons.Filled.GridView else Icons.Outlined.Folder,
                 contentDescription = stringResource(if (grouped) R.string.library_ungroup else R.string.library_group),
@@ -414,12 +421,96 @@ private fun GhostAction(
 private fun ContinueReadingShelf(comics: List<LibraryComic>, onOpenComic: (LibraryComic) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         SectionHeader(eyebrow = stringResource(R.string.library_resume_eyebrow), title = stringResource(R.string.library_continue_reading))
+        LibraryHero(comic = comics.first(), onOpenComic = onOpenComic)
+        val rest = comics.drop(1)
+        if (rest.isEmpty()) return@Column
         LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            items(items = comics, key = { it.id }) { comic ->
+            items(items = rest, key = { it.id }) { comic ->
                 ContinueReadingCard(comic = comic, onOpenComic = onOpenComic)
             }
         }
     }
+}
+
+@Composable
+private fun LibraryHero(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit) {
+    val ambient = comic.ambientColor()
+    val glow = lerp(Color.Black, ambient, HeroGlowMix)
+    val tint = lerp(Color.White, ambient, HeroTintMix)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .clip(RoundedCornerShape(22.dp))
+            .background(Brush.linearGradient(listOf(glow, HeroGround)))
+            .clickable { onOpenComic(comic) }
+            .padding(20.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        Box(modifier = Modifier.width(HeroCoverWidth).aspectRatio(2f / 3f).clip(RoundedCornerShape(14.dp))) {
+            CoverArt(comic = comic, showArtwork = true)
+        }
+        Column(modifier = Modifier.fillMaxHeight().weight(1f)) {
+            Text(
+                text = stringResource(R.string.library_hero_eyebrow).uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 2.sp,
+                color = tint,
+            )
+            if (comic.series != comic.title) {
+                Text(
+                    text = comic.series,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = InkDim,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+            }
+            Text(
+                text = comic.title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            HeroProgress(comic = comic)
+            Spacer(modifier = Modifier.height(14.dp))
+            ResumePill()
+        }
+    }
+}
+
+@Composable
+private fun HeroProgress(comic: LibraryComic) {
+    val pageCount = comic.pageCount
+    if (pageCount == null || pageCount <= 0) return
+    Row(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+        Text(
+            text = stringResource(R.string.library_progress, comic.pageIndex + 1, pageCount),
+            style = MaterialTheme.typography.labelSmall,
+            color = InkDim,
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = stringResource(R.string.library_time_left, LibraryCatalog.minutesLeft(comic.pageIndex, pageCount)),
+            style = MaterialTheme.typography.labelSmall,
+            color = InkFaint,
+        )
+    }
+    ProgressBar(progress = LibraryCatalog.progress(comic.pageIndex, pageCount))
+}
+
+private fun LibraryComic.ambientColor(): Color =
+    coverAmbient?.let { Color(it) } ?: proceduralGradient().first()
+
+private fun LibraryComic.proceduralGradient(): List<Color> {
+    val key = series.ifBlank { title }
+    return CoverGradients[(key.hashCode() and 0x7fffffff) % CoverGradients.size]
 }
 
 @Composable
@@ -564,24 +655,14 @@ private fun ComicCard(
                 )
             }
         }
-        Column {
-            Text(
-                text = comic.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = comic.series,
-                style = MaterialTheme.typography.labelSmall,
-                color = InkFaint,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 2.dp),
-            )
-        }
+        Text(
+            text = comic.title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
         ComicCardMenu(
             expanded = menuExpanded,
             comic = comic,
@@ -823,7 +904,7 @@ private fun CoverArt(comic: LibraryComic, showArtwork: Boolean) {
 @Composable
 private fun ProceduralCover(comic: LibraryComic, showArtwork: Boolean) {
     val key = comic.series.ifBlank { comic.title }
-    val gradient = CoverGradients[(key.hashCode() and 0x7fffffff) % CoverGradients.size]
+    val gradient = comic.proceduralGradient()
     Box(
         modifier = Modifier
             .fillMaxSize()

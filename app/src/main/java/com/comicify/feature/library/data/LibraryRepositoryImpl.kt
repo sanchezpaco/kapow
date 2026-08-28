@@ -115,7 +115,7 @@ class LibraryRepositoryImpl @Inject constructor(
     override suspend fun generateMissingCovers() {
         comicDao.withoutCover().forEach { comic ->
             runCatching { coverGenerator.generate(comic.id, comic.documentUri.toUri()) }
-                .onSuccess { comicDao.updateCover(comic.id, it.pageCount, it.coverPath) }
+                .onSuccess { comicDao.updateCover(comic.id, it.pageCount, it.coverPath, it.ambient) }
         }
     }
 
@@ -197,6 +197,7 @@ class LibraryRepositoryImpl @Inject constructor(
             series = series,
             issueNumber = issueNumber,
             coverPath = coverPath,
+            coverAmbient = coverAmbient,
             pageCount = pageCount,
             pageIndex = state?.pageIndex ?: 0,
             completed = state?.completed ?: false,

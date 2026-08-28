@@ -19,4 +19,5 @@ data class ComicEntity(
     val coverPath: String?,
     val addedAt: Long,
     val favorite: Boolean = false,
+    val coverAmbient: Int? = null,
 )

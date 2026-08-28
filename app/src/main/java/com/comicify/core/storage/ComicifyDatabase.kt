@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [ComicEntity::class, ReadingStateEntity::class, PageDetectionEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class ComicifyDatabase : RoomDatabase() {

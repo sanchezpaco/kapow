@@ -52,7 +52,7 @@ The home of the collection: import comics, browse covers, resume reading.
 Comic(
     id, documentUri, displayName,
     series, issueNumber, year,
-    pageCount?, coverPath?, addedAt, favorite,
+    pageCount?, coverPath?, coverAmbient?, addedAt, favorite,
 )
 
 ReadingState(
@@ -102,7 +102,9 @@ ReadingState(
 
 - `CoverGenerator` decodes the first page through `ComicSourceFactory` at grid
   resolution and writes a JPEG to internal storage (`filesDir/covers/{id}.jpg`),
-  recording `coverPath` and `pageCount`.
+  recording `coverPath`, `pageCount` and `coverAmbient`: the cover's ambient
+  colour (same Palette rule as the reader's `ambientColorInt`), stored as an
+  ARGB int so the library can tint the hero without decoding the cover again.
 - Runs lazily and asynchronously after a scan, so titles appear instantly and
   thumbnails stream in. A comic with no decoded cover yet (or one that cannot be
   decoded) shows a **procedural cover** instead of an empty box: a gradient keyed
@@ -115,22 +117,27 @@ The shelf uses a "Comic Red & Ink" palette local to the library UI: pure-black
 OLED ground, a comic-red accent (matching the reader theme's `primary`) with an
 amber highlight and green for completed. Progress shows as a red ring on the cover
 corner (percent) and a red→amber bar under in-progress comics; finished comics get
-a green "Completed" badge and favorites an amber star. A "Continue reading" row
-surfaces recent unfinished comics with a resume affordance and progress.
+a green "Completed" badge and favorites an amber star. The most recently read
+unfinished comic becomes the **hero**: a wide card washed with the cover's
+ambient colour, showing the cover, progress and an estimated time left
+(`LibraryCatalog.minutesLeft`, a flat 45 s per page until real reading stats
+exist); any other unfinished comics follow in a row of smaller resume cards.
 
 ## Home UI
 
 - Cover grid with an adaptive column count (`GridCells.Adaptive`), so wider /
   unfolded windows show more columns.
-- Each cover shows a reading-progress indicator ("n / total" + bar), a
-  "Completed" badge on finished comics, and an amber star on favorites.
+- Each cover shows a progress ring, a "Completed" badge on finished comics, an
+  amber star on favorites and the title (which already carries the series).
 - A **filter bar** (All / Unread / Read / Favorites) narrows the grid; the choice
   lives in the ViewModel and resets on relaunch. "Continue reading" only shows
   under the "All" filter.
 - **Long-pressing a cover** opens a menu to mark it read/unread and add/remove it
   from favorites.
-- A "Continue reading" shelf surfaces the most recently read, unfinished comics.
-- Affordances to choose/refresh the folder and to open a single file.
+- The "Continue reading" section: the hero card for the latest unfinished
+  comic, then a row for the rest.
+- Icon-only affordances to choose/refresh the folder, toggle grouping and open
+  a single file; the empty state keeps the large "Choose folder" button.
 - Entries are naturally sorted by series, then issue number, then title.
 
 ## Metadata

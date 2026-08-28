@@ -5,12 +5,19 @@ import com.comicify.core.util.naturalOrder
 object LibraryCatalog {
 
     private const val CONTINUE_READING_LIMIT = 12
+    private const val SECONDS_PER_PAGE = 45
+    private const val SECONDS_PER_MINUTE = 60
 
     fun isCompleted(pageIndex: Int, pageCount: Int): Boolean =
         pageCount > 0 && pageIndex >= pageCount - 1
 
     fun progress(pageIndex: Int, pageCount: Int): Float =
         if (pageCount <= 0) 0f else ((pageIndex + 1).toFloat() / pageCount).coerceIn(0f, 1f)
+
+    fun minutesLeft(pageIndex: Int, pageCount: Int): Int {
+        val pagesLeft = (pageCount - pageIndex - 1).coerceAtLeast(0)
+        return (pagesLeft * SECONDS_PER_PAGE + SECONDS_PER_MINUTE - 1) / SECONDS_PER_MINUTE
+    }
 
     fun title(series: String, issueNumber: Int?): String =
         if (issueNumber != null) "$series #$issueNumber" else series
