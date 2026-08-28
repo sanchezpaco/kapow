@@ -344,11 +344,13 @@ Blocking:
       gestures (centre = HUD, edges = page turn, pinch = zoom), Guided View +
       enlarged bubbles with the HUD icons; "Show the introduction again" from
       Settings → About. Flag in DataStore. See `docs/onboarding.md`
-- [ ] Privacy policy URL + Play "Data safety" form (no data collected), and
-      explicit `dataExtractionRules` / `fullBackupContent` so auto-backup
-      restores Room + DataStore but not the cache
-- [ ] Licences screen under Settings → About: 7-Zip-JBinding (LGPL
-      attribution), ONNX Runtime, YOLO26 / ogkalu weights, Coil, others
+- [~] Privacy policy URL + Play "Data safety" form (no data collected) —
+      pending the Play Console. `dataExtractionRules` / `fullBackupContent`
+      done: Room + DataStore only (`docs/settings.md` → Backup)
+- [x] Licences screen under Settings → About (`LicencesScreen`). Both model
+      sources are Apache-2.0; the bubble student was trained with Ultralytics
+      (AGPL-3.0) — the app only ships weights and runs them with ONNX Runtime,
+      but confirm that reading of the AGPL before publishing
 - [ ] Store listing: EN + ES short/long descriptions, screenshots folded and
       unfolded, feature graphic (artwork pending the name/logo decision)
 - [~] Crash visibility: rely on Play Vitals (no third-party SDK). Opening a
@@ -368,8 +370,9 @@ Strongly recommended:
       (`ComicOpenError.PasswordProtected`, verified on the emulator)
 - [ ] Cold start on a rebooted Fold (release) to confirm the 117 ms baseline;
       the emulator's >10 s splash is the emulator
-- [ ] Accessibility floor: `contentDescription` everywhere, 48 dp touch
-      targets (ghost actions are 44 dp), TalkBack pass on library + settings
+- [~] Accessibility floor: ghost actions and the series back button are
+      48 dp; decorative icons next to text stay `null`; TalkBack pass on
+      library + settings pending the Fold
 - [ ] "Report a visual glitch" from the reader HUD menu: shares (ACTION_SEND
       via FileProvider, to our address, user picks the app) the composed page
       as seen (overlay included, HUD excluded) plus a `report.json` with file

@@ -21,9 +21,6 @@ interface ComicDao {
     @Query("SELECT * FROM comics WHERE documentUri = :documentUri")
     suspend fun findByDocumentUri(documentUri: String): ComicEntity?
 
-    @Query("SELECT * FROM comics WHERE coverPath IS NULL")
-    suspend fun withoutCover(): List<ComicEntity>
-
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(comic: ComicEntity): Long
 

@@ -39,6 +39,7 @@ import com.comicify.feature.onboarding.ui.OnboardingScreen
 import com.comicify.feature.onboarding.ui.OnboardingViewModel
 import com.comicify.feature.reader.ui.ReaderScreen
 import com.comicify.feature.settings.ui.AppSettingsScreen
+import com.comicify.feature.settings.ui.LicencesScreen
 
 private const val SCREEN_FADE_MS = 350
 private const val READER_ENTER_SCALE = 0.94f
@@ -50,6 +51,7 @@ private sealed interface Screen {
     data object Library : Screen
     data class Settings(val comics: List<LibraryComic>) : Screen
     data object AppSettings : Screen
+    data object Licences : Screen
     data class Reader(val request: OpenRequest) : Screen
 }
 
@@ -65,11 +67,13 @@ fun ComicifyRoot(initialUri: Uri? = null) {
     }
     var settingsOf by remember { mutableStateOf<List<LibraryComic>?>(null) }
     var appSettingsOpen by remember { mutableStateOf(false) }
+    var licencesOpen by remember { mutableStateOf(false) }
     val seen = onboardingSeen ?: return
     val screen: Screen = open?.let { Screen.Reader(it) }
         ?: if (!seen) Screen.Onboarding
         else settingsOf?.let { Screen.Settings(it) }
-        ?: if (appSettingsOpen) Screen.AppSettings else Screen.Library
+        ?: if (licencesOpen) Screen.Licences
+        else if (appSettingsOpen) Screen.AppSettings else Screen.Library
 
     Surface(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
@@ -121,8 +125,10 @@ fun ComicifyRoot(initialUri: Uri? = null) {
                             scanning = state.scanning,
                             onFolderPicked = viewModel::onFolderPicked,
                             onRefresh = viewModel::onRefresh,
+                            onOpenLicences = { licencesOpen = true },
                             onBack = { appSettingsOpen = false },
                         )
+                        Screen.Licences -> LicencesScreen(onBack = { licencesOpen = false })
                         is Screen.Reader -> ReaderSession(target.request) {
                             ReaderScreen(
                                 uri = target.request.uri,
@@ -149,6 +155,7 @@ private fun Screen.key(): Any = when (this) {
     Screen.Library -> "library"
     is Screen.Settings -> "settings-${comics.first().id}"
     Screen.AppSettings -> "app-settings"
+    Screen.Licences -> "licences"
     is Screen.Reader -> request
 }
 

@@ -20,8 +20,24 @@ preferences; the reader HUD still toggles some of them in place.
   scanning/error state; the settings screen only shows the spinner on the
   Refresh button while a scan runs.
 - **Appearance** — theme picker, below.
-- **About** — version name and build label, and "Show the introduction
-  again" (`docs/onboarding.md`).
+- **About** — version name and build label, "Show the introduction again"
+  (`docs/onboarding.md`) and "Open-source licences", which opens
+  `LicencesScreen`: a static list of attributions (`attributions` in
+  `LicencesScreen.kt` — library or model, licence, URL; tapping a row opens
+  the URL). Names and licence identifiers are data, not translated copy. Keep
+  it in sync when a dependency or model changes.
+
+## Backup
+
+`android:fullBackupContent="@xml/backup_rules"` (API 30) and
+`android:dataExtractionRules="@xml/data_extraction_rules"` (API 31+) back up
+only the Room database (`comicify.db`: library, progress, per-comic settings,
+detections) and the DataStore files (`files/datastore/`: folder Uri,
+preferences, theme, onboarding flag). Covers, the sample comic, the copied
+model files and the cache are left out; they are regenerated. After a restore
+the document grants are gone, so the library reports `AccessLost` until the
+folder is chosen again, and `generateMissingCovers` also regenerates covers
+whose file no longer exists.
 
 Everything is stored in `ReaderPreferencesRepository` (DataStore
 `reader_preferences`); the folder Uri stays in `LibraryPreferences`.

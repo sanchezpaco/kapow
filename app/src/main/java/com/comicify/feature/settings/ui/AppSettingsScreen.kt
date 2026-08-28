@@ -75,7 +75,7 @@ private val SwatchRingGap = 3.dp
 private val SwatchOutlineWidth = 1.dp
 
 @Composable
-fun AppSettingsScreen(scanning: Boolean, onFolderPicked: (Uri) -> Unit, onRefresh: () -> Unit, onBack: () -> Unit) {
+fun AppSettingsScreen(scanning: Boolean, onFolderPicked: (Uri) -> Unit, onRefresh: () -> Unit, onOpenLicences: () -> Unit, onBack: () -> Unit) {
     val viewModel: AppSettingsViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> uri?.let(onFolderPicked) }
@@ -101,7 +101,7 @@ fun AppSettingsScreen(scanning: Boolean, onFolderPicked: (Uri) -> Unit, onRefres
         ScreenSection(state, viewModel)
         LibrarySection(state.folderUri, scanning, onPickFolder = { folderLauncher.launch(null) }, onRefresh = onRefresh)
         AppearanceSection(state.theme, onThemeSelected = viewModel::onThemeSelected)
-        AboutSection(onReplayOnboarding = viewModel::onReplayOnboarding)
+        AboutSection(onReplayOnboarding = viewModel::onReplayOnboarding, onOpenLicences = onOpenLicences)
     }
 }
 
@@ -270,7 +270,7 @@ private fun ThemeAccent.labelRes(): Int = when (this) {
 }
 
 @Composable
-private fun AboutSection(onReplayOnboarding: () -> Unit) {
+private fun AboutSection(onReplayOnboarding: () -> Unit, onOpenLicences: () -> Unit) {
     val palette = ComicifyTheme.palette
     SectionHeader(eyebrow = stringResource(R.string.app_name), title = stringResource(R.string.app_settings_about))
     Text(
@@ -278,14 +278,20 @@ private fun AboutSection(onReplayOnboarding: () -> Unit) {
         style = MaterialTheme.typography.bodyMedium,
         color = palette.inkDim,
     )
+    AboutAction(label = stringResource(R.string.app_settings_replay_onboarding), onClick = onReplayOnboarding)
+    AboutAction(label = stringResource(R.string.app_settings_licences), onClick = onOpenLicences)
+}
+
+@Composable
+private fun AboutAction(label: String, onClick: () -> Unit) {
     Text(
-        text = stringResource(R.string.app_settings_replay_onboarding),
+        text = label,
         style = MaterialTheme.typography.labelLarge,
         fontWeight = FontWeight.SemiBold,
-        color = palette.accent,
+        color = ComicifyTheme.palette.accent,
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onReplayOnboarding)
+            .clickable(onClick = onClick)
             .padding(vertical = 6.dp),
     )
 }

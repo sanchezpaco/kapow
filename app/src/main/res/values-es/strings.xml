@@ -104,6 +104,9 @@
     <string name="app_settings_about">Acerca de</string>
     <string name="app_settings_version">Versión %1$s · build %2$s</string>
     <string name="app_settings_replay_onboarding">Volver a ver la introducción</string>
+    <string name="app_settings_licences">Licencias de código abierto</string>
+    <string name="licences_title">Licencias de código abierto</string>
+    <string name="licences_intro">Kapow se apoya en estos proyectos. Toca uno para abrir su página.</string>
 
     <string name="onboarding_skip">Saltar</string>
     <string name="onboarding_next">Siguiente</string>

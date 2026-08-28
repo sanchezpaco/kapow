@@ -120,6 +120,7 @@ import java.io.File
 
 private const val COMPACT_WIDTH_DP = 600
 private const val SWIPE_UNSHELVE_THRESHOLD = 0.4f
+internal val TouchTargetSize = 48.dp
 private val HeroCoverWidth = 132.dp
 private val HeroCoverWidthCompact = 100.dp
 private val ShelfCardWidth = 340.dp
@@ -402,7 +403,7 @@ private fun SeriesHeader(
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(TouchTargetSize)
                 .clip(RoundedCornerShape(12.dp))
                 .background(Surface2)
                 .clickable(onClick = onBack),
@@ -594,7 +595,7 @@ internal fun GhostAction(
 ) {
     Box(
         modifier = Modifier
-            .size(44.dp)
+            .size(TouchTargetSize)
             .clip(RoundedCornerShape(12.dp))
             .background(if (active) Accent.copy(alpha = 0.16f) else Surface2)
             .clickable(onClick = onClick),
