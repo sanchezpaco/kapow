@@ -1,15 +1,21 @@
 package com.comicify.feature.library.ui
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
+import com.comicify.core.ui.theme.ComicifyTheme
 
-internal val Accent = Color(0xFFE62429)
-internal val AccentAmber = Color(0xFFFFB300)
-internal val Good = Color(0xFF3FB27F)
-internal val InkDim = Color(0xFFB4ABA8)
-internal val InkFaint = Color(0xFF807571)
-internal val Surface2 = Color(0xFF171414)
-internal val CardLine = Color(0x12FFFFFF)
-internal val CoverTrack = Color(0x24FFFFFF)
-internal val HeroGround = Color(0xFF0A0A0D)
+internal val Accent: Color @Composable @ReadOnlyComposable get() = ComicifyTheme.palette.accent
+internal val AccentDeep: Color @Composable @ReadOnlyComposable get() = ComicifyTheme.palette.accentDeep
+internal val AccentPale: Color @Composable @ReadOnlyComposable get() = ComicifyTheme.palette.accentPale
+internal val AccentAmber: Color @Composable @ReadOnlyComposable get() = ComicifyTheme.palette.secondary
+internal val Good: Color @Composable @ReadOnlyComposable get() = ComicifyTheme.palette.good
+internal val Danger: Color @Composable @ReadOnlyComposable get() = ComicifyTheme.palette.danger
+internal val InkDim: Color @Composable @ReadOnlyComposable get() = ComicifyTheme.palette.inkDim
+internal val InkFaint: Color @Composable @ReadOnlyComposable get() = ComicifyTheme.palette.inkFaint
+internal val Surface2: Color @Composable @ReadOnlyComposable get() = ComicifyTheme.palette.raised
+internal val CardLine: Color @Composable @ReadOnlyComposable get() = ComicifyTheme.palette.hairline
+internal val CoverTrack: Color @Composable @ReadOnlyComposable get() = ComicifyTheme.palette.track
+internal val HeroGround: Color @Composable @ReadOnlyComposable get() = ComicifyTheme.palette.surface
 internal const val HeroGlowMix = 0.55f
 internal const val HeroTintMix = 0.35f

@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.comicify.core.storage.ComicSettingsDao
 import com.comicify.core.storage.ComicSettingsEntity
 import com.comicify.core.storage.DatabaseEntryPoint
+import com.comicify.core.storage.OpenDefaults
 import com.comicify.core.storage.ReaderPreferencesRepository
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.domain.model.ReadingPosition
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -49,13 +51,14 @@ class ReaderViewModel(
         openComic()
         observeVolumeKeyPaging()
         observeNightTint()
+        observeKeepScreenOn()
         observeBubbleScale()
         observeReadingDirection()
     }
 
     private fun openComic() {
         viewModelScope.launch {
-            applyComicSettings(comicSettingsDao.find(uri.toString()))
+            applyOpenDefaults(preferencesRepository.openDefaults.first(), comicSettingsDao.find(uri.toString()))
             runCatching { ComicSourceFactory.open(getApplication(), uri, state.value.position.pageIndex) }
                 .onSuccess { opened ->
                     source = opened
@@ -69,12 +72,11 @@ class ReaderViewModel(
         }
     }
 
-    private fun applyComicSettings(settings: ComicSettingsEntity?) {
-        if (settings == null) return
+    private fun applyOpenDefaults(defaults: OpenDefaults, settings: ComicSettingsEntity?) {
         _state.update {
             it.copy(
-                bubblesEnlarged = settings.bubblesEnlarged ?: it.bubblesEnlarged,
-                guided = settings.guided ?: it.guided,
+                bubblesEnlarged = settings?.bubblesEnlarged ?: defaults.bubblesOnOpen,
+                guided = settings?.guided ?: defaults.guidedOnOpen,
             )
         }
     }
@@ -148,6 +150,14 @@ class ReaderViewModel(
     fun toggleNightTint() {
         viewModelScope.launch {
             preferencesRepository.setNightTintEnabled(!_state.value.nightTintEnabled)
+        }
+    }
+
+    private fun observeKeepScreenOn() {
+        viewModelScope.launch {
+            preferencesRepository.keepScreenOn.collect { enabled ->
+                _state.update { it.copy(keepScreenOn = enabled) }
+            }
         }
     }
 

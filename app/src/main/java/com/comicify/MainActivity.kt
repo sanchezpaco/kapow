@@ -10,7 +10,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.comicify.core.input.VolumeKeyPageTurnDispatcher
 import com.comicify.core.input.volumeKeyPageTurnDirection
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.comicify.core.storage.ReaderPreferencesRepository
 import com.comicify.core.ui.theme.ComicifyTheme
+import com.comicify.core.ui.theme.ThemeChoice
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -19,8 +23,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val initialUri = resolveViewIntentUri()
+        val preferences = ReaderPreferencesRepository(applicationContext)
         setContent {
-            ComicifyTheme(useDarkTheme = true) {
+            val theme by preferences.theme.collectAsStateWithLifecycle(ThemeChoice.Default)
+            ComicifyTheme(choice = theme) {
                 ComicifyRoot(initialUri = initialUri)
             }
         }

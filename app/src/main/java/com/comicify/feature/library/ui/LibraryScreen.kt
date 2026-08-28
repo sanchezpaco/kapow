@@ -71,7 +71,6 @@ import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
@@ -148,9 +147,9 @@ private val CoverGradients = listOf(
 fun LibraryScreen(
     state: LibraryUiState,
     onFolderPicked: (Uri) -> Unit,
-    onRefresh: () -> Unit,
     onOpenComic: (LibraryComic) -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
+    onOpenAppSettings: () -> Unit,
     onOpenFile: (Uri) -> Unit,
     onFilterSelected: (LibraryFilter) -> Unit,
     onToggleGrouped: () -> Unit,
@@ -186,9 +185,9 @@ fun LibraryScreen(
             LibraryContent(
                 state = state,
                 onFolderPicked = onFolderPicked,
-                onRefresh = onRefresh,
                 onOpenComic = onOpenComic,
                 onOpenSettings = onOpenSettings,
+                onOpenAppSettings = onOpenAppSettings,
                 onOpenFile = onOpenFile,
                 onFilterSelected = onFilterSelected,
                 onToggleGrouped = onToggleGrouped,
@@ -211,9 +210,9 @@ fun LibraryScreen(
 private fun LibraryContent(
     state: LibraryUiState,
     onFolderPicked: (Uri) -> Unit,
-    onRefresh: () -> Unit,
     onOpenComic: (LibraryComic) -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
+    onOpenAppSettings: () -> Unit,
     onOpenFile: (Uri) -> Unit,
     onFilterSelected: (LibraryFilter) -> Unit,
     onToggleGrouped: () -> Unit,
@@ -282,8 +281,7 @@ private fun LibraryContent(
                 scanFailed = state.scanFailed,
                 grouped = state.grouped,
                 query = state.query,
-                onPickFolder = pickFolder,
-                onRefresh = onRefresh,
+                onOpenAppSettings = onOpenAppSettings,
                 onOpenFile = openFile,
                 onToggleGrouped = onToggleGrouped,
                 onQueryChanged = onQueryChanged,
@@ -469,14 +467,12 @@ private fun LibraryHeader(
     scanFailed: Boolean,
     grouped: Boolean,
     query: String,
-    onPickFolder: () -> Unit,
-    onRefresh: () -> Unit,
+    onOpenAppSettings: () -> Unit,
     onOpenFile: () -> Unit,
     onToggleGrouped: () -> Unit,
     onQueryChanged: (String) -> Unit,
 ) {
     var searching by remember { mutableStateOf(query.isNotEmpty()) }
-    var menuExpanded by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
@@ -508,21 +504,7 @@ private fun LibraryHeader(
                 active = grouped,
             )
             GhostAction(icon = Icons.Outlined.FileOpen, contentDescription = stringResource(R.string.library_action_open_file), onClick = onOpenFile)
-            Box {
-                GhostAction(icon = Icons.Filled.MoreVert, contentDescription = stringResource(R.string.library_more), onClick = { menuExpanded = true })
-                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.library_pick_folder)) },
-                        leadingIcon = { Icon(imageVector = Icons.Outlined.CreateNewFolder, contentDescription = null) },
-                        onClick = { menuExpanded = false; onPickFolder() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.library_refresh)) },
-                        leadingIcon = { Icon(imageVector = Icons.Filled.Refresh, contentDescription = null) },
-                        onClick = { menuExpanded = false; onRefresh() },
-                    )
-                }
-            }
+            GhostAction(icon = Icons.Outlined.Settings, contentDescription = stringResource(R.string.library_app_settings), onClick = onOpenAppSettings)
         }
         if (searching) {
             SearchField(query = query, onQueryChanged = onQueryChanged, onClose = { searching = false; onQueryChanged("") })
@@ -591,7 +573,7 @@ internal fun PrimaryAction(icon: androidx.compose.ui.graphics.vector.ImageVector
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Brush.linearGradient(listOf(Accent, Color(0xFFB3161B))))
+            .background(Brush.linearGradient(listOf(Accent, AccentDeep)))
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -789,7 +771,7 @@ private fun ContinueReadingCard(comic: LibraryComic, onOpenComic: (LibraryComic)
         modifier = Modifier
             .width(if (isCompactWidth()) ShelfCardWidthCompact else ShelfCardWidth)
             .clip(RoundedCornerShape(16.dp))
-            .background(Brush.linearGradient(listOf(Surface2, Color(0xFF0D0E13))))
+            .background(Brush.linearGradient(listOf(Surface2, HeroGround)))
             .clickable { onOpenComic(comic) },
     ) {
         Row(
@@ -844,12 +826,12 @@ internal fun ResumePill() {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = null, tint = Color(0xFFFF9E99), modifier = Modifier.size(15.dp))
+        Icon(imageVector = Icons.Filled.PlayArrow, contentDescription = null, tint = AccentPale, modifier = Modifier.size(15.dp))
         Text(
             text = stringResource(R.string.library_resume),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFFFF9E99),
+            color = AccentPale,
         )
     }
 }
@@ -975,7 +957,7 @@ internal fun DeleteConfirmDialog(
         text = { Text(stringResource(R.string.library_delete_confirm_body, comic.title)) },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(stringResource(R.string.library_delete_confirm), color = Accent)
+                Text(stringResource(R.string.library_delete_confirm), color = Danger)
             }
         },
         dismissButton = {
@@ -1027,8 +1009,8 @@ internal fun ComicCardMenu(
             },
         )
         DropdownMenuItem(
-            text = { Text(stringResource(R.string.library_delete), color = Accent) },
-            leadingIcon = { Icon(imageVector = Icons.Outlined.Delete, contentDescription = null, tint = Accent) },
+            text = { Text(stringResource(R.string.library_delete), color = Danger) },
+            leadingIcon = { Icon(imageVector = Icons.Outlined.Delete, contentDescription = null, tint = Danger) },
             onClick = onDelete,
         )
     }
@@ -1097,8 +1079,8 @@ private fun SeriesMenu(
             onClick = { onDismiss(); onSetSeriesFavorite(group.comics, !allFavorite) },
         )
         DropdownMenuItem(
-            text = { Text(stringResource(R.string.library_delete_series), color = Accent) },
-            leadingIcon = { Icon(imageVector = Icons.Outlined.Delete, contentDescription = null, tint = Accent) },
+            text = { Text(stringResource(R.string.library_delete_series), color = Danger) },
+            leadingIcon = { Icon(imageVector = Icons.Outlined.Delete, contentDescription = null, tint = Danger) },
             onClick = { onDismiss(); confirmDelete = true },
         )
     }
@@ -1109,7 +1091,7 @@ private fun SeriesMenu(
             text = { Text(stringResource(R.string.library_delete_series_confirm_body, group.comics.size, group.series)) },
             confirmButton = {
                 TextButton(onClick = { confirmDelete = false; onDeleteSeries(group.comics) }) {
-                    Text(stringResource(R.string.library_delete_confirm), color = Accent)
+                    Text(stringResource(R.string.library_delete_confirm), color = Danger)
                 }
             },
             dismissButton = {
@@ -1344,13 +1326,15 @@ private fun Halftone() {
 
 @Composable
 internal fun ProgressRing(progress: Float, modifier: Modifier = Modifier) {
+    val track = CoverTrack
+    val fill = Accent
     Box(modifier = modifier.size(ProgressRingSize), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val stroke = 3.dp.toPx()
             val inset = stroke / 2f
             val arcSize = Size(size.width - stroke, size.height - stroke)
             drawArc(
-                color = CoverTrack,
+                color = track,
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -1359,7 +1343,7 @@ internal fun ProgressRing(progress: Float, modifier: Modifier = Modifier) {
                 style = Stroke(width = stroke),
             )
             drawArc(
-                color = Accent,
+                color = fill,
                 startAngle = -90f,
                 sweepAngle = 360f * progress.coerceIn(0f, 1f),
                 useCenter = false,

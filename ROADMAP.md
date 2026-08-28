@@ -307,19 +307,17 @@ Goal: the details that make it feel premium.
       hero and undoable dismiss (× or swipe) on folded widths; search and a
       Recent sort; the settings screen names its scope, spells out the global
       value behind "Default" and no longer uses the danger red for selection
-- [ ] App settings screen + themes. A gear in the library header opens a
-      full-screen settings page (same visual family as the per-comic one):
-      Reading (default direction, cover-alone, guided/bubbles on open, bubble
-      scale, volume-key page turn), Screen (night tint, keep screen on),
-      Library (comics folder, rescan — move them out of the "⋮"), Appearance,
-      About. Appearance = theme picker as split-diagonal circles (ground +
-      accent): ground limited to pure black / dark grey (/ paper), accent
-      from 6–8 curated presets with AA contrast on both grounds plus a
-      Material You dynamic option; live preview on the settings page itself;
-      the reader keeps its page, ambient backdrop and HUD, only the accent
-      follows. Requires moving `LibraryPalette` constants into
-      `MaterialTheme.colorScheme` first (the bulk of the work); ship the
-      settings page with the existing preferences before the theme picker
+- [x] App settings screen + themes (2026-08-28, `feature/settings`). Gear in
+      the library header → full-screen settings page (Reading defaults incl.
+      bubbles/guided on open and bubble size, Screen with night tint and a new
+      keep-screen-on toggle, Library with folder + rescan moved out of "⋮",
+      Appearance, About). Theme = ground (pure black / graphite) × accent
+      (7 curated presets with AA contrast on both grounds + Material You),
+      picked from split-diagonal swatches with live preview; `LibraryPalette`
+      constants became getters over a `ComicifyPalette` composition local
+      and `MaterialTheme.colorScheme`; the reader keeps page, ambient and
+      chrome, only the accent follows. Cover-alone stays per-comic (the
+      column is not tri-state). Paper ground not done. See `docs/settings.md`
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails

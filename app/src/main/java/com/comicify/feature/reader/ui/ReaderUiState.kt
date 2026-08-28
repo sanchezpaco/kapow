@@ -15,6 +15,7 @@ data class ReaderUiState(
     val guidedFullScreen: Boolean = false,
     val volumeKeyPagingEnabled: Boolean = true,
     val nightTintEnabled: Boolean = false,
+    val keepScreenOn: Boolean = true,
     val bubblesEnlarged: Boolean = false,
     val bubbleScale: Float = BUBBLE_ENLARGE_SCALE,
     val pendingJump: Int? = null,

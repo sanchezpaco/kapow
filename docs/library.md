@@ -203,8 +203,8 @@ out to all targets; it also exposes the global reading direction for the
 
 ### Navigation and transitions
 
-`ComicifyRoot` derives a typed `Screen` (Library / Settings / Reader) from its
-two state slots and renders it inside `SharedTransitionLayout` + `AnimatedContent`.
+`ComicifyRoot` derives a typed `Screen` (Library / Settings / AppSettings /
+Reader) from its state slots and renders it inside `SharedTransitionLayout` + `AnimatedContent`.
 Screens cross-fade; the reader additionally scales in from 94 %. The cover is a
 shared element between the grid card (or series stack) and the settings header:
 `Modifier.sharedCover(comicId)` (`SharedCover.kt`) reads the transition and
@@ -226,3 +226,10 @@ first page decodes instead of starting from the neutral default.
 
 All library strings come from resources (`docs/i18n.md`). Dates and numbers are
 formatted with locale-aware formatters, never hand-built strings.
+
+## App settings
+
+The gear in the library header opens the app-wide settings screen (global
+reading defaults, screen, comics folder + rescan, theme, about). See
+`docs/settings.md`. "Choose folder" is also the primary action of the empty
+library.

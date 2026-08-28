@@ -146,7 +146,7 @@ fun ReaderScreen(
         forwardSign = forwardSign,
     ) { atEnd = true }
 
-    ImmersiveReadingMode()
+    ImmersiveReadingMode(keepScreenOn = state.keepScreenOn)
 
     Box(
         modifier = Modifier
@@ -607,15 +607,15 @@ private fun CenteredMessage(text: String, showSpinner: Boolean = false) {
 }
 
 @Composable
-private fun ImmersiveReadingMode() {
+private fun ImmersiveReadingMode(keepScreenOn: Boolean) {
     val activity = LocalContext.current as Activity
-    DisposableEffect(Unit) {
+    DisposableEffect(keepScreenOn) {
         val window = activity.window
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         controller.hide(WindowInsetsCompat.Type.systemBars())
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (keepScreenOn) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         onDispose {
             controller.show(WindowInsetsCompat.Type.systemBars())
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

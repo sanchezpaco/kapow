@@ -36,6 +36,7 @@ import com.comicify.feature.library.ui.LibraryViewModel
 import com.comicify.feature.library.ui.LocalAnimatedVisibilityScope
 import com.comicify.feature.library.ui.LocalSharedTransitionScope
 import com.comicify.feature.reader.ui.ReaderScreen
+import com.comicify.feature.settings.ui.AppSettingsScreen
 
 private const val SCREEN_FADE_MS = 350
 private const val READER_ENTER_SCALE = 0.94f
@@ -45,6 +46,7 @@ private data class OpenRequest(val uri: Uri, val comicId: Long?, val initialPage
 private sealed interface Screen {
     data object Library : Screen
     data class Settings(val comics: List<LibraryComic>) : Screen
+    data object AppSettings : Screen
     data class Reader(val request: OpenRequest) : Screen
 }
 
@@ -57,7 +59,10 @@ fun ComicifyRoot(initialUri: Uri? = null) {
         mutableStateOf(initialUri?.let { OpenRequest(uri = it, comicId = null, initialPage = 0, ambient = null) })
     }
     var settingsOf by remember { mutableStateOf<List<LibraryComic>?>(null) }
-    val screen: Screen = open?.let { Screen.Reader(it) } ?: settingsOf?.let { Screen.Settings(it) } ?: Screen.Library
+    var appSettingsOpen by remember { mutableStateOf(false) }
+    val screen: Screen = open?.let { Screen.Reader(it) }
+        ?: settingsOf?.let { Screen.Settings(it) }
+        ?: if (appSettingsOpen) Screen.AppSettings else Screen.Library
 
     Surface(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
@@ -82,9 +87,9 @@ fun ComicifyRoot(initialUri: Uri? = null) {
                         Screen.Library -> LibraryScreen(
                             state = state,
                             onFolderPicked = viewModel::onFolderPicked,
-                            onRefresh = viewModel::onRefresh,
                             onOpenComic = { open = it.toOpenRequest() },
                             onOpenSettings = { settingsOf = it },
+                            onOpenAppSettings = { appSettingsOpen = true },
                             onOpenFile = { open = OpenRequest(uri = it, comicId = null, initialPage = 0, ambient = null) },
                             onFilterSelected = viewModel::onFilterSelected,
                             onToggleGrouped = viewModel::onToggleGrouped,
@@ -101,6 +106,12 @@ fun ComicifyRoot(initialUri: Uri? = null) {
                             onOpenSeries = viewModel::onOpenSeries,
                         )
                         is Screen.Settings -> ComicSettingsScreen(comics = target.comics, onBack = { settingsOf = null })
+                        Screen.AppSettings -> AppSettingsScreen(
+                            scanning = state.scanning,
+                            onFolderPicked = viewModel::onFolderPicked,
+                            onRefresh = viewModel::onRefresh,
+                            onBack = { appSettingsOpen = false },
+                        )
                         is Screen.Reader -> ReaderSession(target.request) {
                             ReaderScreen(
                                 uri = target.request.uri,
@@ -125,6 +136,7 @@ fun ComicifyRoot(initialUri: Uri? = null) {
 private fun Screen.key(): Any = when (this) {
     Screen.Library -> "library"
     is Screen.Settings -> "settings-${comics.first().id}"
+    Screen.AppSettings -> "app-settings"
     is Screen.Reader -> request
 }
 

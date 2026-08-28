@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -16,9 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -26,7 +23,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,33 +37,34 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.comicify.BuildConfig
+import com.comicify.core.ui.OptionChips
+import com.comicify.core.ui.BubbleScaleRow
+import com.comicify.core.ui.OnOffChips
+import com.comicify.core.ui.SettingRow
+import com.comicify.core.ui.TriStateChips
+import com.comicify.core.ui.defaultLabel
+import com.comicify.core.ui.labelRes
 import com.comicify.R
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.library.domain.ComicSettings
 import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
-import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
 
 private val SettingsCoverWidth = 96.dp
-private val BubbleScaleLabelWidth = 44.dp
-private val BubbleScaleRowMaxWidth = 360.dp
 private val SettingsContentMaxWidth = 640.dp
-private const val BUBBLE_SCALE_STEPS = 8
-private const val SELECTED_CHIP_ALPHA = 0.16f
 
 @Composable
 fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
     val viewModel: ComicSettingsViewModel = hiltViewModel()
     LaunchedEffect(comics) { viewModel.show(comics) }
     val settings by viewModel.settings.collectAsStateWithLifecycle()
-    val defaultDirection by viewModel.defaultDirection.collectAsStateWithLifecycle()
+    val defaults by viewModel.defaults.collectAsStateWithLifecycle()
     val wholeSeries = comics.size > 1
     BackHandler(onBack = onBack)
 
@@ -89,7 +86,7 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
         SettingRow(label = stringResource(R.string.detail_setting_direction)) {
             OptionChips(
                 options = listOf(
-                    null to defaultLabel(stringResource(defaultDirection.labelRes())),
+                    null to defaultLabel(stringResource(defaults.direction.labelRes())),
                     ReadingDirection.LeftToRight to stringResource(R.string.detail_option_ltr),
                     ReadingDirection.RightToLeft to stringResource(R.string.detail_option_rtl),
                 ),
@@ -98,15 +95,12 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
             )
         }
         SettingRow(label = stringResource(R.string.detail_setting_cover_alone)) {
-            OptionChips(
-                options = listOf(true to stringResource(R.string.detail_option_on), false to stringResource(R.string.detail_option_off)),
-                selected = settings.coverAlone,
-                onSelect = { viewModel.onSettingsChanged(settings.copy(coverAlone = it)) },
-            )
+            OnOffChips(selected = settings.coverAlone, onSelect = { viewModel.onSettingsChanged(settings.copy(coverAlone = it)) })
         }
         SettingRow(label = stringResource(R.string.detail_setting_bubbles)) {
             TriStateChips(
                 selected = settings.bubblesEnlarged,
+                default = defaults.bubblesOnOpen,
                 onSelect = { viewModel.onSettingsChanged(settings.copy(bubblesEnlarged = it, bubbleScale = settings.bubbleScale.takeIf { _ -> it == true })) },
             )
             if (settings.bubblesEnlarged == true) {
@@ -117,7 +111,7 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
             }
         }
         SettingRow(label = stringResource(R.string.detail_setting_guided)) {
-            TriStateChips(selected = settings.guided, onSelect = { viewModel.onSettingsChanged(settings.copy(guided = it)) })
+            TriStateChips(selected = settings.guided, default = defaults.guidedOnOpen, onSelect = { viewModel.onSettingsChanged(settings.copy(guided = it)) })
         }
         if (BuildConfig.DEBUG) ClearDetectionsRow(onClearDetections = viewModel::onClearDetections)
     }
@@ -166,89 +160,6 @@ private fun SettingsHeader(comics: List<LibraryComic>) {
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun BubbleScaleRow(scale: Float, onScaleCommitted: (Float) -> Unit) {
-    var dragged by remember(scale) { mutableStateOf(scale) }
-    Row(
-        modifier = Modifier.fillMaxWidth().widthIn(max = BubbleScaleRowMaxWidth),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = dragged.scaleLabel(),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.width(BubbleScaleLabelWidth),
-        )
-        ScaleBound(BUBBLE_SCALE_RANGE.start)
-        Slider(
-            value = dragged,
-            onValueChange = { dragged = it },
-            onValueChangeFinished = { onScaleCommitted(dragged) },
-            valueRange = BUBBLE_SCALE_RANGE,
-            steps = BUBBLE_SCALE_STEPS,
-            modifier = Modifier.weight(1f),
-        )
-        ScaleBound(BUBBLE_SCALE_RANGE.endInclusive)
-    }
-}
-
-@Composable
-private fun ScaleBound(value: Float) {
-    Text(text = value.scaleLabel(), style = MaterialTheme.typography.labelSmall, color = InkFaint)
-}
-
-private fun Float.scaleLabel(): String = "%.1f×".format(this)
-
-@Composable
-private fun defaultLabel(value: String): String = stringResource(R.string.detail_option_default_value, value)
-
-private fun ReadingDirection.labelRes(): Int = when (this) {
-    ReadingDirection.LeftToRight -> R.string.detail_option_ltr
-    ReadingDirection.RightToLeft -> R.string.detail_option_rtl
-}
-
-@Composable
-private fun SettingRow(label: String, options: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground)
-        options()
-    }
-}
-
-@Composable
-private fun TriStateChips(selected: Boolean?, onSelect: (Boolean?) -> Unit) {
-    OptionChips(
-        options = listOf(
-            null to defaultLabel(stringResource(R.string.detail_option_off)),
-            true to stringResource(R.string.detail_option_on),
-            false to stringResource(R.string.detail_option_off),
-        ),
-        selected = selected,
-        onSelect = onSelect,
-    )
-}
-
-@Composable
-private fun <T> OptionChips(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        options.forEach { (value, label) ->
-            val active = value == selected
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (active) Accent else InkDim,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(if (active) Accent.copy(alpha = SELECTED_CHIP_ALPHA) else Surface2)
-                    .selectable(selected = active, role = Role.RadioButton) { onSelect(value) }
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-            )
         }
     }
 }
