@@ -43,11 +43,11 @@
     <string name="library_group_read">%1$d/%2$d leídos</string>
     <string name="library_unshelve">Quitar de continuar leyendo</string>
     <string name="library_back">Atrás</string>
-    <string name="settings_series_scope">Se aplica a los %1$d números</string>
+    <string name="settings_series_scope">Se aplica a los %1$d cómics</string>
     <string name="detail_settings_eyebrow">Este cómic</string>
     <string name="detail_settings">Ajustes de lectura</string>
     <string name="detail_setting_direction">Sentido de lectura</string>
-    <string name="detail_setting_cover_alone">Portada sola en la doble página</string>
+    <string name="detail_setting_cover_alone">Portada sola (empareja 2-3, 4-5…)</string>
     <string name="detail_setting_bubbles">Bocadillos ampliados al abrir</string>
     <string name="detail_setting_guided">Vista guiada al abrir</string>
     <string name="detail_option_default">Por defecto</string>

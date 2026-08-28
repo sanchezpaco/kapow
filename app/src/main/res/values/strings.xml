@@ -43,11 +43,11 @@
     <string name="library_group_read">%1$d/%2$d read</string>
     <string name="library_unshelve">Remove from continue reading</string>
     <string name="library_back">Back</string>
-    <string name="settings_series_scope">Applies to all %1$d issues</string>
+    <string name="settings_series_scope">Applies to all %1$d comics</string>
     <string name="detail_settings_eyebrow">This comic</string>
     <string name="detail_settings">Reading settings</string>
     <string name="detail_setting_direction">Reading direction</string>
-    <string name="detail_setting_cover_alone">Cover alone in the spread</string>
+    <string name="detail_setting_cover_alone">Cover on its own page (pairs 2-3, 4-5…)</string>
     <string name="detail_setting_bubbles">Enlarged bubbles on open</string>
     <string name="detail_setting_guided">Guided view on open</string>
     <string name="detail_option_default">Default</string>

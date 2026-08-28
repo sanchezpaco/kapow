@@ -154,13 +154,13 @@ re-shelves it, so a comic reappears as soon as it is read again.
 Tapping a cover opens the reader directly; there is no intermediate screen. A
 small gear next to each card's title (also "Reading settings" in the long-press
 menu) opens `ComicSettingsScreen` for that comic. The gear on a series stack
-opens the same screen for the whole series ("Applies to all N issues"): the
+opens the same screen for the whole series ("Applies to all N comics"): the
 chosen values are written to every issue, and each issue keeps its own gear
 inside the series screen for individual tweaks.
 
 - Header washed with the cover's ambient colour (cover shared with the card).
 - Reading direction (default / LTR / RTL), cover alone in the spread (pairing
-  parity), enlarged bubbles on open and Guided View on open (default / on /
+  parity, labelled "Cover on its own page (pairs 2-3, 4-5…)"), enlarged bubbles on open and Guided View on open (default / on /
   off). Turning bubbles on reveals a scale slider (same range and steps as the
   reader's HUD slider) stored as the comic's `bubbleScale`; a series-wide
   change writes it to every issue. Saved in `comic_settings` through `LibraryRepository.saveSettings`; a
