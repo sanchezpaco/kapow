@@ -198,7 +198,13 @@ Goal: the details that make it feel premium.
       bubbles to seeing them enlarged can be cut. Profile the chain on the
       Fold (ML boxes ~35 ms, outlining, `BubbleLayout` ≈50 ms JVM / 0.8 s
       worst case, paper sampling, overlay composition) on a cold page and on
-      a Room-cached page, and attack whichever step dominates
+      a Room-cached page, and attack whichever step dominates. Battery
+      run (2026-08-28) already says the model is only ~half of the bubble
+      cost: layout + overlay drawing are ~0.3 s CPU per page on a re-read
+- [ ] App-wide fluidity research: after the bubble latency item, profile
+      the whole app (library scroll, opening a comic, page turns, zoom,
+      Guided View, HUD) with `gfxinfo`, systrace/Perfetto and the
+      `PageLoader` timings, and list the points worth improving
 - [x] APK size (release, `apkanalyzer`, 2026-08-28): 50.4 → 20.8 MB
       (download 32.8 → 14.0 MB). Both models' Conv weights in fp16 (9.8 →
       5.2 MB each; identical boxes on the 147-page ground truth, bit-identical
