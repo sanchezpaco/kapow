@@ -221,13 +221,18 @@ Goal: the details that make it feel premium.
       uploads; 469/474 traced frames under 8.4 ms. Baseline table, method
       and ranked findings in `docs/performance.md`; the follow-ups are the
       next five items
-- [ ] Bubble overlay GPU cost: with bubbles on, page-turn GPU time doubles
-      (p90 11 vs 5 ms) and the toggle renders ≈ 50 frames at 14 ms GPU — the
-      per-bubble bitmaps are composited every frame of the pager animation
-- [ ] First-frame display-list re-record: every gesture's first frame spends
-      9–11 ms in `Record View#draw()` (HUD, settings, page turn, guided
-      step); isolate chrome and page layers so toggling the HUD does not
-      invalidate the page
+- [x] Bubble overlay GPU cost (2026-08-28): the overlay now lives in its own
+      `Offscreen` layer under the zoom layer, so the turn animation composites
+      one cached texture instead of re-running every bubble's `clipPath`.
+      Doom #9 toggle p50 14 → 6 ms (GPU 13 → 5), turns with bubbles now
+      cost the same as without. See `docs/speech-bubbles.md`
+- [x] First-frame re-record (2026-08-28): the HUD's 13 ms frame was
+      `AnimatedVisibility` recomposing the chrome on every show; it now stays
+      composed and slides/fades in a `ModulateAlpha` layer (warm toggles
+      ≈ 4 ms main thread), thumbnails load only while visible and decode as
+      hardware bitmaps. The remaining one-slow-frame-per-gesture on page
+      turns is SurfaceFlinger buffer stuffing after idle, not app work. See
+      `docs/performance.md`
 - [ ] Open latency vs archive size: SAF → cache copy ≈ 2.4 ms/MB before the
       archive opens (Blacksad 165 MB RAR: first page at 509 ms), and CBR
       extracts every item to disk again; open CBZ/PDF from the descriptor,

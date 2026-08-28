@@ -46,6 +46,7 @@ private val ThumbCorner = RoundedCornerShape(4.dp)
 @Composable
 fun ThumbnailScrubber(
     loader: PageLoader,
+    visible: Boolean,
     currentPage: Int,
     pageCount: Int,
     onSelect: (Int) -> Unit,
@@ -54,7 +55,8 @@ fun ThumbnailScrubber(
     val listState = rememberLazyListState()
     val itemWidthPx = with(LocalDensity.current) { (ThumbWidth + ThumbSpacing).roundToPx() }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(visible) {
+        if (!visible) return@LaunchedEffect
         val viewport = snapshotFlow { listState.layoutInfo.viewportSize.width }.first { it > 0 }
         listState.scrollToItem(
             index = currentPage.coerceIn(0, (pageCount - 1).coerceAtLeast(0)),
@@ -72,6 +74,7 @@ fun ThumbnailScrubber(
             ThumbnailCell(
                 loader = loader,
                 index = index,
+                visible = visible,
                 selected = index == currentPage,
                 onClick = { onSelect(index) },
             )
@@ -83,11 +86,14 @@ fun ThumbnailScrubber(
 private fun ThumbnailCell(
     loader: PageLoader,
     index: Int,
+    visible: Boolean,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
     var thumb by remember(index) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(index) { thumb = runCatching { loader.loadThumb(index) }.getOrNull() }
+    LaunchedEffect(index, visible) {
+        if (visible && thumb == null) thumb = runCatching { loader.loadThumb(index) }.getOrNull()
+    }
 
     val borderColor = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
     val description = stringResource(R.string.reader_thumbnail_go_to_page, index + 1)

@@ -561,13 +561,18 @@ with Room.
 `ZoomablePage` shows a small spinner in the page corner while its overlay is
 being computed (one detection at a time — `PageLoader` gates detection with a
 semaphore), draws the page as
-before and, in a `drawWithContent` after the zoom/pan `graphicsLayer` (so the
-overlay pans and zooms with the page), draws in two passes straight into the
-Compose `DrawScope` (`BubbleOverlay.drawBubbles`). The draw is not repeated
-per frame: the `graphicsLayer` caches it, and zooming, panning and page turns
-only transform the layer (fewer than 30 draws were counted across a zoom and
-fling session). No full-page bitmap is rasterised in
-between: an earlier version rendered a full-page ARGB overlay bitmap per page
+before and, in a sibling `BubbleLayer` under the same zoom/pan
+`graphicsLayer` (so the overlay pans and zooms with the page), draws in two
+passes straight into the Compose `DrawScope` (`BubbleOverlay.drawBubbles`).
+The draw is not repeated per frame: the layer caches it, and zooming, panning
+and page turns only transform the layer (fewer than 30 draws were counted
+across a zoom and fling session). The overlay layer uses
+`CompositingStrategy.Offscreen` while the page is unzoomed, so the pager's
+turn animation composites one cached texture instead of re-running every
+bubble's `clipPath` on the GPU (Fold, Doom #9: toggle frames 14 → 6 ms, GPU
+13 → 5 ms; turns with bubbles now cost the same as without); it drops back to
+`Auto` when zoomed so the enlarged text stays sharp. No full-page bitmap is
+rasterised in between: an earlier version rendered a full-page ARGB overlay bitmap per page
 and per slider step, which on a 2953 × 4528 scan meant 53 MB allocations and
 page turns at ~10 fps. The only precomputed part is `BubblePlan.of`: one
 small fill bitmap per enlarged bubble, the size of its box plus margin, cut

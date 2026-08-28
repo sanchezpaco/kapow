@@ -25,11 +25,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.drawBehind
 import com.comicify.feature.reader.ui.BubbleOverlay.drawBubbles
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -99,10 +100,7 @@ fun ZoomablePage(
         if (page == null) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         } else {
-            Image(
-                bitmap = page.image,
-                contentDescription = null,
-                contentScale = ContentScale.Fit,
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .pointerInput(index) {
@@ -159,12 +157,18 @@ fun ZoomablePage(
                         scaleY = scale
                         translationX = offset.x
                         translationY = offset.y
-                    }
-                    .drawWithContent {
-                        drawContent()
-                        (overlay as? BubbleOverlayState.Ready)?.let { drawBubbles(page.image, fittedImageRect(page.image, size), it.bubbles) }
                     },
-            )
+            ) {
+                Image(
+                    bitmap = page.image,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                (overlay as? BubbleOverlayState.Ready)?.let { ready ->
+                    BubbleLayer(page.image, ready.bubbles, cached = { scale <= 1f })
+                }
+            }
             if (overlay == BubbleOverlayState.Loading) {
                 CircularProgressIndicator(
                     color = MaterialTheme.colorScheme.primary,
@@ -174,6 +178,18 @@ fun ZoomablePage(
             }
         }
     }
+}
+
+@Composable
+private fun BubbleLayer(page: ImageBitmap, bubbles: List<PaintedBubble>, cached: () -> Boolean) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                compositingStrategy = if (cached()) CompositingStrategy.Offscreen else CompositingStrategy.Auto
+            }
+            .drawBehind { drawBubbles(page, fittedImageRect(page, size), bubbles) },
+    )
 }
 
 private sealed interface BubbleOverlayState {

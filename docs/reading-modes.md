@@ -129,6 +129,12 @@ is unit-tested directly (`PageOrderTest`).
   status bar, the top bar pads for `displayCutout` (unioned with `statusBars`), so
   the controls never sit under the foldable's front-camera cutout.
 - Center tap toggles a minimal overlay: progress, page number, quick settings.
+  The chrome stays composed while hidden: `SlidingChrome` fades it with
+  `ModulateAlpha` and slides it fully off-screen (so it receives no touches)
+  instead of `AnimatedVisibility`, which recomposed and re-recorded ~40 nodes on
+  every show (Fold: first frame 13 → 4 ms on the main thread). The scrubber
+  skips thumbnail loads and re-centring while hidden; thumbnails are decoded
+  as hardware bitmaps so showing the chrome uploads no textures.
 - Left/right tap zones page back/forward (mirrored correctly for the surface).
 - Volume-down/volume-up turn the page forward/back (panel-by-panel in Guided
   View) and consume the key so system volume is unaffected. Only active while

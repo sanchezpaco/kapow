@@ -7,13 +7,12 @@ import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -69,6 +68,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -94,6 +95,7 @@ import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
 import com.comicify.feature.reader.domain.ComicOpenError
 import kotlinx.coroutines.flow.MutableSharedFlow
 
+private const val CHROME_SLIDE_MS = 200
 private val InitialAmbient = Color(0xFF0B0B0F)
 private val NightTintColor = Color(0xFFFF8F00).copy(alpha = 0.16f)
 
@@ -334,12 +336,7 @@ private fun TopChrome(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn() + slideInVertically { -it },
-        exit = fadeOut() + slideOutVertically { -it },
-        modifier = modifier,
-    ) {
+    SlidingChrome(visible = visible, slideSign = -1f, modifier = modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -500,6 +497,25 @@ private fun CircleControl(icon: ImageVector, active: Boolean, contentDescription
 }
 
 @Composable
+private fun SlidingChrome(
+    visible: Boolean,
+    slideSign: Float,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val shown by animateFloatAsState(targetValue = if (visible) 1f else 0f, animationSpec = tween(CHROME_SLIDE_MS), label = "chrome")
+    Box(
+        modifier = modifier.graphicsLayer {
+            compositingStrategy = CompositingStrategy.ModulateAlpha
+            alpha = shown
+            translationY = slideSign * size.height * (1f - shown)
+        },
+    ) {
+        content()
+    }
+}
+
+@Composable
 private fun BottomChrome(
     visible: Boolean,
     currentPage: Int,
@@ -518,15 +534,12 @@ private fun BottomChrome(
             .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn() + slideInVertically { it },
-            exit = fadeOut() + slideOutVertically { it },
-        ) {
+        SlidingChrome(visible = visible, slideSign = 1f) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 if (scrubberLoader != null && pageCount > 0) {
                     ThumbnailScrubber(
                         loader = scrubberLoader,
+                        visible = visible,
                         currentPage = currentPage,
                         pageCount = pageCount,
                         onSelect = onJumpToPage,

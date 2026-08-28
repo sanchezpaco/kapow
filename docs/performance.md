@@ -104,3 +104,24 @@ and it is what would break first at 120 Hz.
 
 Not worth touching (baseline is at the noise floor): library scroll,
 startup, thumbnail scrubber, zoom/pan, decode placement.
+
+## Follow-up: findings 1 and 2 (2026-08-28)
+
+- **1, bubble overlay** — `ZoomablePage` draws the overlay in its own
+  `graphicsLayer` with `CompositingStrategy.Offscreen` (Auto while zoomed),
+  see `speech-bubbles.md`. Doom #9, release, folded: bubble toggle p50 14 →
+  6 ms (GPU p50 13 → 5 ms); page turns with bubbles p90 6 / GPU 5 ms — the
+  same as with bubbles off. Graphics PSS unchanged.
+- **2, first-frame re-record** — a second trace split the pattern in two.
+  The HUD's slow frame was real: 5 ms composing + 7.4 ms recording the chrome
+  that `AnimatedVisibility` rebuilt on every show; the chrome now stays
+  composed (`SlidingChrome`, `ModulateAlpha` fade + off-screen slide,
+  thumbnails gated on visibility and decoded as hardware bitmaps), and warm
+  toggles trace at ≈ 4 ms on the main thread with nothing over 3 ms on the
+  RenderThread. The first show after opening still pays one-off Vulkan
+  allocations (chrome layer, thumbnail textures; p99 ≈ 30 ms once). The
+  per-gesture slow frame on page turns, guided steps and settings is **not
+  app work**: the RenderThread sits in `queueBuffer → waitForever` (9–10 ms,
+  "Buffer Stuffing" in the frame timeline) on the first frame after idle,
+  and `gfxinfo` still counts it as one janky frame per gesture. Nothing to
+  fix on the app side; it is invisible at 60 Hz.

@@ -76,8 +76,12 @@ class PageLoader(
         }
     }
 
-    private suspend fun decodeThumb(index: Int): ImageBitmap =
-        source.decodePage(index, THUMB_WIDTH_PX).asImageBitmap()
+    private suspend fun decodeThumb(index: Int): ImageBitmap {
+        val decoded = source.decodePage(index, THUMB_WIDTH_PX)
+        val thumb = decoded.copy(Bitmap.Config.HARDWARE, false) ?: return decoded.asImageBitmap()
+        decoded.recycle()
+        return thumb.asImageBitmap()
+    }
 
     suspend fun panels(index: Int): List<Rect> {
         panelCache[index]?.let { return it }
