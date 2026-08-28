@@ -244,8 +244,12 @@ Goal: the details that make it feel premium.
       slot), so each step finds the next page's panels cached instead of
       detecting them on arrival (130–210 ms). Bubble mode keeps its serial
       ≈ 250 ms per page (one detection at a time). See `docs/guided-view.md`
-- [ ] Reader → library exit renders one 20–27 ms frame (library
-      recomposition + cover re-bind); measure unfolded posture too
+- [x] Reader → library exit (2026-08-28, traced): one 36 ms frame, 26 ms
+      recomposing a fresh `LibraryScreen`; left as is, since keeping the
+      library composed under the reader would recompose it on every
+      `saveProgress` during page turns. See `docs/performance.md`
+- [ ] Fluidity in the unfolded posture: repeat the `docs/performance.md`
+      recipe on the inner screen (spread, tabletop, Guided View)
 - [x] APK size (release, `apkanalyzer`, 2026-08-28): 50.4 → 20.8 MB
       (download 32.8 → 14.0 MB). Both models' Conv weights in fp16 (9.8 →
       5.2 MB each; identical boxes on the 147-page ground truth, bit-identical

@@ -139,3 +139,18 @@ startup, thumbnail scrubber, zoom/pan, decode placement.
   entering, page N+2 detected while N is shown; each step finds its panels
   cached. Bubble mode already preloaded overlays; its per-page cost stays
   serial (≈ 250 ms) by design (one detection at a time). See `guided-view.md`.
+- **5, reader → library exit** — traced: one 36 ms frame, 26 ms of it
+  recomposition (`ComicifyRoot` swaps the reader for a fresh `LibraryScreen`)
+  and 7 ms measure after the system bars come back. Deliberately left alone:
+  keeping the library composed underneath the reader would make every
+  `saveProgress` recompose it during the page-turn animation, trading a single
+  frame on close for work on the primary interaction. Revisit only with
+  Compose runtime tracing if the close ever feels slow.
+
+## Where this leaves the app
+
+Every interaction in the table now sits at 2–4 % `gfxinfo` jank with the
+per-gesture frame being SurfaceFlinger's idle wake-up, main-thread frames
+≈ 4 ms warm, GPU ≤ 6 ms with or without bubbles, RAR/PDF opening independent
+of file size and Guided View never waiting for a detection. The unfolded
+posture is still unmeasured; the same recipe applies.
