@@ -8,6 +8,7 @@ How Comicify works, one concern per file.
 - [file-formats.md](file-formats.md) — CBZ / CBR / PDF loading pipeline
 - [guided-view.md](guided-view.md) — automatic panel detection and navigation
 - [speech-bubbles.md](speech-bubbles.md) — enlarged speech bubbles toggle (detection, layout, overlay)
+- [ml-runtime.md](ml-runtime.md) — minimal ONNX Runtime build and ORT-format models: how the AAR and the `.ort` assets are produced
 - [library.md](library.md) — import, storage, metadata, persistence
 - [i18n.md](i18n.md) — the bilingual (ES/EN) resource strategy
 
