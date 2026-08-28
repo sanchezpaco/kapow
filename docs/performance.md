@@ -186,6 +186,6 @@ GPU p50 7 → 5 ms and p90 9 → 7 ms; `AmbientBackdrop` now paints it in an
 shader work; the blend is a smooth gradient, indistinguishable), landing at
 GPU p50 6 / p90 8 ms. The single-page pager's turn layer uses `ModulateAlpha`
 when no overlay is drawn, so its fade no longer needs a per-page
-`saveLayer`; measured only on the inner screen (which does not use it) —
-re-check folded. Everything sits under the 16.7 ms budget; at 120 Hz the
-spread would not.
+`saveLayer`; verified folded afterwards (Doom #9 turns 3.2 % janky, p50 5 /
+GPU p90 5 ms, the fade intact mid-turn). Everything sits under the 16.7 ms
+budget; at 120 Hz the spread would not.
