@@ -1,6 +1,14 @@
 package com.comicify
 
 import android.net.Uri
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -13,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModelStore
@@ -24,63 +33,97 @@ import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.ui.ComicDetailScreen
 import com.comicify.feature.library.ui.LibraryScreen
 import com.comicify.feature.library.ui.LibraryViewModel
+import com.comicify.feature.library.ui.LocalAnimatedVisibilityScope
+import com.comicify.feature.library.ui.LocalSharedTransitionScope
 import com.comicify.feature.reader.ui.ReaderScreen
 
-private data class OpenRequest(val uri: Uri, val comicId: Long?, val initialPage: Int)
+private const val SCREEN_FADE_MS = 350
+private const val READER_ENTER_SCALE = 0.94f
 
+private data class OpenRequest(val uri: Uri, val comicId: Long?, val initialPage: Int, val ambient: Color?)
+
+private sealed interface Screen {
+    data object Library : Screen
+    data class Detail(val comic: LibraryComic) : Screen
+    data class Reader(val request: OpenRequest) : Screen
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun ComicifyRoot(initialUri: Uri? = null) {
     val viewModel: LibraryViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
     var open by remember {
-        mutableStateOf(initialUri?.let { OpenRequest(uri = it, comicId = null, initialPage = 0) })
+        mutableStateOf(initialUri?.let { OpenRequest(uri = it, comicId = null, initialPage = 0, ambient = null) })
     }
     var detail by remember { mutableStateOf<LibraryComic?>(null) }
+    val screen: Screen = open?.let { Screen.Reader(it) } ?: detail?.let { Screen.Detail(it) } ?: Screen.Library
 
     Surface(
         modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         color = MaterialTheme.colorScheme.background,
     ) {
-        val request = open
-        val shownDetail = detail
-        if (request == null && shownDetail != null) {
-            ComicDetailScreen(
-                comic = shownDetail,
-                onBack = { detail = null },
-                onOpenComic = { open = it.toOpenRequest() },
-                onShowComic = { detail = it },
-            )
-        } else if (request == null) {
-            LibraryScreen(
-                state = state,
-                onFolderPicked = viewModel::onFolderPicked,
-                onRefresh = viewModel::onRefresh,
-                onOpenComic = { open = it.toOpenRequest() },
-                onShowDetail = { detail = it },
-                onOpenFile = { open = OpenRequest(uri = it, comicId = null, initialPage = 0) },
-                onFilterSelected = viewModel::onFilterSelected,
-                onToggleGrouped = viewModel::onToggleGrouped,
-                onUnshelve = viewModel::onUnshelve,
-                onToggleRead = viewModel::onToggleRead,
-                onToggleFavorite = viewModel::onToggleFavorite,
-                onDeleteComic = viewModel::onDeleteComic,
-            )
-        } else {
-            ReaderSession(request) {
-                ReaderScreen(
-                    uri = request.uri,
-                    initialPage = request.initialPage,
-                    onPageChanged = { pageIndex, pageCount ->
-                        request.comicId?.let { viewModel.saveProgress(it, pageIndex, pageCount) }
-                    },
-                    onClose = { open = null },
-                    onOpenNext = request.comicId
-                        ?.let { LibraryCatalog.nextInSeries(state.allComics, it) }
-                        ?.let { next -> { open = next.toOpenRequest() } },
-                )
+        SharedTransitionLayout {
+            AnimatedContent(
+                targetState = screen,
+                contentKey = { it.key() },
+                transitionSpec = {
+                    val enter = fadeIn(tween(SCREEN_FADE_MS)) +
+                        if (targetState is Screen.Reader) scaleIn(tween(SCREEN_FADE_MS), initialScale = READER_ENTER_SCALE) else fadeIn()
+                    enter togetherWith fadeOut(tween(SCREEN_FADE_MS))
+                },
+                label = "screen",
+            ) { target ->
+                CompositionLocalProvider(
+                    LocalSharedTransitionScope provides this@SharedTransitionLayout,
+                    LocalAnimatedVisibilityScope provides this@AnimatedContent,
+                ) {
+                    when (target) {
+                        Screen.Library -> LibraryScreen(
+                            state = state,
+                            onFolderPicked = viewModel::onFolderPicked,
+                            onRefresh = viewModel::onRefresh,
+                            onOpenComic = { open = it.toOpenRequest() },
+                            onShowDetail = { detail = it },
+                            onOpenFile = { open = OpenRequest(uri = it, comicId = null, initialPage = 0, ambient = null) },
+                            onFilterSelected = viewModel::onFilterSelected,
+                            onToggleGrouped = viewModel::onToggleGrouped,
+                            onUnshelve = viewModel::onUnshelve,
+                            onToggleRead = viewModel::onToggleRead,
+                            onToggleFavorite = viewModel::onToggleFavorite,
+                            onDeleteComic = viewModel::onDeleteComic,
+                        )
+                        is Screen.Detail -> ComicDetailScreen(
+                            comic = target.comic,
+                            onBack = { detail = null },
+                            onOpenComic = { open = it.toOpenRequest() },
+                            onShowComic = { detail = it },
+                        )
+                        is Screen.Reader -> ReaderSession(target.request) {
+                            ReaderScreen(
+                                uri = target.request.uri,
+                                initialPage = target.request.initialPage,
+                                onPageChanged = { pageIndex, pageCount ->
+                                    target.request.comicId?.let { viewModel.saveProgress(it, pageIndex, pageCount) }
+                                },
+                                onClose = { open = null },
+                                onOpenNext = target.request.comicId
+                                    ?.let { LibraryCatalog.nextInSeries(state.allComics, it) }
+                                    ?.let { next -> { open = next.toOpenRequest() } },
+                                initialAmbient = target.request.ambient,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
+}
+
+private fun Screen.key(): Any = when (this) {
+    Screen.Library -> "library"
+    is Screen.Detail -> "detail-${comic.id}"
+    is Screen.Reader -> request
 }
 
 @Composable
@@ -95,4 +138,4 @@ private fun ReaderSession(request: OpenRequest, content: @Composable () -> Unit)
 }
 
 private fun LibraryComic.toOpenRequest(): OpenRequest =
-    OpenRequest(uri = documentUri.toUri(), comicId = id, initialPage = pageIndex)
+    OpenRequest(uri = documentUri.toUri(), comicId = id, initialPage = pageIndex, ambient = coverAmbient?.let { Color(it) })

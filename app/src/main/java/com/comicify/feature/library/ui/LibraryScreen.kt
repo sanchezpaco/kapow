@@ -644,6 +644,7 @@ private fun ComicCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
+                .sharedCover(comic.id)
                 .clip(RoundedCornerShape(14.dp)),
         ) {
             CoverArt(comic = comic, showArtwork = true)

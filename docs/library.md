@@ -174,6 +174,18 @@ reading. The screen is one adaptive grid:
   `ComicSource`, 240 px wide, hardware bitmaps, closed with the ViewModel);
   the current page is outlined and tapping a page opens the reader there.
 
+### Navigation and transitions
+
+`ComicifyRoot` derives a typed `Screen` (Library / Detail / Reader) from its two
+state slots and renders it inside `SharedTransitionLayout` + `AnimatedContent`.
+Screens cross-fade; the reader additionally scales in from 94 %. The cover is a
+shared element between the grid card (or series stack) and the detail header:
+`Modifier.sharedCover(comicId)` (`SharedCover.kt`) reads the transition and
+visibility scopes from composition locals, so a cover outside the animated root
+just renders normally. The reader receives the cover's ambient colour as
+`initialAmbient`, so its backdrop already glows in the comic's colour while the
+first page decodes instead of starting from the neutral default.
+
 `ComicDetailViewModel` combines the library flow, the settings flow of the
 shown comic and the page count into `ComicDetailUiState`; it is the only place
 that opens a comic outside the reader.

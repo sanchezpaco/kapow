@@ -36,6 +36,9 @@ Default on `UnfoldedSingle` and `CompactSingle`.
 
 ## Ambient backdrop
 
+When opened from the library the backdrop starts from the cover's persisted
+ambient colour (`ReaderScreen(initialAmbient)`), then follows each page.
+
 Each decoded page carries an `ambient` color (Palette vibrant → muted → dominant
 fallback), cached with the page bitmap. The reader paints a radial gradient from
 a darkened ambient glow at the page center out to pure black at the edges, so the

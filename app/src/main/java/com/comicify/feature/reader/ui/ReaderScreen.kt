@@ -108,6 +108,7 @@ fun ReaderScreen(
     initialPage: Int = 0,
     onPageChanged: (pageIndex: Int, pageCount: Int) -> Unit = { _, _ -> },
     onOpenNext: (() -> Unit)? = null,
+    initialAmbient: Color? = null,
 ) {
     val application = LocalContext.current.applicationContext as Application
     val viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.factory(application, uri, initialPage))
@@ -124,7 +125,7 @@ fun ReaderScreen(
         if (state.pageCount > 0) onPageChanged(state.position.pageIndex, state.pageCount)
     }
 
-    var ambient by remember { mutableStateOf(InitialAmbient) }
+    var ambient by remember { mutableStateOf(initialAmbient ?: InitialAmbient) }
     var guidedIndex by remember { mutableIntStateOf(0) }
     var guidedCount by remember { mutableIntStateOf(1) }
     val glow by animateColorAsState(

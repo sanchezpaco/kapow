@@ -176,7 +176,7 @@ private fun DetailHeader(comic: LibraryComic, pageCount: Int, onOpenComic: (Libr
             .padding(20.dp),
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Box(modifier = Modifier.width(DetailCoverWidth).aspectRatio(2f / 3f).clip(RoundedCornerShape(14.dp))) {
+        Box(modifier = Modifier.width(DetailCoverWidth).aspectRatio(2f / 3f).sharedCover(comic.id).clip(RoundedCornerShape(14.dp))) {
             CoverArt(comic = comic, showArtwork = true)
         }
         Column(modifier = Modifier.fillMaxHeight().weight(1f)) {
