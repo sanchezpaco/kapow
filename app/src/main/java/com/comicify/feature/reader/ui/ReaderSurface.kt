@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -138,15 +139,16 @@ private fun SinglePageReader(
             index = PageOrder.logicalIndex(direction, physicalPage, pageCount),
             onTap = onTap,
             onZoomedChange = { if (physicalPage == pagerState.currentPage) zoomed = it },
-            modifier = Modifier.pageTurnDepth(pagerState, physicalPage),
+            modifier = Modifier.pageTurnDepth(pagerState, physicalPage, layered = bubbleScale != null),
         )
     }
 }
 
-private fun Modifier.pageTurnDepth(pagerState: PagerState, page: Int): Modifier =
+private fun Modifier.pageTurnDepth(pagerState: PagerState, page: Int, layered: Boolean): Modifier =
     graphicsLayer {
         val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
         val transform = PageTurn.transform(pageOffset)
+        compositingStrategy = if (layered) CompositingStrategy.Auto else CompositingStrategy.ModulateAlpha
         cameraDistance = PAGE_TURN_CAMERA_DISTANCE_DP * density
         rotationY = transform.rotationY
         scaleX = transform.scale

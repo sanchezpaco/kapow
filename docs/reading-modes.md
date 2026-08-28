@@ -121,7 +121,11 @@ is unit-tested directly (`PageOrderTest`).
 
 ## Shared reader chrome
 
-- Immersive by default: system bars hidden, edge-to-edge, pure-black background.
+- Immersive by default: system bars hidden, edge-to-edge, pure-black background
+  with the page's ambient glow behind it (`AmbientBackdrop`: a radial gradient
+  painted in an `Offscreen` layer at a quarter of the screen and scaled ×4,
+  since the full-screen shader cost ≈ 2 ms of GPU per frame on the inner
+  screen).
 - The top bar keeps only two always-visible controls — the Guided View toggle and
   a settings **gear** — plus the close button. The gear opens a dropdown with the
   rest of the reader settings (night tint, reading direction, and, in the spread,

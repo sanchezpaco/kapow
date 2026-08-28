@@ -154,3 +154,38 @@ per-gesture frame being SurfaceFlinger's idle wake-up, main-thread frames
 ≈ 4 ms warm, GPU ≤ 6 ms with or without bubbles, RAR/PDF opening independent
 of file size and Guided View never waiting for a detection. The unfolded
 posture is still unmeasured; the same recipe applies.
+
+## Unfolded posture (inner screen 2448×1848, spread, 60 Hz, 2026-08-28)
+
+Same build family (after fixes 1–4), Muerte (62-page RAR, resumed at p.20)
+unless noted. HUD on the inner screen: bubbles ≈ (2032,88), Guided View
+≈ (2192,88), settings ≈ (2352,88), back ≈ (96,88); centre tap (1224,924).
+
+| Interaction | Frames | Janky | p50 / p90 / p99 | GPU p50 / p90 | Notes |
+|---|---|---|---|---|---|
+| Cold start → first window | — | — | 118–131 ms | — | |
+| Library fling ×8 (5 columns) | 477 | 1.9–2.1 % | 5 / 6–8 / 13 ms | 5 / 5–7 ms | |
+| Open Muerte, resumed at p.20 | — | — | first pages at +347–362 ms | — | RAR tail-first; head batch lands at ≈ 1 s |
+| Spread turns ×8, bubbles off | 411–429 | 4.0–5.0 % | 7 / 9–10 / 14–15 ms | 7 / 9 ms | two 2160 px hardware bitmaps per frame |
+| Spread turns ×8, bubbles on, cold | 417 | 3.4 % | 7 / 15 / 26 ms | 7 / 14 ms | fresh overlay layers rendered mid-animation |
+| Spread turns ×8, bubbles on, cached | 423 | 4.3 % | 7 / 10 / 18 ms | 7 / 9 ms | = bubbles off |
+| Bubble toggle on (cold, spread) | 29 | 6.9 % | 11 / 24 / 34 ms | 7 / 13 ms | six overlays planned + two layers created |
+| Guided View enter (cold panels) | 30 | 10 % (3/30) | 9 / 12 / 14 ms | 7 / 10 ms | panels 233–395 ms, preloaded two ahead |
+| Guided View next ×10 | 334 | 3.3 % | 7 / 13 / 20 ms | 7 / 13 ms | |
+| Double-tap zoom + pan | 44 | 4.5 % | 5 / 9 / 18 ms | 5 / 8 ms | |
+| HUD show/hide ×6 (first after open) | 84 | 8.3 % | 7 / 11 / 20 ms | 6 / 10 ms | first show pays the one-off allocations |
+| Settings toggle ×6 | 181 | 3.9 % | 8 / 9 / 16 ms | 7 / 9 ms | |
+| Reader → library | 20 | 5 % | 7 / 32 / 40 ms | 6 / 6 ms | bigger library composition on the inner screen |
+
+The inner screen is GPU-bound, not CPU-bound: the RenderThread spends
+0.7 ms per frame and the GPU ≈ 6 ms (Perfetto `GPU completion`, 296 frames,
+max 12 ms). Two full-height hardware bitmaps sampled down from 2160 px plus
+the ambient radial gradient over 4.5 MP. An A/B without the gradient took
+GPU p50 7 → 5 ms and p90 9 → 7 ms; `AmbientBackdrop` now paints it in an
+`Offscreen` layer at a quarter of the screen size scaled ×4 (1/16 of the
+shader work; the blend is a smooth gradient, indistinguishable), landing at
+GPU p50 6 / p90 8 ms. The single-page pager's turn layer uses `ModulateAlpha`
+when no overlay is drawn, so its fade no longer needs a per-page
+`saveLayer`; measured only on the inner screen (which does not use it) —
+re-check folded. Everything sits under the 16.7 ms budget; at 120 Hz the
+spread would not.

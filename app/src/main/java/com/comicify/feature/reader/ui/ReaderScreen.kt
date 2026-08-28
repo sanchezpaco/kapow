@@ -69,6 +69,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -96,6 +97,7 @@ import com.comicify.feature.reader.domain.ComicOpenError
 import kotlinx.coroutines.flow.MutableSharedFlow
 
 private const val CHROME_SLIDE_MS = 200
+private const val BACKDROP_DOWNSCALE = 4f
 private val InitialAmbient = Color(0xFF0B0B0F)
 private val NightTintColor = Color(0xFFFF8F00).copy(alpha = 0.16f)
 
@@ -149,17 +151,9 @@ fun ReaderScreen(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(endOverscroll)
-            .drawBehind {
-                drawRect(Color.Black)
-                drawRect(
-                    Brush.radialGradient(
-                        colors = listOf(glow, Color.Black),
-                        center = Offset(size.width / 2f, size.height * 0.42f),
-                        radius = size.maxDimension * 0.75f,
-                    ),
-                )
-            },
+            .background(Color.Black),
     ) {
+        AmbientBackdrop(glow)
         val openError = state.error
         when {
             state.loading -> CenteredMessage(stringResource(R.string.reader_loading), showSpinner = true)
@@ -494,6 +488,29 @@ private fun CircleControl(icon: ImageVector, active: Boolean, contentDescription
     ) {
         Icon(imageVector = icon, contentDescription = contentDescription, tint = Color.White)
     }
+}
+
+@Composable
+private fun AmbientBackdrop(glow: Color) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize(1f / BACKDROP_DOWNSCALE)
+            .graphicsLayer {
+                scaleX = BACKDROP_DOWNSCALE
+                scaleY = BACKDROP_DOWNSCALE
+                transformOrigin = TransformOrigin(0f, 0f)
+                compositingStrategy = CompositingStrategy.Offscreen
+            }
+            .drawBehind {
+                drawRect(
+                    Brush.radialGradient(
+                        colors = listOf(glow, Color.Black),
+                        center = Offset(size.width / 2f, size.height * 0.42f),
+                        radius = size.maxDimension * 0.75f,
+                    ),
+                )
+            },
+    )
 }
 
 @Composable

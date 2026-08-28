@@ -248,8 +248,12 @@ Goal: the details that make it feel premium.
       recomposing a fresh `LibraryScreen`; left as is, since keeping the
       library composed under the reader would recompose it on every
       `saveProgress` during page turns. See `docs/performance.md`
-- [ ] Fluidity in the unfolded posture: repeat the `docs/performance.md`
-      recipe on the inner screen (spread, tabletop, Guided View)
+- [x] Fluidity in the unfolded posture (2026-08-28, spread on the inner
+      screen): GPU-bound at ≈ 6 ms/frame (two full-height pages), spread
+      turns 4–5 % janky at p50 7 ms, Guided View 3.3 %, HUD 8 % on the first
+      show; the ambient gradient cost 2 ms of GPU per frame and is now
+      painted downscaled in a layer (`AmbientBackdrop`, GPU p50 7 → 6 ms).
+      Tabletop not measured. See `docs/performance.md`
 - [x] APK size (release, `apkanalyzer`, 2026-08-28): 50.4 → 20.8 MB
       (download 32.8 → 14.0 MB). Both models' Conv weights in fp16 (9.8 →
       5.2 MB each; identical boxes on the 147-page ground truth, bit-identical
