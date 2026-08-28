@@ -17,6 +17,9 @@ interface ReadingStateDao {
     @Query("UPDATE reading_states SET shelved = 0 WHERE comicId = :comicId")
     suspend fun unshelve(comicId: Long)
 
+    @Query("UPDATE reading_states SET shelved = 1 WHERE comicId = :comicId")
+    suspend fun reshelve(comicId: Long)
+
     @Upsert
     suspend fun upsert(state: ReadingStateEntity)
 

@@ -29,6 +29,18 @@ object LibraryCatalog {
         return comics.sortedWith(comparator)
     }
 
+    fun search(comics: List<LibraryComic>, query: String): List<LibraryComic> {
+        val needle = query.trim()
+        if (needle.isEmpty()) return comics
+        return comics.filter { it.title.contains(needle, ignoreCase = true) || it.series.contains(needle, ignoreCase = true) }
+    }
+
+    fun sorted(comics: List<LibraryComic>, sort: LibrarySort): List<LibraryComic> =
+        when (sort) {
+            LibrarySort.TITLE -> comics
+            LibrarySort.RECENT -> comics.sortedByDescending { it.lastReadAt ?: Long.MIN_VALUE }
+        }
+
     fun filtered(comics: List<LibraryComic>, filter: LibraryFilter): List<LibraryComic> =
         when (filter) {
             LibraryFilter.ALL -> comics

@@ -89,9 +89,14 @@ fun ComicifyRoot(initialUri: Uri? = null) {
                             onFilterSelected = viewModel::onFilterSelected,
                             onToggleGrouped = viewModel::onToggleGrouped,
                             onUnshelve = viewModel::onUnshelve,
+                            onReshelve = viewModel::onReshelve,
                             onToggleRead = viewModel::onToggleRead,
+                            onSetSeriesRead = viewModel::onSetSeriesRead,
                             onToggleFavorite = viewModel::onToggleFavorite,
                             onDeleteComic = viewModel::onDeleteComic,
+                            onQueryChanged = viewModel::onQueryChanged,
+                            onSortSelected = viewModel::onSortSelected,
+                            onOpenSeries = viewModel::onOpenSeries,
                         )
                         is Screen.Settings -> ComicSettingsScreen(comics = target.comics, onBack = { settingsOf = null })
                         is Screen.Reader -> ReaderSession(target.request) {

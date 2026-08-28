@@ -24,10 +24,33 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.FileOpen
+import androidx.compose.material.icons.outlined.DoneAll
+import androidx.compose.material.icons.outlined.RemoveDone
+import com.comicify.feature.library.domain.LibrarySort
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -38,10 +61,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.PlayArrow
@@ -50,6 +72,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -89,10 +112,20 @@ import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.domain.LibraryEntry
 import com.comicify.feature.library.domain.LibraryFilter
 import java.io.File
-import kotlin.math.roundToInt
 
+private const val COMPACT_WIDTH_DP = 600
 private val HeroCoverWidth = 132.dp
-private val CardGearSize = 26.dp
+private val HeroCoverWidthCompact = 100.dp
+private val ShelfCardWidth = 340.dp
+private val ShelfCardWidthCompact = 296.dp
+private val GridMinCell = 158.dp
+private val GridMinCellCompact = 112.dp
+private val UnshelveButtonSize = 40.dp
+private val CardShape = RoundedCornerShape(14.dp)
+private val SearchFieldMaxWidth = 480.dp
+private val MenuHeaderMaxWidth = 260.dp
+private val FilterDividerHeight = 22.dp
+private val ProgressRingSize = 26.dp
 
 private val CoverGradients = listOf(
     listOf(Color(0xFF7A2222), Color(0xFF2A0E0E)),
@@ -116,9 +149,72 @@ fun LibraryScreen(
     onFilterSelected: (LibraryFilter) -> Unit,
     onToggleGrouped: () -> Unit,
     onUnshelve: (LibraryComic) -> Unit,
+    onReshelve: (LibraryComic) -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
+    onSetSeriesRead: (List<LibraryComic>, Boolean) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDeleteComic: (LibraryComic) -> Unit,
+    onQueryChanged: (String) -> Unit,
+    onSortSelected: (LibrarySort) -> Unit,
+    onOpenSeries: (String?) -> Unit,
+) {
+    val snackbarHost = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val unshelvedMessage = stringResource(R.string.library_unshelved)
+    val undoLabel = stringResource(R.string.library_undo)
+    val unshelveWithUndo: (LibraryComic) -> Unit = { comic ->
+        onUnshelve(comic)
+        scope.launch {
+            snackbarHost.currentSnackbarData?.dismiss()
+            val result = snackbarHost.showSnackbar(unshelvedMessage, actionLabel = undoLabel, duration = SnackbarDuration.Short)
+            if (result == SnackbarResult.ActionPerformed) onReshelve(comic)
+        }
+    }
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHost) },
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            LibraryContent(
+                state = state,
+                onFolderPicked = onFolderPicked,
+                onRefresh = onRefresh,
+                onOpenComic = onOpenComic,
+                onOpenSettings = onOpenSettings,
+                onOpenFile = onOpenFile,
+                onFilterSelected = onFilterSelected,
+                onToggleGrouped = onToggleGrouped,
+                onUnshelve = unshelveWithUndo,
+                onToggleRead = onToggleRead,
+                onSetSeriesRead = onSetSeriesRead,
+                onToggleFavorite = onToggleFavorite,
+                onDeleteComic = onDeleteComic,
+                onQueryChanged = onQueryChanged,
+                onSortSelected = onSortSelected,
+                onOpenSeries = onOpenSeries,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LibraryContent(
+    state: LibraryUiState,
+    onFolderPicked: (Uri) -> Unit,
+    onRefresh: () -> Unit,
+    onOpenComic: (LibraryComic) -> Unit,
+    onOpenSettings: (List<LibraryComic>) -> Unit,
+    onOpenFile: (Uri) -> Unit,
+    onFilterSelected: (LibraryFilter) -> Unit,
+    onToggleGrouped: () -> Unit,
+    onUnshelve: (LibraryComic) -> Unit,
+    onToggleRead: (LibraryComic) -> Unit,
+    onSetSeriesRead: (List<LibraryComic>, Boolean) -> Unit,
+    onToggleFavorite: (LibraryComic) -> Unit,
+    onDeleteComic: (LibraryComic) -> Unit,
+    onQueryChanged: (String) -> Unit,
+    onSortSelected: (LibrarySort) -> Unit,
+    onOpenSeries: (String?) -> Unit,
 ) {
     val folderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
@@ -130,23 +226,23 @@ fun LibraryScreen(
     val pickFolder = { folderLauncher.launch(null) }
     val openFile = { fileLauncher.launch(openDocumentMimeTypes) }
 
-    var openedSeries by remember { mutableStateOf<String?>(null) }
-    val openGroup = openedSeries?.let { series ->
+    val openGroup = state.openedSeries?.let { series ->
         state.entries.filterIsInstance<LibraryEntry.Group>().firstOrNull { it.series == series }
     }
-    LaunchedEffect(openedSeries, openGroup) {
-        if (openedSeries != null && openGroup == null) openedSeries = null
+    LaunchedEffect(state.openedSeries, openGroup) {
+        if (state.openedSeries != null && openGroup == null) onOpenSeries(null)
     }
 
-    BackHandler(enabled = openGroup != null) { openedSeries = null }
+    BackHandler(enabled = openGroup != null) { onOpenSeries(null) }
 
     if (openGroup != null) {
         SeriesScreen(
             group = openGroup,
-            onBack = { openedSeries = null },
+            onBack = { onOpenSeries(null) },
             onOpenComic = onOpenComic,
             onOpenSettings = onOpenSettings,
             onToggleRead = onToggleRead,
+            onSetSeriesRead = onSetSeriesRead,
             onToggleFavorite = onToggleFavorite,
             onDeleteComic = onDeleteComic,
         )
@@ -159,7 +255,7 @@ fun LibraryScreen(
     }
 
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 158.dp),
+        columns = GridCells.Adaptive(minSize = gridMinCell()),
         modifier = Modifier.fillMaxSize().statusBarsPadding(),
         contentPadding = PaddingValues(20.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
@@ -171,10 +267,12 @@ fun LibraryScreen(
                 scanning = state.scanning,
                 scanFailed = state.scanFailed,
                 grouped = state.grouped,
+                query = state.query,
                 onPickFolder = pickFolder,
                 onRefresh = onRefresh,
                 onOpenFile = openFile,
                 onToggleGrouped = onToggleGrouped,
+                onQueryChanged = onQueryChanged,
             )
         }
         if (state.continueReading.isNotEmpty()) {
@@ -186,7 +284,7 @@ fun LibraryScreen(
             SectionHeader(eyebrow = stringResource(R.string.library_shelf_eyebrow), title = stringResource(R.string.library_all_comics))
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
-            FilterBar(selected = state.filter, onFilterSelected = onFilterSelected)
+            FilterBar(selected = state.filter, sort = state.sort, onFilterSelected = onFilterSelected, onSortSelected = onSortSelected)
         }
         if (state.comics.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
@@ -204,7 +302,12 @@ fun LibraryScreen(
                         onToggleFavorite = onToggleFavorite,
                         onDeleteComic = onDeleteComic,
                     )
-                    is LibraryEntry.Group -> GroupCard(group = entry, onOpen = { openedSeries = it.series }, onOpenSettings = onOpenSettings)
+                    is LibraryEntry.Group -> GroupCard(
+                        group = entry,
+                        onOpen = { onOpenSeries(it.series) },
+                        onOpenSettings = onOpenSettings,
+                        onSetSeriesRead = onSetSeriesRead,
+                    )
                 }
             }
         } else {
@@ -234,11 +337,12 @@ private fun SeriesScreen(
     onOpenComic: (LibraryComic) -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
+    onSetSeriesRead: (List<LibraryComic>, Boolean) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDeleteComic: (LibraryComic) -> Unit,
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 158.dp),
+        columns = GridCells.Adaptive(minSize = gridMinCell()),
         modifier = Modifier.fillMaxSize().statusBarsPadding(),
         contentPadding = PaddingValues(20.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
@@ -246,14 +350,16 @@ private fun SeriesScreen(
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             SeriesHeader(
-                title = group.series,
-                subtitle = stringResource(R.string.library_group_read, group.comics.count { it.completed }, group.comics.size),
+                group = group,
                 onBack = onBack,
+                onOpenSettings = onOpenSettings,
+                onSetSeriesRead = onSetSeriesRead,
             )
         }
         items(items = group.comics, key = { it.id }) { comic ->
             ComicCard(
                 comic = comic,
+                title = comic.issueNumber?.let { "#$it" } ?: comic.title,
                 onOpenComic = onOpenComic,
                 onOpenSettings = onOpenSettings,
                 onToggleRead = onToggleRead,
@@ -265,7 +371,13 @@ private fun SeriesScreen(
 }
 
 @Composable
-private fun SeriesHeader(title: String, subtitle: String, onBack: () -> Unit) {
+private fun SeriesHeader(
+    group: LibraryEntry.Group,
+    onBack: () -> Unit,
+    onOpenSettings: (List<LibraryComic>) -> Unit,
+    onSetSeriesRead: (List<LibraryComic>, Boolean) -> Unit,
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(
             modifier = Modifier
@@ -282,9 +394,9 @@ private fun SeriesHeader(title: String, subtitle: String, onBack: () -> Unit) {
                 modifier = Modifier.size(19.dp),
             )
         }
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = title,
+                text = group.series,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = (-0.5).sp,
@@ -293,9 +405,19 @@ private fun SeriesHeader(title: String, subtitle: String, onBack: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = subtitle,
+                text = stringResource(R.string.library_group_read, group.comics.count { it.completed }, group.comics.size),
                 style = MaterialTheme.typography.labelMedium,
                 color = InkFaint,
+            )
+        }
+        Box {
+            GhostAction(icon = Icons.Filled.MoreVert, contentDescription = stringResource(R.string.library_series_menu), onClick = { menuExpanded = true })
+            SeriesMenu(
+                expanded = menuExpanded,
+                group = group,
+                onDismiss = { menuExpanded = false },
+                onOpenSettings = onOpenSettings,
+                onSetSeriesRead = onSetSeriesRead,
             )
         }
     }
@@ -322,11 +444,15 @@ private fun LibraryHeader(
     scanning: Boolean,
     scanFailed: Boolean,
     grouped: Boolean,
+    query: String,
     onPickFolder: () -> Unit,
     onRefresh: () -> Unit,
     onOpenFile: () -> Unit,
     onToggleGrouped: () -> Unit,
+    onQueryChanged: (String) -> Unit,
 ) {
+    var searching by remember { mutableStateOf(query.isNotEmpty()) }
+    var menuExpanded by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
@@ -345,15 +471,37 @@ private fun LibraryHeader(
             if (BuildConfig.DEBUG) DebugBadge()
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            GhostAction(icon = Icons.Filled.CreateNewFolder, contentDescription = stringResource(R.string.library_pick_folder), onClick = onPickFolder)
+            GhostAction(
+                icon = Icons.Filled.Search,
+                contentDescription = stringResource(R.string.library_search),
+                onClick = { searching = !searching; if (!searching) onQueryChanged("") },
+                active = searching,
+            )
             GhostAction(
                 icon = if (grouped) Icons.Filled.GridView else Icons.Outlined.Folder,
                 contentDescription = stringResource(if (grouped) R.string.library_ungroup else R.string.library_group),
                 onClick = onToggleGrouped,
                 active = grouped,
             )
-            GhostAction(icon = Icons.Filled.Refresh, contentDescription = stringResource(R.string.library_refresh), onClick = onRefresh)
-            GhostAction(icon = Icons.AutoMirrored.Filled.MenuBook, contentDescription = stringResource(R.string.library_action_open_file), onClick = onOpenFile)
+            GhostAction(icon = Icons.Outlined.FileOpen, contentDescription = stringResource(R.string.library_action_open_file), onClick = onOpenFile)
+            Box {
+                GhostAction(icon = Icons.Filled.MoreVert, contentDescription = stringResource(R.string.library_more), onClick = { menuExpanded = true })
+                DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.library_pick_folder)) },
+                        leadingIcon = { Icon(imageVector = Icons.Outlined.CreateNewFolder, contentDescription = null) },
+                        onClick = { menuExpanded = false; onPickFolder() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.library_refresh)) },
+                        leadingIcon = { Icon(imageVector = Icons.Filled.Refresh, contentDescription = null) },
+                        onClick = { menuExpanded = false; onRefresh() },
+                    )
+                }
+            }
+        }
+        if (searching) {
+            SearchField(query = query, onQueryChanged = onQueryChanged, onClose = { searching = false; onQueryChanged("") })
         }
         if (scanning) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -373,6 +521,44 @@ private fun LibraryHeader(
                 color = MaterialTheme.colorScheme.error,
             )
         }
+    }
+}
+
+@Composable
+private fun SearchField(query: String, onQueryChanged: (String) -> Unit, onClose: () -> Unit) {
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = SearchFieldMaxWidth)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Surface2)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(imageVector = Icons.Filled.Search, contentDescription = null, tint = InkFaint, modifier = Modifier.size(18.dp))
+        Box(modifier = Modifier.weight(1f)) {
+            if (query.isEmpty()) {
+                Text(text = stringResource(R.string.library_search_hint), style = MaterialTheme.typography.bodyLarge, color = InkFaint)
+            }
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChanged,
+                singleLine = true,
+                textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontSize = MaterialTheme.typography.bodyLarge.fontSize),
+                cursorBrush = SolidColor(Accent),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                modifier = Modifier.fillMaxWidth().focusRequester(focus),
+            )
+        }
+        Icon(
+            imageVector = Icons.Filled.Close,
+            contentDescription = stringResource(R.string.library_close_search),
+            tint = InkDim,
+            modifier = Modifier.size(20.dp).clip(CircleShape).clickable(onClick = onClose),
+        )
     }
 }
 
@@ -443,14 +629,15 @@ private fun LibraryHero(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit
             .background(Brush.linearGradient(listOf(glow, HeroGround)))
             .clickable { onOpenComic(comic) },
     ) {
+        val compact = isCompactWidth()
         Row(
-            modifier = Modifier.height(IntrinsicSize.Min).padding(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            modifier = Modifier.height(IntrinsicSize.Min).padding(if (compact) 16.dp else 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (compact) 16.dp else 20.dp),
         ) {
-            Box(modifier = Modifier.width(HeroCoverWidth).aspectRatio(2f / 3f).clip(RoundedCornerShape(14.dp))) {
+            Box(modifier = Modifier.width(if (compact) HeroCoverWidthCompact else HeroCoverWidth).aspectRatio(2f / 3f).clip(CardShape)) {
                 CoverArt(comic = comic, showArtwork = true)
             }
-            Column(modifier = Modifier.fillMaxHeight().weight(1f)) {
+            Column(modifier = Modifier.fillMaxHeight().weight(1f).padding(end = UnshelveButtonSize)) {
                 Text(
                     text = stringResource(R.string.library_hero_eyebrow).uppercase(),
                     style = MaterialTheme.typography.labelSmall,
@@ -458,7 +645,7 @@ private fun LibraryHero(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit
                     letterSpacing = 2.sp,
                     color = tint,
                 )
-                if (comic.series != comic.title) {
+                if (!comic.title.startsWith(comic.series)) {
                     Text(
                         text = comic.series,
                         style = MaterialTheme.typography.labelMedium,
@@ -470,20 +657,20 @@ private fun LibraryHero(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit
                 }
                 Text(
                     text = comic.title,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 6.dp),
                 )
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f).heightIn(min = 14.dp))
                 HeroProgress(comic = comic)
                 Spacer(modifier = Modifier.height(14.dp))
                 ResumePill()
             }
         }
-        UnshelveButton(onClick = { onUnshelve(comic) }, modifier = Modifier.align(Alignment.TopEnd).padding(10.dp))
+        UnshelveButton(onClick = { onUnshelve(comic) }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp))
     }
 }
 
@@ -491,7 +678,7 @@ private fun LibraryHero(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit
 private fun UnshelveButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .size(32.dp)
+            .size(UnshelveButtonSize)
             .clip(CircleShape)
             .background(Color.Black.copy(alpha = 0.45f))
             .clickable(onClick = onClick),
@@ -539,7 +726,7 @@ private fun ContinueReadingCard(comic: LibraryComic, onOpenComic: (LibraryComic)
     val pageCount = comic.pageCount
     Box(
         modifier = Modifier
-            .width(340.dp)
+            .width(if (isCompactWidth()) ShelfCardWidthCompact else ShelfCardWidth)
             .clip(RoundedCornerShape(16.dp))
             .background(Brush.linearGradient(listOf(Surface2, Color(0xFF0D0E13))))
             .clickable { onOpenComic(comic) },
@@ -551,7 +738,7 @@ private fun ContinueReadingCard(comic: LibraryComic, onOpenComic: (LibraryComic)
             Box(modifier = Modifier.width(84.dp).height(126.dp).clip(RoundedCornerShape(10.dp))) {
                 CoverArt(comic = comic, showArtwork = false)
             }
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth().padding(end = UnshelveButtonSize)) {
                 Text(
                     text = comic.series,
                     style = MaterialTheme.typography.labelSmall,
@@ -631,6 +818,7 @@ internal fun SectionHeader(eyebrow: String, title: String) {
 private fun ComicCard(
     comic: LibraryComic,
     onOpenComic: (LibraryComic) -> Unit,
+    title: String = comic.title,
     onOpenSettings: (List<LibraryComic>) -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
@@ -641,7 +829,6 @@ private fun ComicCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
             .combinedClickable(
                 onClick = { onOpenComic(comic) },
                 onLongClick = { menuExpanded = true },
@@ -653,7 +840,7 @@ private fun ComicCard(
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
                 .sharedCover(comic.id)
-                .clip(RoundedCornerShape(14.dp)),
+                .clip(CardShape),
         ) {
             CoverArt(comic = comic, showArtwork = true)
             Box(
@@ -682,18 +869,14 @@ private fun ComicCard(
                 )
             }
         }
-        Row(verticalAlignment = Alignment.Top) {
-            Text(
-                text = comic.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            CardGear(onClick = { onOpenSettings(listOf(comic)) })
-        }
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
         ComicCardMenu(
             expanded = menuExpanded,
             comic = comic,
@@ -753,6 +936,7 @@ internal fun ComicCardMenu(
     onDelete: () -> Unit,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        MenuHeader(title = comic.title)
         DropdownMenuItem(
             text = { Text(stringResource(R.string.detail_settings)) },
             leadingIcon = { Icon(imageVector = Icons.Outlined.Settings, contentDescription = null) },
@@ -808,29 +992,60 @@ internal fun FavoriteBadge(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun CardGear(onClick: () -> Unit) {
-    Icon(
-        imageVector = Icons.Outlined.Settings,
-        contentDescription = stringResource(R.string.detail_settings),
-        tint = InkFaint,
-        modifier = Modifier
-            .padding(start = 6.dp)
-            .size(CardGearSize)
-            .clip(CircleShape)
-            .clickable(onClick = onClick)
-            .padding(4.dp),
+private fun MenuHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.Bold,
+        color = InkDim,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.widthIn(max = MenuHeaderMaxWidth).padding(horizontal = 16.dp, vertical = 10.dp),
     )
+    HorizontalDivider(color = CardLine)
 }
 
 @Composable
-private fun GroupCard(group: LibraryEntry.Group, onOpen: (LibraryEntry.Group) -> Unit, onOpenSettings: (List<LibraryComic>) -> Unit) {
+private fun SeriesMenu(
+    expanded: Boolean,
+    group: LibraryEntry.Group,
+    onDismiss: () -> Unit,
+    onOpenSettings: (List<LibraryComic>) -> Unit,
+    onSetSeriesRead: (List<LibraryComic>, Boolean) -> Unit,
+) {
+    val allRead = group.comics.all { it.completed }
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        MenuHeader(title = group.series)
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.library_series_settings)) },
+            leadingIcon = { Icon(imageVector = Icons.Outlined.Settings, contentDescription = null) },
+            onClick = { onDismiss(); onOpenSettings(group.comics) },
+        )
+        DropdownMenuItem(
+            text = { Text(stringResource(if (allRead) R.string.library_mark_series_unread else R.string.library_mark_series_read)) },
+            leadingIcon = { Icon(imageVector = if (allRead) Icons.Outlined.RemoveDone else Icons.Outlined.DoneAll, contentDescription = null) },
+            onClick = { onDismiss(); onSetSeriesRead(group.comics, !allRead) },
+        )
+    }
+}
+
+@Composable
+private fun GroupCard(
+    group: LibraryEntry.Group,
+    onOpen: (LibraryEntry.Group) -> Unit,
+    onOpenSettings: (List<LibraryComic>) -> Unit,
+    onSetSeriesRead: (List<LibraryComic>, Boolean) -> Unit,
+) {
     val representative = group.comics.firstOrNull { !it.completed && it.pageIndex > 0 } ?: group.comics.first()
     val readCount = group.comics.count { it.completed }
+    var menuExpanded by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .clickable { onOpen(group) },
+            .combinedClickable(
+                onClick = { onOpen(group) },
+                onLongClick = { menuExpanded = true },
+            ),
         verticalArrangement = Arrangement.spacedBy(11.dp),
     ) {
         Box(modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f)) {
@@ -838,14 +1053,14 @@ private fun GroupCard(group: LibraryEntry.Group, onOpen: (LibraryEntry.Group) ->
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(start = 12.dp, bottom = 12.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(CardShape)
                     .background(Surface2),
             )
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(top = 12.dp, end = 12.dp)
-                    .clip(RoundedCornerShape(14.dp)),
+                    .clip(CardShape),
             ) {
                 CoverArt(comic = representative, showArtwork = true)
                 Box(
@@ -853,25 +1068,21 @@ private fun GroupCard(group: LibraryEntry.Group, onOpen: (LibraryEntry.Group) ->
                         .fillMaxSize()
                         .background(Brush.verticalGradient(0.55f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.5f))),
                 )
-                CountBadge(count = group.comics.size, modifier = Modifier.align(Alignment.TopEnd).padding(9.dp))
+                CountBadge(count = group.comics.size, modifier = Modifier.align(Alignment.BottomStart).padding(9.dp))
                 if (readCount == group.comics.size) {
                     CompletedBadge(modifier = Modifier.align(Alignment.BottomEnd).padding(9.dp))
                 }
             }
         }
         Column {
-            Row(verticalAlignment = Alignment.Top) {
-                Text(
-                    text = group.series,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                CardGear(onClick = { onOpenSettings(group.comics) })
-            }
+            Text(
+                text = group.series,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
             Text(
                 text = stringResource(R.string.library_group_read, readCount, group.comics.size),
                 style = MaterialTheme.typography.labelSmall,
@@ -879,6 +1090,13 @@ private fun GroupCard(group: LibraryEntry.Group, onOpen: (LibraryEntry.Group) ->
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
+        SeriesMenu(
+            expanded = menuExpanded,
+            group = group,
+            onDismiss = { menuExpanded = false },
+            onOpenSettings = onOpenSettings,
+            onSetSeriesRead = onSetSeriesRead,
+        )
     }
 }
 
@@ -903,7 +1121,12 @@ private fun CountBadge(count: Int, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun FilterBar(selected: LibraryFilter, onFilterSelected: (LibraryFilter) -> Unit) {
+private fun FilterBar(
+    selected: LibraryFilter,
+    sort: LibrarySort,
+    onFilterSelected: (LibraryFilter) -> Unit,
+    onSortSelected: (LibrarySort) -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -914,8 +1137,17 @@ private fun FilterBar(selected: LibraryFilter, onFilterSelected: (LibraryFilter)
         FilterPill(R.string.library_filter_unread, selected == LibraryFilter.UNREAD) { onFilterSelected(LibraryFilter.UNREAD) }
         FilterPill(R.string.library_filter_read, selected == LibraryFilter.READ) { onFilterSelected(LibraryFilter.READ) }
         FilterPill(R.string.library_filter_favorites, selected == LibraryFilter.FAVORITES) { onFilterSelected(LibraryFilter.FAVORITES) }
+        Box(modifier = Modifier.width(1.dp).height(FilterDividerHeight).align(Alignment.CenterVertically).background(CardLine))
+        val recent = sort == LibrarySort.RECENT
+        FilterPill(R.string.library_sort_recent, recent) { onSortSelected(if (recent) LibrarySort.TITLE else LibrarySort.RECENT) }
     }
 }
+
+@Composable
+private fun isCompactWidth(): Boolean = LocalConfiguration.current.screenWidthDp < COMPACT_WIDTH_DP
+
+@Composable
+private fun gridMinCell() = if (isCompactWidth()) GridMinCellCompact else GridMinCell
 
 @Composable
 private fun FilterPill(labelRes: Int, selected: Boolean, onClick: () -> Unit) {
@@ -1018,7 +1250,7 @@ private fun Halftone() {
 
 @Composable
 internal fun ProgressRing(progress: Float, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.size(34.dp), contentAlignment = Alignment.Center) {
+    Box(modifier = modifier.size(ProgressRingSize), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val stroke = 3.dp.toPx()
             val inset = stroke / 2f
@@ -1040,14 +1272,6 @@ internal fun ProgressRing(progress: Float, modifier: Modifier = Modifier) {
                 topLeft = Offset(inset, inset),
                 size = arcSize,
                 style = Stroke(width = stroke, cap = StrokeCap.Round),
-            )
-        }
-        Box(modifier = Modifier.size(27.dp).clip(CircleShape).background(Color(0xD2060608)), contentAlignment = Alignment.Center) {
-            Text(
-                text = "${(progress * 100).roundToInt()}",
-                fontSize = 9.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White,
             )
         }
     }
@@ -1105,7 +1329,7 @@ private fun EmptyLibrary(scanFailed: Boolean, onPickFolder: () -> Unit, onOpenFi
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                imageVector = Icons.Outlined.FileOpen,
                 contentDescription = null,
                 tint = Color.White,
                 modifier = Modifier.size(38.dp),
@@ -1135,7 +1359,7 @@ private fun EmptyLibrary(scanFailed: Boolean, onPickFolder: () -> Unit, onOpenFi
                 modifier = Modifier.padding(bottom = 24.dp),
             )
         }
-        PrimaryAction(icon = Icons.Filled.CreateNewFolder, label = stringResource(R.string.library_pick_folder), onClick = onPickFolder)
+        PrimaryAction(icon = Icons.Outlined.CreateNewFolder, label = stringResource(R.string.library_pick_folder), onClick = onPickFolder)
         Spacer(modifier = Modifier.height(12.dp))
         GhostTextButton(label = stringResource(R.string.library_open_comic), onClick = onOpenFile)
     }

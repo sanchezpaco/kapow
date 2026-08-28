@@ -134,43 +134,67 @@ re-shelves it, so a comic reappears as soon as it is read again.
 
 ## Home UI
 
-- Cover grid with an adaptive column count (`GridCells.Adaptive`), so wider /
-  unfolded windows show more columns.
-- Each cover shows a progress ring, a "Completed" badge on finished comics, an
-  amber star on favorites and the title (which already carries the series).
-- A **filter bar** (All / Unread / Read / Favorites) narrows the grid; the choice
-  lives in the ViewModel and resets on relaunch. "Continue reading" only shows
-  under the "All" filter.
-- **Long-pressing a cover** opens a menu to mark it read/unread and add/remove it
-  from favorites.
-- The "Continue reading" section: the hero card for the latest unfinished
-  comic, then a row for the rest.
-- Icon-only affordances to choose/refresh the folder, toggle grouping and open
-  a single file; the empty state keeps the large "Choose folder" button.
+- Cover grid with an adaptive column count (`GridCells.Adaptive`): the minimum
+  cell is 112 dp on compact widths (folded, 3 columns) and 158 dp otherwise
+  (unfolded, 5 columns). Only the cover is clipped to the card shape; the title
+  and count sit outside so rounded corners never cut glyphs.
+- Each cover shows a thin progress ring (no percentage), a "Completed" badge on
+  finished comics, an amber star on favorites and the title (which already
+  carries the series). Series stacks put the issue count bottom-left, away from
+  the cover's logo.
+- A **filter bar** (All / Unread / Read / Favorites) narrows the grid, followed
+  by a **Recent** toggle that orders the grid by last read (`LibrarySort`). Both
+  live in the ViewModel and reset on relaunch. "Continue reading" only shows
+  under the "All" filter and while no search is active.
+- **Search**: the magnifier in the toolbar reveals a field that filters by title
+  or series, case-insensitive (`LibraryCatalog.search`).
+- **Long-pressing a cover** opens a menu headed by the comic's title: reading
+  settings, mark read/unread, favorite, delete. **Long-pressing a series stack**
+  opens the series menu: series settings and mark the whole series read/unread;
+  the same menu sits behind "⋮" in the series screen header. Inside a series
+  screen each card is labelled by its issue number only.
+- The "Continue reading" section: the hero card for the latest unfinished comic
+  (compact cover and title on folded widths), then a row for the rest. The "×"
+  removes a comic from the shelf and shows a snackbar with **Undo**
+  (`LibraryRepository.reshelve`); progress is never lost.
+- Toolbar: search, group-by-series toggle and open-a-file are visible; choose
+  folder and refresh live behind "⋮". The empty state keeps the large
+  "Choose folder" button.
+- The opened series is ViewModel state (`openedSeries`), so returning from the
+  settings screen lands back inside the series.
 - Entries are naturally sorted by series, then issue number, then title.
 
 ## Per-comic reading settings
 
-Tapping a cover opens the reader directly; there is no intermediate screen. A
-small gear next to each card's title (also "Reading settings" in the long-press
-menu) opens `ComicSettingsScreen` for that comic. The gear on a series stack
-opens the same screen for the whole series ("Applies to all N comics"): the
-chosen values are written to every issue, and each issue keeps its own gear
-inside the series screen for individual tweaks.
+Tapping a cover opens the reader directly; there is no intermediate screen.
+"Reading settings" in a card's long-press menu opens `ComicSettingsScreen` for
+that comic. "Series settings" (stack long-press or the series header "⋮") opens
+the same screen for the whole series (eyebrow "This series", "Applies to all N
+comics"): the chosen values are written to every issue, and each issue can be
+tweaked individually from inside the series screen.
 
 - Header washed with the cover's ambient colour (cover shared with the card).
-- Reading direction (default / LTR / RTL), cover alone in the spread (pairing
-  parity, labelled "Cover on its own page (pairs 2-3, 4-5…)"), enlarged bubbles on open and Guided View on open (default / on /
-  off). Turning bubbles on reveals a scale slider (same range and steps as the
-  reader's HUD slider) stored as the comic's `bubbleScale`; a series-wide
-  change writes it to every issue. Saved in `comic_settings` through `LibraryRepository.saveSettings`; a
-  row equal to `ComicSettings.Default` is deleted rather than stored.
-  `docs/reading-modes.md` describes how the reader consumes them.
+- Reading direction, cover alone in the spread (pairing parity, labelled
+  "Cover on its own page (pairs 2-3, 4-5…)"), enlarged bubbles on open and
+  Guided View on open. Chips are ordered Default · On · Off and wrap on narrow
+  widths; the "Default" chip spells out the global value it falls back to
+  ("Default (Left to right)", "Default (Off)"). The selected chip uses the
+  translucent accent, keeping solid red for destructive actions. Turning
+  bubbles on reveals a scale slider with its bounds labelled (same range and
+  steps as the reader's HUD slider) stored as the comic's `bubbleScale`; a
+  series-wide change writes it to every issue. Saved in `comic_settings`
+  through `LibraryRepository.saveSettings`; a row equal to
+  `ComicSettings.Default` is deleted rather than stored. `docs/reading-modes.md`
+  describes how the reader consumes them.
+- Content is capped at 640 dp wide so chips do not stretch across the unfolded
+  screen; the screen stays full-screen (not a bottom sheet) because of the
+  shared cover transition and the slider.
 - Debug builds only: "Clear panel and bubble detections" drops the comic's
   `page_detections` rows so the next open re-runs the models.
 
 `ComicSettingsViewModel` observes the first target's settings and fans writes
-out to all targets.
+out to all targets; it also exposes the global reading direction for the
+"Default (…)" label.
 
 ### Navigation and transitions
 

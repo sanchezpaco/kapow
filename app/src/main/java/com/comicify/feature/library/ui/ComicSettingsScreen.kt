@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,6 +41,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,14 +57,18 @@ import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
 
 private val SettingsCoverWidth = 96.dp
 private val BubbleScaleLabelWidth = 44.dp
-private val BubbleScaleSliderWidth = 240.dp
+private val BubbleScaleRowMaxWidth = 360.dp
+private val SettingsContentMaxWidth = 640.dp
 private const val BUBBLE_SCALE_STEPS = 8
+private const val SELECTED_CHIP_ALPHA = 0.16f
 
 @Composable
 fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
     val viewModel: ComicSettingsViewModel = hiltViewModel()
     LaunchedEffect(comics) { viewModel.show(comics) }
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val defaultDirection by viewModel.defaultDirection.collectAsStateWithLifecycle()
+    val wholeSeries = comics.size > 1
     BackHandler(onBack = onBack)
 
     Column(
@@ -68,18 +76,22 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
             .fillMaxSize()
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .padding(20.dp)
+            .widthIn(max = SettingsContentMaxWidth),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         GhostAction(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.library_back), onClick = onBack)
         SettingsHeader(comics = comics)
-        SectionHeader(eyebrow = stringResource(R.string.detail_settings_eyebrow), title = stringResource(R.string.detail_settings))
+        SectionHeader(
+            eyebrow = stringResource(if (wholeSeries) R.string.settings_series_eyebrow else R.string.detail_settings_eyebrow),
+            title = stringResource(R.string.detail_settings),
+        )
         SettingRow(label = stringResource(R.string.detail_setting_direction)) {
             OptionChips(
                 options = listOf(
-                    null to R.string.detail_option_default,
-                    ReadingDirection.LeftToRight to R.string.detail_option_ltr,
-                    ReadingDirection.RightToLeft to R.string.detail_option_rtl,
+                    null to defaultLabel(stringResource(defaultDirection.labelRes())),
+                    ReadingDirection.LeftToRight to stringResource(R.string.detail_option_ltr),
+                    ReadingDirection.RightToLeft to stringResource(R.string.detail_option_rtl),
                 ),
                 selected = settings.direction,
                 onSelect = { viewModel.onSettingsChanged(settings.copy(direction = it)) },
@@ -87,7 +99,7 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
         }
         SettingRow(label = stringResource(R.string.detail_setting_cover_alone)) {
             OptionChips(
-                options = listOf(false to R.string.detail_option_off, true to R.string.detail_option_on),
+                options = listOf(true to stringResource(R.string.detail_option_on), false to stringResource(R.string.detail_option_off)),
                 selected = settings.coverAlone,
                 onSelect = { viewModel.onSettingsChanged(settings.copy(coverAlone = it)) },
             )
@@ -161,22 +173,43 @@ private fun SettingsHeader(comics: List<LibraryComic>) {
 @Composable
 private fun BubbleScaleRow(scale: Float, onScaleCommitted: (Float) -> Unit) {
     var dragged by remember(scale) { mutableStateOf(scale) }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Row(
+        modifier = Modifier.fillMaxWidth().widthIn(max = BubbleScaleRowMaxWidth),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         Text(
-            text = "%.1f×".format(dragged),
+            text = dragged.scaleLabel(),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.width(BubbleScaleLabelWidth),
         )
+        ScaleBound(BUBBLE_SCALE_RANGE.start)
         Slider(
             value = dragged,
             onValueChange = { dragged = it },
             onValueChangeFinished = { onScaleCommitted(dragged) },
             valueRange = BUBBLE_SCALE_RANGE,
             steps = BUBBLE_SCALE_STEPS,
-            modifier = Modifier.width(BubbleScaleSliderWidth),
+            modifier = Modifier.weight(1f),
         )
+        ScaleBound(BUBBLE_SCALE_RANGE.endInclusive)
     }
+}
+
+@Composable
+private fun ScaleBound(value: Float) {
+    Text(text = value.scaleLabel(), style = MaterialTheme.typography.labelSmall, color = InkFaint)
+}
+
+private fun Float.scaleLabel(): String = "%.1f×".format(this)
+
+@Composable
+private fun defaultLabel(value: String): String = stringResource(R.string.detail_option_default_value, value)
+
+private fun ReadingDirection.labelRes(): Int = when (this) {
+    ReadingDirection.LeftToRight -> R.string.detail_option_ltr
+    ReadingDirection.RightToLeft -> R.string.detail_option_rtl
 }
 
 @Composable
@@ -190,26 +223,30 @@ private fun SettingRow(label: String, options: @Composable () -> Unit) {
 @Composable
 private fun TriStateChips(selected: Boolean?, onSelect: (Boolean?) -> Unit) {
     OptionChips(
-        options = listOf(null to R.string.detail_option_default, true to R.string.detail_option_on, false to R.string.detail_option_off),
+        options = listOf(
+            null to defaultLabel(stringResource(R.string.detail_option_off)),
+            true to stringResource(R.string.detail_option_on),
+            false to stringResource(R.string.detail_option_off),
+        ),
         selected = selected,
         onSelect = onSelect,
     )
 }
 
 @Composable
-private fun <T> OptionChips(options: List<Pair<T, Int>>, selected: T, onSelect: (T) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        options.forEach { (value, labelRes) ->
+private fun <T> OptionChips(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        options.forEach { (value, label) ->
             val active = value == selected
             Text(
-                text = stringResource(labelRes),
+                text = label,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = if (active) Color.White else InkDim,
+                color = if (active) Accent else InkDim,
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(if (active) Accent else Surface2)
-                    .clickable { onSelect(value) }
+                    .background(if (active) Accent.copy(alpha = SELECTED_CHIP_ALPHA) else Surface2)
+                    .selectable(selected = active, role = Role.RadioButton) { onSelect(value) }
                     .padding(horizontal = 14.dp, vertical = 8.dp),
             )
         }

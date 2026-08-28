@@ -42,6 +42,19 @@
     <string name="library_ungroup">Show all comics</string>
     <string name="library_group_read">%1$d/%2$d read</string>
     <string name="library_unshelve">Remove from continue reading</string>
+    <string name="library_search">Search</string>
+    <string name="library_search_hint">Title or series</string>
+    <string name="library_close_search">Close search</string>
+    <string name="library_more">More</string>
+    <string name="library_sort_recent">Recent</string>
+    <string name="library_unshelved">Removed from continue reading</string>
+    <string name="library_undo">Undo</string>
+    <string name="library_series_settings">Series settings</string>
+    <string name="library_mark_series_read">Mark series as read</string>
+    <string name="library_mark_series_unread">Mark series as unread</string>
+    <string name="library_series_menu">Series options</string>
+    <string name="settings_series_eyebrow">This series</string>
+    <string name="detail_option_default_value">Default (%1$s)</string>
     <string name="library_back">Back</string>
     <string name="settings_series_scope">Applies to all %1$d comics</string>
     <string name="detail_settings_eyebrow">This comic</string>
@@ -50,7 +63,6 @@
     <string name="detail_setting_cover_alone">Cover on its own page (pairs 2-3, 4-5…)</string>
     <string name="detail_setting_bubbles">Enlarged bubbles on open</string>
     <string name="detail_setting_guided">Guided view on open</string>
-    <string name="detail_option_default">Default</string>
     <string name="detail_option_ltr">Left to right</string>
     <string name="detail_option_rtl">Right to left</string>
     <string name="detail_option_on">On</string>

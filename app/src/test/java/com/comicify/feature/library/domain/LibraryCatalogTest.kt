@@ -151,4 +151,19 @@ class LibraryCatalogTest {
         assertEquals(1, entries.size)
         assertEquals(2, (entries[0] as LibraryEntry.Group).comics.size)
     }
+
+    @Test
+    fun searchMatchesTitleOrSeriesIgnoringCase() {
+        val comics = listOf(comic(1, series = "Doctor Doom", issueNumber = 2), comic(2, series = "Venomverse"))
+        assertEquals(listOf(1L), LibraryCatalog.search(comics, "doom #2").map { it.id })
+        assertEquals(listOf(2L), LibraryCatalog.search(comics, "VENOM").map { it.id })
+        assertEquals(comics, LibraryCatalog.search(comics, "  "))
+    }
+
+    @Test
+    fun recentSortPutsLastReadFirstAndUnreadLast() {
+        val comics = listOf(comic(1, lastReadAt = 10), comic(2), comic(3, lastReadAt = 30))
+        assertEquals(listOf(3L, 1L, 2L), LibraryCatalog.sorted(comics, LibrarySort.RECENT).map { it.id })
+        assertEquals(comics, LibraryCatalog.sorted(comics, LibrarySort.TITLE))
+    }
 }

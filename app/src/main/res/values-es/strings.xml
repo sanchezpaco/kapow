@@ -42,6 +42,19 @@
     <string name="library_ungroup">Ver todos los cómics</string>
     <string name="library_group_read">%1$d/%2$d leídos</string>
     <string name="library_unshelve">Quitar de continuar leyendo</string>
+    <string name="library_search">Buscar</string>
+    <string name="library_search_hint">Título o serie</string>
+    <string name="library_close_search">Cerrar búsqueda</string>
+    <string name="library_more">Más</string>
+    <string name="library_sort_recent">Recientes</string>
+    <string name="library_unshelved">Quitado de continuar leyendo</string>
+    <string name="library_undo">Deshacer</string>
+    <string name="library_series_settings">Ajustes de la serie</string>
+    <string name="library_mark_series_read">Marcar serie como leída</string>
+    <string name="library_mark_series_unread">Marcar serie como no leída</string>
+    <string name="library_series_menu">Opciones de la serie</string>
+    <string name="settings_series_eyebrow">Esta serie</string>
+    <string name="detail_option_default_value">Por defecto (%1$s)</string>
     <string name="library_back">Atrás</string>
     <string name="settings_series_scope">Se aplica a los %1$d cómics</string>
     <string name="detail_settings_eyebrow">Este cómic</string>
@@ -50,7 +63,6 @@
     <string name="detail_setting_cover_alone">Portada sola (empareja 2-3, 4-5…)</string>
     <string name="detail_setting_bubbles">Bocadillos ampliados al abrir</string>
     <string name="detail_setting_guided">Vista guiada al abrir</string>
-    <string name="detail_option_default">Por defecto</string>
     <string name="detail_option_ltr">Izquierda a derecha</string>
     <string name="detail_option_rtl">Derecha a izquierda</string>
     <string name="detail_option_on">Sí</string>

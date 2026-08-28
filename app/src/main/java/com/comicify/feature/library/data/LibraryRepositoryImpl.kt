@@ -142,6 +142,10 @@ class LibraryRepositoryImpl @Inject constructor(
         readingStateDao.unshelve(comicId)
     }
 
+    override suspend fun reshelve(comicId: Long) {
+        readingStateDao.reshelve(comicId)
+    }
+
     override suspend fun setRead(comicId: Long, read: Boolean) {
         if (!read) {
             readingStateDao.delete(comicId)

@@ -8,6 +8,7 @@ import com.comicify.feature.library.data.LibraryRepository
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.domain.LibraryFilter
+import com.comicify.feature.library.domain.LibrarySort
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,28 +29,37 @@ class LibraryViewModel @Inject constructor(
     private val scanning = MutableStateFlow(false)
     private val scanFailed = MutableStateFlow(false)
     private val filter = MutableStateFlow(LibraryFilter.ALL)
+    private val sort = MutableStateFlow(LibrarySort.TITLE)
+    private val query = MutableStateFlow("")
+    private val openedSeries = MutableStateFlow<String?>(null)
 
     val state: StateFlow<LibraryUiState> =
         combine(
             repository.library,
             repository.folderUri,
             combine(scanning, scanFailed) { isScanning, failed -> isScanning to failed },
-            combine(filter, repository.grouped) { selectedFilter, isGrouped -> selectedFilter to isGrouped },
-        ) { comics, folder, scanState, viewState ->
+            combine(filter, sort, query, repository.grouped, openedSeries, ::ViewState),
+        ) { comics, folder, scanState, view ->
             val (isScanning, failed) = scanState
-            val (selectedFilter, isGrouped) = viewState
-            val filtered = LibraryCatalog.filtered(comics, selectedFilter)
+            val (selectedFilter, selectedSort, searchQuery, isGrouped, series) = view
+            val filtered = LibraryCatalog.sorted(
+                LibraryCatalog.search(LibraryCatalog.filtered(comics, selectedFilter), searchQuery),
+                selectedSort,
+            )
             LibraryUiState(
                 loading = false,
                 scanning = isScanning,
                 scanFailed = failed,
                 hasFolder = folder != null,
                 filter = selectedFilter,
+                sort = selectedSort,
+                query = searchQuery,
+                openedSeries = series,
                 grouped = isGrouped,
                 comics = filtered,
                 allComics = comics,
                 entries = LibraryCatalog.grouped(filtered),
-                continueReading = if (selectedFilter == LibraryFilter.ALL) LibraryCatalog.continueReading(comics) else emptyList(),
+                continueReading = if (selectedFilter == LibraryFilter.ALL && searchQuery.isBlank()) LibraryCatalog.continueReading(comics) else emptyList(),
                 totalCount = comics.size,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState())
@@ -73,6 +83,18 @@ class LibraryViewModel @Inject constructor(
         filter.value = selected
     }
 
+    fun onSortSelected(selected: LibrarySort) {
+        sort.value = selected
+    }
+
+    fun onOpenSeries(series: String?) {
+        openedSeries.value = series
+    }
+
+    fun onQueryChanged(text: String) {
+        query.value = text
+    }
+
     fun onToggleGrouped() {
         viewModelScope.launch { repository.setGrouped(!state.value.grouped) }
     }
@@ -81,8 +103,16 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch { repository.unshelve(comic.id) }
     }
 
+    fun onReshelve(comic: LibraryComic) {
+        viewModelScope.launch { repository.reshelve(comic.id) }
+    }
+
     fun onToggleRead(comic: LibraryComic) {
         viewModelScope.launch { repository.setRead(comic.id, !comic.completed) }
+    }
+
+    fun onSetSeriesRead(comics: List<LibraryComic>, read: Boolean) {
+        viewModelScope.launch { comics.forEach { repository.setRead(it.id, read) } }
     }
 
     fun onToggleFavorite(comic: LibraryComic) {
@@ -111,3 +141,11 @@ class LibraryViewModel @Inject constructor(
         }
     }
 }
+
+private data class ViewState(
+    val filter: LibraryFilter,
+    val sort: LibrarySort,
+    val query: String,
+    val grouped: Boolean,
+    val openedSeries: String?,
+)

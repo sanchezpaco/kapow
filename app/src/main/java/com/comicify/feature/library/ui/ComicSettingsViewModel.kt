@@ -1,7 +1,10 @@
 package com.comicify.feature.library.ui
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.comicify.core.storage.ReaderPreferencesRepository
+import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.library.data.LibraryRepository
 import com.comicify.feature.library.domain.ComicSettings
 import com.comicify.feature.library.domain.LibraryComic
@@ -19,10 +22,14 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ComicSettingsViewModel @Inject constructor(
+    application: Application,
     private val repository: LibraryRepository,
 ) : ViewModel() {
 
     private val documentUris = MutableStateFlow<List<String>>(emptyList())
+
+    val defaultDirection: StateFlow<ReadingDirection> = ReaderPreferencesRepository(application).readingDirection
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReadingDirection.LeftToRight)
 
     val settings: StateFlow<ComicSettings> = documentUris
         .flatMapLatest { uris -> uris.firstOrNull()?.let(repository::settings) ?: flowOf(ComicSettings.Default) }
