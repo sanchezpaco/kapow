@@ -290,15 +290,16 @@ Goal: the details that make it feel premium.
 - [ ] Outliner: idea 3b (paper body leaking into pale art beside the rim) and
       a merge of ML boxes nested inside one paper body (2099 p.7 offline);
       independent of the resource items, scored on the silhouette ground truth
-- [ ] Library hero + comic detail screen + shared-element transition
-      (decided 2026-08-28 after the app review, `POSSIBLE_IDEAS.md` ideas
-      5-7; next item to build). Hero: a large "continue reading" block with
-      the cover, its ambient colour as background, progress and estimated
-      time left, on top of the existing `continueReading` shelf data. Detail
-      screen: ordered issues of the series, next unread, per-comic settings
-      (direction, spread parity, bubbles, guided), page mosaic. Cover to
-      reader as a shared element, handing the cover's ambient colour to the
-      reader's initial glow. Absorbs "per-comic settings" below
+- [x] Library hero + per-comic settings + shared-element transition (shipped
+      2026-08-28, `7fb4327`). Hero with the cover's ambient colour, progress
+      and a flat-pace time left, dismissable with "×"; tapping a cover reads
+      directly (an intermediate detail screen with a page mosaic was built
+      and rejected as a UX detour); a gear on each card or series stack opens
+      the per-comic settings (direction, cover-alone spread parity, bubbles
+      on open + scale, guided on open), series-wide writes to every issue;
+      covers are shared elements into the settings header and the reader
+      starts its glow from the cover's ambient. Absorbs "per-comic settings"
+      below
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails
