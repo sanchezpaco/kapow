@@ -44,6 +44,7 @@ class PageLoader(
     private val detectionSlots = Semaphore(PARALLEL_DETECTIONS)
     private val locks = HashMap<Int, Mutex>()
     private val thumbLocks = HashMap<Int, Mutex>()
+    private val panelLocks = HashMap<Int, Mutex>()
     private val bubbleLocks = HashMap<Int, Mutex>()
     private val overlayLocks = HashMap<Int, Mutex>()
 
@@ -85,13 +86,17 @@ class PageLoader(
 
     suspend fun panels(index: Int): List<Rect> {
         panelCache[index]?.let { return it }
-        return (detectionStore.panels(index) ?: detectPanels(index)).also { panelCache.put(index, it) }
+        val mutex = synchronized(panelLocks) { panelLocks.getOrPut(index) { Mutex() } }
+        return mutex.withLock {
+            panelCache[index] ?: (detectionStore.panels(index) ?: detectPanels(index)).also { panelCache.put(index, it) }
+        }
     }
 
     private suspend fun detectPanels(index: Int): List<Rect> {
         val art = load(index)
-        return timed("panels", index) { withContext(Dispatchers.Default) { panelDetector.detect(art.analysis.asAndroidBitmap()) } }
-            .also { detectionStore.savePanels(index, it) }
+        return detectionSlots.withPermit {
+            timed("panels", index) { withContext(Dispatchers.Default) { panelDetector.detect(art.analysis.asAndroidBitmap()) } }
+        }.also { detectionStore.savePanels(index, it) }
     }
 
     private suspend fun bubbles(index: Int): List<SpeechBubble> {
@@ -132,11 +137,18 @@ class PageLoader(
         return detect().also { Log.d(LOG_TAG, "$what on page $index in ${SystemClock.elapsedRealtime() - started} ms") }
     }
 
-    fun preload(around: Int, indices: Iterable<Int>, bubbleScale: Float?) {
+    fun preload(around: Int, indices: Iterable<Int>, bubbleScale: Float?, panels: Boolean) {
         focus = around
         indices.filter { it in 0 until source.pageCount }
             .sortedBy { abs(it - around) }
-            .forEach { index -> scope.launch { runCatching { if (bubbleScale != null) overlay(index, bubbleScale) else load(index) } } }
+            .forEach { index ->
+                scope.launch {
+                    runCatching {
+                        if (bubbleScale != null) overlay(index, bubbleScale) else load(index)
+                        if (panels) panels(index)
+                    }
+                }
+            }
     }
 
     private class PageOverlay(val scale: Float, val bubbles: List<PaintedBubble>)

@@ -25,6 +25,14 @@ neutral (F1 0.931 → 0.934, recall +2 points, precision −1); the gain shows o
 open-panel pages the ground truth barely contains. Everything after the boxes
 is pure Kotlin in `feature/reader/domain` and unit-tested on synthetic pages.
 
+`GuidedReader` asks `PageLoader.preload(…, panels = true)` for the pages
+around the current one, so their panels are detected (or read from Room)
+before the reader gets there; one detection runs at a time behind the shared
+semaphore, with a per-page mutex so the current page is never detected twice.
+On the Fold, entering Guided View on a fresh comic detects the current page
+and the next two within ≈ 600 ms, and each step then finds the next page's
+panels already cached (they used to be detected on arrival, 130–210 ms late).
+
 ## ML panel detection (default path)
 
 `OnnxBoxDetector` (shared with speech bubbles, one session per model asset) runs a YOLO26n detector fine-tuned on manga frames

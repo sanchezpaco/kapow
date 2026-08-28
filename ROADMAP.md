@@ -239,9 +239,11 @@ Goal: the details that make it feel premium.
       509 → 361 ms; Muerte resumed at p.19: ≈ 800 → 222 ms. ZIP keeps the
       copy (`ZipFile` needs a path, `/proc/self/fd` is refused by scoped
       storage). See `docs/file-formats.md`
-- [ ] Cold detections are serial per page (≈ 250 ms in bubble mode; Guided
-      View panels 130–210 ms, started only when the page becomes current):
-      preload panels with the pages when Guided View is on
+- [x] Cold detections (2026-08-28): Guided View preloads panels with the
+      pages (`preload(panels = true)`, per-page mutex + shared detection
+      slot), so each step finds the next page's panels cached instead of
+      detecting them on arrival (130–210 ms). Bubble mode keeps its serial
+      ≈ 250 ms per page (one detection at a time). See `docs/guided-view.md`
 - [ ] Reader → library exit renders one 20–27 ms frame (library
       recomposition + cover re-bind); measure unfolded posture too
 - [x] APK size (release, `apkanalyzer`, 2026-08-28): 50.4 → 20.8 MB

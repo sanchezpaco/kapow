@@ -133,3 +133,9 @@ startup, thumbnail scrubber, zoom/pan, decode placement.
   Muerte (62-page RAR) resumed at page 19: ≈ 800 → 222 ms. The remaining
   ≈ 240 ms before the first Blacksad decode is the archive listing plus the
   first three 7 MB items coming out of the extractor. See `file-formats.md`.
+- **4, serial cold detections** — Guided View now preloads panels with the
+  pages (`PageLoader.preload(panels = true)`, per-page mutex, shared
+  detection slot), so Blacksad #1 fresh: pages 1–2 detected 440–575 ms after
+  entering, page N+2 detected while N is shown; each step finds its panels
+  cached. Bubble mode already preloaded overlays; its per-page cost stays
+  serial (≈ 250 ms) by design (one detection at a time). See `guided-view.md`.
