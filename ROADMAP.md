@@ -178,8 +178,9 @@ Goal: the details that make it feel premium.
       (≈90 % judged good on 138 real bubbles) but costs ≈4 s per 512² crop.
       Shipped a classical fill instead (`CrescentFill`): the whole original
       silhouette plus margin is onion-peeled from the surrounding art (minus
-      neighbouring bubbles and the rim halo) and box-blurred, ≈3 ms per bubble
-      on the JVM, cached with the overlay. On flat backgrounds the hole
+      neighbouring bubbles and the rim halo) and box-blurred; layout + fills
+      0–37 ms per page on the Fold in release (mean 11 ms), cached with the
+      overlay. On flat backgrounds the hole
       disappears; on busy scans it becomes a soft smudge instead of a cut-out
       (≈3/5 vs 1.6/5 flat). Only 77 of 876 corpus bubbles uncover > 0.05 % of
       the page. A tiny model stays the escalation path. See

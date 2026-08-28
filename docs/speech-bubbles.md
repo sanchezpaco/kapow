@@ -571,7 +571,9 @@ and per slider step, which on a 2953 × 4528 scan meant 53 MB allocations and
 page turns at ~10 fps. The only precomputed part is `BubblePlan.of`: one
 small fill bitmap per enlarged bubble, the size of its box plus margin, cut
 from the analysis bitmap by `CrescentFill` (pure Kotlin, ≈3 ms per bubble on
-the JVM, cached with the overlay). First every enlarged bubble's **original
+the JVM; on the Fold in release the whole plan — layout plus fills — takes
+0–37 ms per page, 11 ms on average over 21 pages of Doctor Doom #9; cached
+with the overlay). First every enlarged bubble's **original
 footprint** is covered with that fill, then each copy is drawn: clip to the
 scaled outline polygons, draw the source bitmap region of the bubble box into
 its target box with high filter quality, plus a faint 1 dp outline so the copy
