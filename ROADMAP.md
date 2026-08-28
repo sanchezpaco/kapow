@@ -179,6 +179,24 @@ Goal: the details that make it feel premium.
       emulator, so the shipped fill must be far cheaper (small crop / tiny
       model / classical fill for thin crescents). Decide after the item above
       shows how much area is actually left. See `docs/speech-bubbles.md`
+- [ ] Verify bubble student v4 on the physical Z Fold (`make deploy`; 2099
+      Vol1 04 p.7 caption, Blacksad 1 p.13, Doom #9 pp. 5-8) — closes v4
+      before anything else changes
+- [ ] Persist page detections (panels + bubbles) in Room, keyed by comic,
+      page and model version, so re-reading never re-runs the ML. Do this
+      first among the resource items: it changes behaviour, so RAM and
+      battery must be measured after it, not before
+- [ ] APK size: arm64-v8a only (ABI split), ONNX Runtime minimal build with
+      just the YOLO26 ops, drop unused 7-Zip-JBinding ABIs, R8 already on.
+      Orthogonal to runtime behaviour; measure with `apkanalyzer` before/after
+- [ ] RAM: baseline with `dumpsys meminfo` (normal reading vs bubble mode)
+      on the final APK with the Room cache, then bound the preload bitmap
+      pool and page decode size
+- [ ] Battery: last, since it inherits the items above; `batterystats` over a
+      fixed 20-page read, touch preload/parallelism only if the numbers say so
+- [ ] Outliner: idea 3b (paper body leaking into pale art beside the rim) and
+      a merge of ML boxes nested inside one paper body (2099 p.7 offline);
+      independent of the resource items, scored on the silhouette ground truth
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails, per-comic settings
