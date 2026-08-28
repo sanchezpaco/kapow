@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -91,6 +92,7 @@ import java.io.File
 import kotlin.math.roundToInt
 
 private val HeroCoverWidth = 132.dp
+private val CardGearSize = 26.dp
 
 private val CoverGradients = listOf(
     listOf(Color(0xFF7A2222), Color(0xFF2A0E0E)),
@@ -109,7 +111,7 @@ fun LibraryScreen(
     onFolderPicked: (Uri) -> Unit,
     onRefresh: () -> Unit,
     onOpenComic: (LibraryComic) -> Unit,
-    onShowDetail: (LibraryComic) -> Unit,
+    onOpenSettings: (List<LibraryComic>) -> Unit,
     onOpenFile: (Uri) -> Unit,
     onFilterSelected: (LibraryFilter) -> Unit,
     onToggleGrouped: () -> Unit,
@@ -142,7 +144,8 @@ fun LibraryScreen(
         SeriesScreen(
             group = openGroup,
             onBack = { openedSeries = null },
-            onOpenComic = onShowDetail,
+            onOpenComic = onOpenComic,
+            onOpenSettings = onOpenSettings,
             onToggleRead = onToggleRead,
             onToggleFavorite = onToggleFavorite,
             onDeleteComic = onDeleteComic,
@@ -195,19 +198,21 @@ fun LibraryScreen(
                 when (entry) {
                     is LibraryEntry.Single -> ComicCard(
                         comic = entry.comic,
-                        onOpenComic = onShowDetail,
+                        onOpenComic = onOpenComic,
+                        onOpenSettings = onOpenSettings,
                         onToggleRead = onToggleRead,
                         onToggleFavorite = onToggleFavorite,
                         onDeleteComic = onDeleteComic,
                     )
-                    is LibraryEntry.Group -> GroupCard(group = entry, onOpen = { openedSeries = it.series })
+                    is LibraryEntry.Group -> GroupCard(group = entry, onOpen = { openedSeries = it.series }, onOpenSettings = onOpenSettings)
                 }
             }
         } else {
             items(items = state.comics, key = { it.id }) { comic ->
                 ComicCard(
                     comic = comic,
-                    onOpenComic = onShowDetail,
+                    onOpenComic = onOpenComic,
+                    onOpenSettings = onOpenSettings,
                     onToggleRead = onToggleRead,
                     onToggleFavorite = onToggleFavorite,
                     onDeleteComic = onDeleteComic,
@@ -227,6 +232,7 @@ private fun SeriesScreen(
     group: LibraryEntry.Group,
     onBack: () -> Unit,
     onOpenComic: (LibraryComic) -> Unit,
+    onOpenSettings: (List<LibraryComic>) -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDeleteComic: (LibraryComic) -> Unit,
@@ -249,6 +255,7 @@ private fun SeriesScreen(
             ComicCard(
                 comic = comic,
                 onOpenComic = onOpenComic,
+                onOpenSettings = onOpenSettings,
                 onToggleRead = onToggleRead,
                 onToggleFavorite = onToggleFavorite,
                 onDeleteComic = onDeleteComic,
@@ -624,6 +631,7 @@ internal fun SectionHeader(eyebrow: String, title: String) {
 private fun ComicCard(
     comic: LibraryComic,
     onOpenComic: (LibraryComic) -> Unit,
+    onOpenSettings: (List<LibraryComic>) -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDeleteComic: (LibraryComic) -> Unit,
@@ -674,18 +682,23 @@ private fun ComicCard(
                 )
             }
         }
-        Text(
-            text = comic.title,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Row(verticalAlignment = Alignment.Top) {
+            Text(
+                text = comic.title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            CardGear(onClick = { onOpenSettings(listOf(comic)) })
+        }
         ComicCardMenu(
             expanded = menuExpanded,
             comic = comic,
             onDismiss = { menuExpanded = false },
+            onOpenSettings = { menuExpanded = false; onOpenSettings(listOf(comic)) },
             onToggleRead = onToggleRead,
             onToggleFavorite = onToggleFavorite,
             onDelete = {
@@ -734,11 +747,17 @@ internal fun ComicCardMenu(
     expanded: Boolean,
     comic: LibraryComic,
     onDismiss: () -> Unit,
+    onOpenSettings: () -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDelete: () -> Unit,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.detail_settings)) },
+            leadingIcon = { Icon(imageVector = Icons.Outlined.Settings, contentDescription = null) },
+            onClick = onOpenSettings,
+        )
         val readLabel = if (comic.completed) R.string.library_mark_unread else R.string.library_mark_read
         val favoriteLabel = if (comic.favorite) R.string.library_remove_favorite else R.string.library_add_favorite
         DropdownMenuItem(
@@ -789,7 +808,22 @@ internal fun FavoriteBadge(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun GroupCard(group: LibraryEntry.Group, onOpen: (LibraryEntry.Group) -> Unit) {
+private fun CardGear(onClick: () -> Unit) {
+    Icon(
+        imageVector = Icons.Outlined.Settings,
+        contentDescription = stringResource(R.string.detail_settings),
+        tint = InkFaint,
+        modifier = Modifier
+            .padding(start = 6.dp)
+            .size(CardGearSize)
+            .clip(CircleShape)
+            .clickable(onClick = onClick)
+            .padding(4.dp),
+    )
+}
+
+@Composable
+private fun GroupCard(group: LibraryEntry.Group, onOpen: (LibraryEntry.Group) -> Unit, onOpenSettings: (List<LibraryComic>) -> Unit) {
     val representative = group.comics.firstOrNull { !it.completed && it.pageIndex > 0 } ?: group.comics.first()
     val readCount = group.comics.count { it.completed }
     Column(
@@ -826,14 +860,18 @@ private fun GroupCard(group: LibraryEntry.Group, onOpen: (LibraryEntry.Group) ->
             }
         }
         Column {
-            Text(
-                text = group.series,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.Top) {
+                Text(
+                    text = group.series,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                CardGear(onClick = { onOpenSettings(group.comics) })
+            }
             Text(
                 text = stringResource(R.string.library_group_read, readCount, group.comics.size),
                 style = MaterialTheme.typography.labelSmall,

@@ -43,14 +43,7 @@
     <string name="library_group_read">%1$d/%2$d leídos</string>
     <string name="library_unshelve">Quitar de continuar leyendo</string>
     <string name="library_back">Atrás</string>
-    <string name="detail_read">Empezar a leer</string>
-    <string name="detail_continue">Continuar</string>
-    <string name="detail_read_again">Volver a leer</string>
-    <string name="detail_pages_eyebrow">Páginas</string>
-    <string name="detail_pages">%1$d páginas</string>
-    <string name="detail_issues_eyebrow">Serie</string>
-    <string name="detail_issues">%1$d números</string>
-    <string name="detail_next_unread">Siguiente sin leer</string>
+    <string name="settings_series_scope">Se aplica a los %1$d números</string>
     <string name="detail_settings_eyebrow">Este cómic</string>
     <string name="detail_settings">Ajustes de lectura</string>
     <string name="detail_setting_direction">Sentido de lectura</string>

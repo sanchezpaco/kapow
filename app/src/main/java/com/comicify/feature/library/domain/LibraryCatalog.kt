@@ -44,13 +44,6 @@ object LibraryCatalog {
         return ordered.getOrNull(ordered.indexOfFirst { it.id == comicId } + 1)
     }
 
-    fun seriesOf(comics: List<LibraryComic>, comic: LibraryComic): List<LibraryComic> {
-        val seriesKey = groupKey(comic.series)
-        return sort(comics.filter { groupKey(it.series) == seriesKey })
-    }
-
-    fun nextUnread(series: List<LibraryComic>): LibraryComic? = series.firstOrNull { !it.completed }
-
     fun continueReading(comics: List<LibraryComic>): List<LibraryComic> =
         comics.filter { it.lastReadAt != null && !it.completed && it.pageIndex > 0 && it.shelved }
             .sortedByDescending { it.lastReadAt }

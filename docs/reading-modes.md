@@ -54,7 +54,7 @@ Default on `UnfoldedSpread`.
   (aspect ratio near 2:1, or metadata flag), it occupies both halves and pairing
   re-aligns so the artwork joins correctly across the seam.
 - Page pairing parity is a per-comic setting ("cover alone in the spread",
-  `ComicSettings.coverAlone`, set from the comic detail screen). `PageOrder`
+  `ComicSettings.coverAlone`, set from the comic's settings screen). `PageOrder`
   owns the arithmetic (`spreadCount`, `spreadIndex`, `spreadFirstPage`): with
   the cover alone, spread 0 shows a blank left half and the cover, and the
   pairs become (1, 2), (3, 4)… The spread surface and Guided View's spread

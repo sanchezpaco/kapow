@@ -149,46 +149,38 @@ re-shelves it, so a comic reappears as soon as it is read again.
   a single file; the empty state keeps the large "Choose folder" button.
 - Entries are naturally sorted by series, then issue number, then title.
 
-## Comic detail screen
+## Per-comic reading settings
 
-Tapping a cover in the grid (or in a series stack) opens `ComicDetailScreen`
-instead of the reader; the hero and the resume cards still jump straight into
-reading. The screen is one adaptive grid:
+Tapping a cover opens the reader directly; there is no intermediate screen. A
+small gear next to each card's title (also "Reading settings" in the long-press
+menu) opens `ComicSettingsScreen` for that comic. The gear on a series stack
+opens the same screen for the whole series ("Applies to all N issues"): the
+chosen values are written to every issue, and each issue keeps its own gear
+inside the series screen for individual tweaks.
 
-- Header washed with the cover's ambient colour: cover, series, title, page
-  count, progress + time left and a single call to action ("Start reading" /
-  "Continue" / "Read again", the last one restarting at page 0). The toolbar
-  toggles favourite and read/unread.
-- **Series** row when the comic belongs to a series with more than one issue:
-  covers in natural order, the open one outlined, the first unfinished issue
-  labelled "next unread". Tapping an issue swaps the screen to that issue.
-- **Reading settings** for this comic, saved in `comic_settings` through
-  `LibraryRepository.saveSettings` (a row equal to `ComicSettings.Default` is
-  deleted rather than stored): reading direction (default / LTR / RTL), cover
-  alone in the spread (pairing parity), enlarged bubbles on open and Guided
-  View on open (default / on / off). `docs/reading-modes.md` describes how the
-  reader consumes them.
+- Header washed with the cover's ambient colour (cover shared with the card).
+- Reading direction (default / LTR / RTL), cover alone in the spread (pairing
+  parity), enlarged bubbles on open and Guided View on open (default / on /
+  off). Saved in `comic_settings` through `LibraryRepository.saveSettings`; a
+  row equal to `ComicSettings.Default` is deleted rather than stored.
+  `docs/reading-modes.md` describes how the reader consumes them.
 - "Clear panel and bubble detections" drops the comic's `page_detections` rows
   so the next open re-runs the models.
-- **Pages** mosaic decoded on demand by `ComicThumbnails` (its own
-  `ComicSource`, 240 px wide, hardware bitmaps, closed with the ViewModel);
-  the current page is outlined and tapping a page opens the reader there.
+
+`ComicSettingsViewModel` observes the first target's settings and fans writes
+out to all targets.
 
 ### Navigation and transitions
 
-`ComicifyRoot` derives a typed `Screen` (Library / Detail / Reader) from its two
-state slots and renders it inside `SharedTransitionLayout` + `AnimatedContent`.
+`ComicifyRoot` derives a typed `Screen` (Library / Settings / Reader) from its
+two state slots and renders it inside `SharedTransitionLayout` + `AnimatedContent`.
 Screens cross-fade; the reader additionally scales in from 94 %. The cover is a
-shared element between the grid card (or series stack) and the detail header:
+shared element between the grid card (or series stack) and the settings header:
 `Modifier.sharedCover(comicId)` (`SharedCover.kt`) reads the transition and
 visibility scopes from composition locals, so a cover outside the animated root
 just renders normally. The reader receives the cover's ambient colour as
 `initialAmbient`, so its backdrop already glows in the comic's colour while the
 first page decodes instead of starting from the neutral default.
-
-`ComicDetailViewModel` combines the library flow, the settings flow of the
-shown comic and the page count into `ComicDetailUiState`; it is the only place
-that opens a comic outside the reader.
 
 ## Metadata
 
