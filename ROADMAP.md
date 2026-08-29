@@ -339,20 +339,29 @@ Blocking:
       bundle, install the bundle-derived APK (`make deploy-bundle`; verified
       on the emulator, Fold pending)
 - [ ] Play Console: create the app as Kapow, upload the first bundle by hand,
-      link a service account for `make publish-internal`
+      link a service account for `make publish-internal`. The repository goes
+      public before the first upload (AGPL source offer) and the listing links
+      to it
 - [x] Onboarding on first launch (3 steps): choose the folder, reader
       gestures (centre = HUD, edges = page turn, pinch = zoom), Guided View +
       enlarged bubbles with the HUD icons; "Show the introduction again" from
       Settings → About. Flag in DataStore. See `docs/onboarding.md`
-- [~] Privacy policy URL + Play "Data safety" form (no data collected) —
-      pending the Play Console. `dataExtractionRules` / `fullBackupContent`
-      done: Room + DataStore only (`docs/settings.md` → Backup)
+- [~] Privacy policy URL + Play "Data safety" form (no data collected).
+      Policy as `docs/privacy.md` (EN + ES: nothing collected, the glitch
+      report is user-initiated mail from the user's own account, backups are
+      Android's own), served from GitHub Pages on the public repo; host still
+      to confirm. `dataExtractionRules` / `fullBackupContent` done: Room +
+      DataStore only (`docs/settings.md` → Backup)
 - [x] Licences screen under Settings → About (`LicencesScreen`). Both model
       sources are Apache-2.0; the bubble student was trained with Ultralytics
       (AGPL-3.0) — the app only ships weights and runs them with ONNX Runtime,
       but confirm that reading of the AGPL before publishing
-- [ ] Store listing: EN + ES short/long descriptions, screenshots folded and
-      unfolded, feature graphic (artwork pending the name/logo decision)
+- [ ] Store listing: EN + ES short/long descriptions in
+      `fastlane/metadata/android/{en-US,es-ES}/`, screenshots via `screencap`
+      (emulator folded / single, Fold unfolded / spread), feature graphic
+      1024×500 (blocked on the logo, still deferred)
+- [ ] Closing commit of the phase: `versionCode 1`, `versionName "1.0.0"`,
+      tag `v1.0.0`, tick the remaining items
 - [x] Crash visibility: rely on Play Vitals (no third-party SDK). Opening a
       comic rethrows anything that is not a `ComicSourceException`; a page
       that fails to decode shows "Page N could not be decoded" and logs the
@@ -387,6 +396,11 @@ Strongly recommended:
 - [x] Licensing decision before the first upload: the bubble student was
       trained with Ultralytics (AGPL-3.0). Decided 2026-08-29: the repository
       is published under AGPL-3.0 (`LICENSE`); no Ultralytics licence needed
+
+Rejected for 1.0: anonymous glitch reporting (Crashlytics non-fatal for the
+JSON, or an own upload endpoint for the full package) — the report is mail from
+the user's own account and that is accepted; a `mailto:` intent selector does
+not resolve on every device, so the plain chooser stays (decided 2026-08-29).
 
 Deferred to 1.1: tip jar under Settings → About as a one-off Play Billing
 product (an external Ko-fi / Buy Me a Coffee link risks a Play payments-policy
