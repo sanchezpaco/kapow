@@ -162,7 +162,7 @@ Annotated PNGs land in `<dir>/out`. Iterate there, then trust the unit tests.
 
 ## Navigation and framing
 
-- Left 28 % / right 28 % tap zones go to the previous / next panel; the centre
+- Left 20 % / right 20 % tap zones go to the previous / next panel; the centre
   toggles the chrome. Multi-panel pages prepend a **whole-page overview stop**,
   so moving forward into a page shows it whole first, then the panels; moving
   back lands on the previous page's last panel. Splashes (a single stop) are

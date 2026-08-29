@@ -11,7 +11,7 @@ Default on `UnfoldedSingle` and `CompactSingle`.
 - Horizontal `Pager`, one page per screen.
 - Content fits the screen; the unfolded screen shows a page at near-physical size
   so no zoom is needed for normal reading.
-- Gestures: single-finger horizontal swipe changes page; a tap on the outer 28 %
+- Gestures: single-finger horizontal swipe changes page; a tap on the outer 20 %
   of the width turns the page (`TapZones` in `PageOrder.kt`: the left zone goes
   back and the right one forward, mirrored for right-to-left; in a spread each
   half exposes its outer 40 %, i.e. 20 % of the screen per side, leaving a wide

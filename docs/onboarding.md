@@ -13,7 +13,7 @@ image assets):
 1. **Folder** — "Choose folder" launches the same `OpenDocumentTree` picker as
    the library and feeds `LibraryViewModel.onFolderPicked`; the note says the
    sample comic is already on the shelf and the folder can be chosen later.
-2. **Gestures** — a page with the two tap-zone bands (28 % each side, the
+2. **Gestures** — a page with the two tap-zone bands (20 % each side, the
    values from `TapZones`), chevrons, and the centre tap; the copy also covers
    pinch / double-tap zoom and swipe.
 3. **Modes** — Guided View and enlarged bubbles, with the same icons as the

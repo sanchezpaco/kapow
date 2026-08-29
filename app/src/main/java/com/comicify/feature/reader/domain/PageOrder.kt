@@ -6,8 +6,8 @@ import com.comicify.domain.model.ReadingDirection.RightToLeft
 
 enum class TapZone { Previous, Center, Next }
 
-private const val PREVIOUS_ZONE_END = 0.28f
-private const val NEXT_ZONE_START = 0.72f
+private const val PREVIOUS_ZONE_END = 0.2f
+private const val NEXT_ZONE_START = 0.8f
 private const val NEVER = 2f
 private const val SPREAD_PREVIOUS_ZONE_END = 0.4f
 private const val SPREAD_NEXT_ZONE_START = 0.6f
