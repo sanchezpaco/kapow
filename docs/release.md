@@ -53,3 +53,56 @@ unsigned; nothing falls back to the debug key.
   (`app/proguard-rules.pro`).
 - Open a CBZ, a CBR and a PDF on the installed bundle-derived APK, with
   Guided View and enlarged bubbles toggled.
+
+## Launcher icon and store icon
+
+The icon is a white speech bubble with a Luckiest Guy "K" (yellow `#FFC107`
+→ red `#FF3D45`, ink contour and offset) over a tilted comic-page grid in
+blue, chosen 2026-08-29 after several playground rounds (shout balloon, panel
+gutters, halftone K were rejected). `tools/store_assets/icon.py` is the single
+source: it bakes the K glyph into path data (font in `tools/store_assets/fonts/`,
+Apache-2.0) and writes `res/drawable/ic_launcher_{background,foreground,monochrome}.xml`;
+`--png` also rasterises the 512 px store icon (with the per-panel halftone the
+vector omits, invisible at launcher sizes) to
+`fastlane/metadata/android/{en-US,es-ES}/images/icon.png` through headless
+Chrome. Edit the constants at the top of the script, never the XML. Two VectorDrawable
+facts the script encodes: a `<path>` whose fill is an `<aapt:attr>` gradient
+drops its `strokeColor`, so the K is a gradient-fill path plus a separate
+stroke-only path; and launchers show only the inner 72 of the 108 dp, so the
+foreground mark is scaled by 72/90 to look like the 512 px store icon.
+
+## Feature graphic and screenshots
+
+`tools/store_assets/feature_graphic.py` renders the 1024×500 feature graphic
+for `en-US` and `es-ES`: the icon's stage, the bubble mark and a "KAPOW!"
+wordmark as a lockup on the left, the slogan ("Your collection, always with
+you" / "Tu colección, siempre contigo", chosen 2026-08-29) and the format list
+as comic caption boxes (Archivo Bold, OFL, `tools/store_assets/fonts/`), and a page of
+the bundled sample (`SAMPLE_PAGE` inside `assets/sample.cbz`) as a tilted
+ink-bordered panel on the right. Copy lives in the script's `OUTPUTS` table —
+both languages change together. The listing never claims the app is "built
+for the Fold": Kapow is sold as a reader for any Android device that adapts
+on foldables.
+
+Screenshots use public-domain Golden Age comics (Fiction House's *Planet
+Comics* and *Jumbo Comics*, 1940s, copyright not renewed; archive.org item
+`planet-comics-011-gm-removed-cbpop` and `jumbo-comics-105-november-1947`).
+Never ship screenshots of copyrighted comics. Raw captures live in
+`tools/store_assets/raw/<shot>-<phone|tablet>-<lang>.jpg` (release build only —
+the debug build shows its build badge); `tools/store_assets/screenshots.py`
+frames each one as a tilted ink-bordered panel on the page-grid stage with a
+shout title and a caption box, sized 1080×1920 (phone) and 2560×1440 (seven
+inch: title and caption on the left, the capture bleeding off the bottom-right
+edge). Copy for every shot is the `SHOTS` table. The "bigger bubbles" shot is a
+before/after pair: `bubbles-off-phone-<lang>.jpg` (page 4 of the sample, HUD
+hidden, bubbles off) and `bubbles-phone-<lang>.jpg` (same page at 1.9×) are
+cropped to the same top strip of the page (`COMPARE_STRIP`) and stacked as two
+panels with BEFORE/AFTER tags, so the same bubbles appear in both. The
+settings capture is pre-cropped to the Screen → Appearance sections so the
+About line stays out.
+
+Recapture recipe: `cmd locale set-app-locales com.sanchezpaco.kapow --user 0
+--locales es-ES` switches the app language without touching the system; the
+Medium Phone AVD gives the 9:20 phone captures, the Fold AVD in landscape
+(`settings put system user_rotation 1`) the spread. Tapping the page centre
+toggles the HUD; the bubble-size slider under the bubble button goes to 1.9×.

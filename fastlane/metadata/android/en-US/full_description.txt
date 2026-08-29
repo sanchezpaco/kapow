@@ -1,0 +1,21 @@
+Kapow reads the comics you already own — CBZ, CBR (RAR4 and RAR5) and PDF — on any Android phone or tablet. On a foldable it adapts to the posture: folded, a clean one-page reader; unfolded, the double-page spread as printed; on the table, the page stays up.
+
+READ YOUR WAY
+• Guided View: panel by panel, detected on your device — nothing leaves your phone.
+• Bigger speech bubbles: enlarge the lettering so small print stops being a problem.
+• Edge taps or volume keys turn the page, pinch to zoom, left-to-right or right-to-left reading.
+• Night tint and keep-screen-on while reading.
+
+YOUR SHELF
+• Point Kapow at your comics folder; it builds the bookshelf, groups issues by series and keeps it up to date.
+• Continue reading, unread / read / favourites filters, search and sort.
+• Per-comic settings that remember how you like to read each title.
+
+YOUR LOOK
+• Pure black (OLED), graphite or paper themes and seven accent colours, or the wallpaper colour on Android 12+.
+• English and Spanish.
+
+PRIVACY
+Kapow collects no data and has no accounts, ads or trackers. It only reads the files you point it to. Guided View and enlarged bubbles run entirely on the device; they work best on comics with clearly drawn panels and may miss on some pages — both are still being improved.
+
+Kapow is free software (AGPL-3.0). Source code: https://github.com/sanchezpaco/kapow

@@ -1,0 +1,21 @@
+Kapow lee los cómics que ya tienes — CBZ, CBR (RAR4 y RAR5) y PDF — en cualquier móvil o tablet Android. En un plegable se adapta a la postura: plegado, un lector limpio de una página; desplegado, la doble página tal y como se imprimió; sobre la mesa, la página se mantiene en alto.
+
+LEE A TU MANERA
+• Guided View: viñeta a viñeta, detectadas en tu dispositivo — nada sale de tu móvil.
+• Bocadillos más grandes: amplía la rotulación para que la letra pequeña deje de ser un problema.
+• Pasa página tocando los bordes o con las teclas de volumen, pellizca para ampliar, lectura de izquierda a derecha o de derecha a izquierda.
+• Filtro nocturno y pantalla siempre encendida mientras lees.
+
+TU ESTANTERÍA
+• Indica a Kapow tu carpeta de cómics; construye la biblioteca, agrupa los números por serie y la mantiene al día.
+• Seguir leyendo, filtros de sin leer / leídos / favoritos, búsqueda y orden.
+• Ajustes por cómic que recuerdan cómo te gusta leer cada título.
+
+A TU GUSTO
+• Temas negro puro (OLED), grafito o papel y siete colores de acento, o el color del fondo de pantalla en Android 12+.
+• Español e inglés.
+
+PRIVACIDAD
+Kapow no recopila datos y no tiene cuentas, anuncios ni rastreadores. Solo lee los archivos que le indicas. Guided View y los bocadillos ampliados funcionan por completo en el dispositivo; van mejor en cómics con viñetas bien marcadas y pueden fallar en algunas páginas — ambos siguen mejorando.
+
+Kapow es software libre (AGPL-3.0). Código fuente: https://github.com/sanchezpaco/kapow
