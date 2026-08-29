@@ -373,15 +373,24 @@ Strongly recommended:
 - [~] Accessibility floor: ghost actions and the series back button are
       48 dp; decorative icons next to text stay `null`; TalkBack pass on
       library + settings pending the Fold
-- [ ] "Report a visual glitch" from the reader HUD menu: shares (ACTION_SEND
-      via FileProvider, to our address, user picks the app) the composed page
-      as seen (overlay included, HUD excluded) plus a `report.json` with file
-      name, page, mode (guided / bubbles + scale), posture, device, version,
-      build and the page's detections (boxes + silhouettes) so it can be
-      reproduced offline without the comic; optional free-text field. No
-      backend, no SDK. Agreed in principle 2026-08-28, details to confirm
+- [ ] "Report a visual glitch" from the reader HUD settings menu (gear):
+      a confirmation dialog ("an image of this page and technical data will be
+      sent, no personal data") then ACTION_SEND via FileProvider with
+      `sanchezpacodev@gmail.com` and the subject prefilled, user picks the
+      mail app. Payload: the composed page as seen (overlay included, HUD
+      excluded) plus `report.json` with file name, page, mode (guided /
+      bubbles + scale), posture, device, version, build and the page's
+      detections (boxes + silhouettes) so it can be reproduced offline without
+      the comic. No free-text field: the mail body carries a one-line summary
+      the user can edit in the mail app. No backend, no SDK. Decided
+      2026-08-29
+- [ ] Licensing decision before the first upload: the bubble student was
+      trained with Ultralytics (AGPL-3.0). Options: publish the repository
+      under AGPL-3.0 (cleanest for a free app) or buy an Ultralytics licence
 
-Deferred to 1.1: reading stats / recently read, home-screen widget, automatic
+Deferred to 1.1: tip jar under Settings → About as a one-off Play Billing
+product (an external Ko-fi / Buy Me a Coffee link risks a Play payments-policy
+rejection; decided 2026-08-29), reading stats / recently read, home-screen widget, automatic
 day/night theme, ComicVine metadata, panel-level posture transition,
 outliner idea 3b.
 
