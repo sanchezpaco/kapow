@@ -385,8 +385,9 @@ Blocking:
       footnote states both are still being improved and points to "Report a
       visual glitch"; the store description's privacy paragraph says the same
       (EN + ES)
-- [ ] Closing commit of the phase: `versionCode 1`, `versionName "1.0.0"`,
-      tag `v1.0.0`, tick the remaining items
+- [x] Closing commit of the phase (2026-08-29): `versionCode 1`,
+      `versionName "1.0.0"`, tag `v1.0.0`. Still open after the close: the
+      Play Console upload and the launcher icon picker (moves to post-1.0)
 - [x] Crash visibility: rely on Play Vitals (no third-party SDK). Opening a
       comic rethrows anything that is not a `ComicSourceException`; a page
       that fails to decode shows "Page N could not be decoded" and logs the
