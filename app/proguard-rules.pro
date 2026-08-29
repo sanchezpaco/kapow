@@ -8,3 +8,7 @@
 # the locally built minimal AAR (tools/ort) ships no consumer rules.
 -keep class ai.onnxruntime.** { *; }
 -dontwarn ai.onnxruntime.**
+
+# Play In-App Review (review-ktx) references a Play Services annotation that
+# is not on the classpath; it is compile-time only.
+-dontwarn com.google.android.gms.common.annotation.NoNullnessRewrite
