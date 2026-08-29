@@ -140,7 +140,7 @@ startup, thumbnail scrubber, zoom/pan, decode placement.
   cached. Bubble mode already preloaded overlays; its per-page cost stays
   serial (≈ 250 ms) by design (one detection at a time). See `guided-view.md`.
 - **5, reader → library exit** — traced: one 36 ms frame, 26 ms of it
-  recomposition (`ComicifyRoot` swaps the reader for a fresh `LibraryScreen`)
+  recomposition (`KapowRoot` swaps the reader for a fresh `LibraryScreen`)
   and 7 ms measure after the system bars come back. Deliberately left alone:
   keeping the library composed underneath the reader would make every
   `saveProgress` recompose it during the page-turn animation, trading a single

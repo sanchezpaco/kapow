@@ -27,7 +27,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.comicify.R
-import com.comicify.core.ui.theme.ComicifyTheme
+import com.comicify.core.ui.theme.KapowTheme
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
 
@@ -77,7 +77,7 @@ fun Boolean.labelRes(): Int = if (this) R.string.detail_option_on else R.string.
 
 @Composable
 fun <T> OptionChips(options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
-    val palette = ComicifyTheme.palette
+    val palette = KapowTheme.palette
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { (value, label) ->
             val active = value == selected
@@ -125,7 +125,7 @@ fun BubbleScaleRow(scale: Float, onScaleCommitted: (Float) -> Unit) {
 
 @Composable
 private fun ScaleBound(value: Float) {
-    Text(text = value.scaleLabel(), style = MaterialTheme.typography.labelSmall, color = ComicifyTheme.palette.inkFaint)
+    Text(text = value.scaleLabel(), style = MaterialTheme.typography.labelSmall, color = KapowTheme.palette.inkFaint)
 }
 
 private fun Float.scaleLabel(): String = "%.1f×".format(this)

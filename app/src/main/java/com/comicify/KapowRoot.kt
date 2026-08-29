@@ -57,7 +57,7 @@ private sealed interface Screen {
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun ComicifyRoot(initialUri: Uri? = null) {
+fun KapowRoot(initialUri: Uri? = null) {
     val viewModel: LibraryViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val onboarding: OnboardingViewModel = hiltViewModel()

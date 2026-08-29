@@ -61,10 +61,10 @@ and writes straight through, so every change is a live preview.
   the old `E62429` so it clears AA on graphite; the old red survives as the
   fixed `danger` colour for destructive actions.
 
-`ComicifyTheme(choice)` derives a `ComicifyPalette` (accent, deep/pale
+`KapowTheme(choice)` derives a `KapowPalette` (accent, deep/pale
 variants for gradients, accent-tinted inks and raised surface, fixed
 secondary amber / good / danger / hairlines) and exposes it as
-`ComicifyTheme.palette` (`LocalComicifyPalette`); it also fills
+`KapowTheme.palette` (`LocalKapowPalette`); it also fills
 `MaterialTheme.colorScheme` (primary = accent, background = ground,
 error = danger) for the Material components and the reader HUD, which only
 uses `colorScheme.primary`. `LibraryPalette.kt` keeps its old names

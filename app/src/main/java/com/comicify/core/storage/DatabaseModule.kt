@@ -17,22 +17,22 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun database(@ApplicationContext context: Context): ComicifyDatabase =
-        Room.databaseBuilder(context, ComicifyDatabase::class.java, "comicify.db")
+    fun database(@ApplicationContext context: Context): KapowDatabase =
+        Room.databaseBuilder(context, KapowDatabase::class.java, "comicify.db")
             .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
             .build()
 
     @Provides
-    fun comicDao(database: ComicifyDatabase): ComicDao = database.comicDao()
+    fun comicDao(database: KapowDatabase): ComicDao = database.comicDao()
 
     @Provides
-    fun readingStateDao(database: ComicifyDatabase): ReadingStateDao = database.readingStateDao()
+    fun readingStateDao(database: KapowDatabase): ReadingStateDao = database.readingStateDao()
 
     @Provides
-    fun pageDetectionDao(database: ComicifyDatabase): PageDetectionDao = database.pageDetectionDao()
+    fun pageDetectionDao(database: KapowDatabase): PageDetectionDao = database.pageDetectionDao()
 
     @Provides
-    fun comicSettingsDao(database: ComicifyDatabase): ComicSettingsDao = database.comicSettingsDao()
+    fun comicSettingsDao(database: KapowDatabase): ComicSettingsDao = database.comicSettingsDao()
 }
 
 private val MIGRATION_1_2 = object : Migration(1, 2) {

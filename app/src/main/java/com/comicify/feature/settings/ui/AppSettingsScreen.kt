@@ -57,8 +57,8 @@ import com.comicify.core.ui.BubbleScaleRow
 import com.comicify.core.ui.OnOffChips
 import com.comicify.core.ui.OptionChips
 import com.comicify.core.ui.SettingRow
-import com.comicify.core.ui.theme.ComicifyPalette
-import com.comicify.core.ui.theme.ComicifyTheme
+import com.comicify.core.ui.theme.KapowPalette
+import com.comicify.core.ui.theme.KapowTheme
 import com.comicify.core.ui.theme.ThemeAccent
 import com.comicify.core.ui.theme.ThemeChoice
 import com.comicify.core.ui.theme.ThemeGround
@@ -145,7 +145,7 @@ private fun ScreenSection(state: AppSettingsUiState, viewModel: AppSettingsViewM
 
 @Composable
 private fun LibrarySection(folderUri: String?, scanning: Boolean, onPickFolder: () -> Unit, onRefresh: () -> Unit) {
-    val palette = ComicifyTheme.palette
+    val palette = KapowTheme.palette
     SectionHeader(eyebrow = stringResource(R.string.app_settings_collection_eyebrow), title = stringResource(R.string.library_title))
     SettingRow(label = stringResource(R.string.app_settings_folder)) {
         Text(
@@ -162,7 +162,7 @@ private fun LibrarySection(folderUri: String?, scanning: Boolean, onPickFolder: 
 
 @Composable
 private fun RescanAction(scanning: Boolean, onRefresh: () -> Unit) {
-    val palette = ComicifyTheme.palette
+    val palette = KapowTheme.palette
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
@@ -209,7 +209,7 @@ private fun AppearanceSection(theme: ThemeChoice, onThemeSelected: (ThemeChoice)
             ThemeAccent.entries.forEach { accent ->
                 ThemeSwatch(
                     ground = theme.ground.background,
-                    accent = ComicifyPalette.of(theme.ground, accent.resolve(context)).accent,
+                    accent = KapowPalette.of(theme.ground, accent.resolve(context)).accent,
                     dynamic = accent == ThemeAccent.Dynamic,
                     selected = accent == theme.accent,
                     contentDescription = stringResource(accent.labelRes()),
@@ -222,8 +222,8 @@ private fun AppearanceSection(theme: ThemeChoice, onThemeSelected: (ThemeChoice)
 
 @Composable
 private fun ThemeSwatch(ground: Color, accent: Color, dynamic: Boolean, selected: Boolean, contentDescription: String, onClick: () -> Unit) {
-    val ring = ComicifyTheme.palette.inkDim
-    val outline = ComicifyTheme.palette.track
+    val ring = KapowTheme.palette.inkDim
+    val outline = KapowTheme.palette.track
     Box(
         modifier = Modifier
             .size(SwatchSize)
@@ -271,7 +271,7 @@ private fun ThemeAccent.labelRes(): Int = when (this) {
 
 @Composable
 private fun AboutSection(onReplayOnboarding: () -> Unit, onOpenLicences: () -> Unit) {
-    val palette = ComicifyTheme.palette
+    val palette = KapowTheme.palette
     SectionHeader(eyebrow = stringResource(R.string.app_name), title = stringResource(R.string.app_settings_about))
     Text(
         text = stringResource(R.string.app_settings_version, BuildConfig.VERSION_NAME, BuildConfig.BUILD_LABEL),
@@ -288,7 +288,7 @@ private fun AboutAction(label: String, onClick: () -> Unit) {
         text = label,
         style = MaterialTheme.typography.labelLarge,
         fontWeight = FontWeight.SemiBold,
-        color = ComicifyTheme.palette.accent,
+        color = KapowTheme.palette.accent,
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)

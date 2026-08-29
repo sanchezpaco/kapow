@@ -81,4 +81,4 @@ serial run over one comic is fine without a workflow.
 
 For the top-N worst or best pages, push to the Fold/emulator, toggle enlarge,
 screenshot, confirm render + perf. Emulator serial `emulator-5556`
-(Pixel_10_Pro_Fold) or the physical Fold `R3GL60C82WD`.
+(Pixel_10_Pro_Fold) or a physical Fold.

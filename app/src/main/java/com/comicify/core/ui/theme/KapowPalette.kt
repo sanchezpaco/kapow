@@ -31,7 +31,7 @@ private val PaperInks = Inks(
 )
 
 @Immutable
-data class ComicifyPalette(
+data class KapowPalette(
     val light: Boolean,
     val ground: Color,
     val surface: Color,
@@ -52,10 +52,10 @@ data class ComicifyPalette(
     val selection: Color = accent.copy(alpha = SELECTION_ALPHA)
 
     companion object {
-        fun of(ground: ThemeGround, preset: Color): ComicifyPalette {
+        fun of(ground: ThemeGround, preset: Color): KapowPalette {
             val inks = if (ground.light) PaperInks else DarkInks
             val accent = if (ground.light) lerp(preset, Color.Black, ACCENT_ON_PAPER_MIX) else preset
-            return ComicifyPalette(
+            return KapowPalette(
                 light = ground.light,
                 ground = ground.background,
                 surface = ground.surface,
@@ -73,4 +73,4 @@ data class ComicifyPalette(
     }
 }
 
-val LocalComicifyPalette = staticCompositionLocalOf { ComicifyPalette.of(ThemeGround.Black, ThemeAccent.Red.preset!!) }
+val LocalKapowPalette = staticCompositionLocalOf { KapowPalette.of(ThemeGround.Black, ThemeAccent.Red.preset!!) }

@@ -4,7 +4,7 @@ Guidance for working in this repository.
 
 ## Project
 
-Kapow (repository `comicify`) is a native Android comic reader built for personal use, optimized first
+Kapow (GitHub `sanchezpaco/kapow`) is a native Android comic reader built for personal use, optimized first
 and foremost for the **Samsung Z Fold** foldable experience. The reading
 experience adapts to device posture (folded, unfolded, tabletop). See
 `ROADMAP.md` for scope and `docs/` for how each part works.

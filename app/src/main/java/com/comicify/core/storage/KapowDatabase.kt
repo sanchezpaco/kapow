@@ -8,7 +8,7 @@ import androidx.room.RoomDatabase
     version = 7,
     exportSchema = false,
 )
-abstract class ComicifyDatabase : RoomDatabase() {
+abstract class KapowDatabase : RoomDatabase() {
     abstract fun comicDao(): ComicDao
     abstract fun readingStateDao(): ReadingStateDao
     abstract fun pageDetectionDao(): PageDetectionDao

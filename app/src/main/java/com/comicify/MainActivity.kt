@@ -16,7 +16,7 @@ import com.comicify.core.input.volumeKeyPageTurnDirection
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.comicify.core.storage.ReaderPreferencesRepository
-import com.comicify.core.ui.theme.ComicifyTheme
+import com.comicify.core.ui.theme.KapowTheme
 import com.comicify.core.ui.theme.ThemeChoice
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -29,8 +29,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             val theme by preferences.theme.collectAsStateWithLifecycle(ThemeChoice.Default)
             LaunchedEffect(theme.ground.light) { enableEdgeToEdge(systemBarStyle(theme.ground.light)) }
-            ComicifyTheme(choice = theme) {
-                ComicifyRoot(initialUri = initialUri)
+            KapowTheme(choice = theme) {
+                KapowRoot(initialUri = initialUri)
             }
         }
     }

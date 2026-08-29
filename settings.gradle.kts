@@ -21,6 +21,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Comicify"
+rootProject.name = "Kapow"
 
 include(":app")

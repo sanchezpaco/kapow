@@ -16,7 +16,7 @@ import java.util.Locale
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 
-private const val PAGES_DIR_ENV = "COMICIFY_PANEL_VIZ_DIR"
+private const val PAGES_DIR_ENV = "KAPOW_PANEL_VIZ_DIR"
 private const val ANALYSIS_SIDE = 1000
 private const val TARGET_WIDTH_PX = 2160
 private const val PREVIEW_WIDTH = 1400

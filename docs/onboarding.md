@@ -1,7 +1,7 @@
 # Onboarding
 
 `OnboardingScreen` (`feature/onboarding/ui`) is the first thing a fresh
-install shows. `ComicifyRoot` renders it whenever the `onboarding_seen` flag in
+install shows. `KapowRoot` renders it whenever the `onboarding_seen` flag in
 `ReaderPreferencesRepository` (DataStore `reader_preferences`) is false and no
 comic is being opened; a `VIEW` intent (opening a file from another app) skips
 it and goes straight to the reader. The root draws nothing until the flag has

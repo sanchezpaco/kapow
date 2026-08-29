@@ -49,7 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.comicify.R
-import com.comicify.core.ui.theme.ComicifyTheme
+import com.comicify.core.ui.theme.KapowTheme
 import com.comicify.feature.library.ui.PrimaryAction
 import kotlinx.coroutines.launch
 
@@ -71,7 +71,7 @@ private val DotGap = 8.dp
 fun OnboardingScreen(onFolderPicked: (Uri) -> Unit, onFinished: () -> Unit) {
     val pagerState = rememberPagerState { STEP_COUNT }
     val scope = rememberCoroutineScope()
-    val palette = ComicifyTheme.palette
+    val palette = KapowTheme.palette
     val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> uri?.let(onFolderPicked) }
     val lastStep = pagerState.currentPage == STEP_COUNT - 1
     BackHandler(enabled = pagerState.currentPage > 0) {
@@ -131,7 +131,7 @@ private fun FolderStep(onPickFolder: () -> Unit) {
     Text(
         text = stringResource(R.string.onboarding_folder_sample),
         style = MaterialTheme.typography.bodySmall,
-        color = ComicifyTheme.palette.inkFaint,
+        color = KapowTheme.palette.inkFaint,
         textAlign = TextAlign.Center,
     )
 }
@@ -151,7 +151,7 @@ private fun ModesStep() {
 
 @Composable
 private fun StepText(title: String, body: String) {
-    val palette = ComicifyTheme.palette
+    val palette = KapowTheme.palette
     Text(
         text = title,
         style = MaterialTheme.typography.headlineMedium,
@@ -169,7 +169,7 @@ private fun StepText(title: String, body: String) {
 
 @Composable
 private fun ModeRow(icon: ImageVector, title: String, body: String) {
-    val palette = ComicifyTheme.palette
+    val palette = KapowTheme.palette
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -194,7 +194,7 @@ private fun ModeRow(icon: ImageVector, title: String, body: String) {
 
 @Composable
 private fun Illustration(content: DrawScope.() -> Unit) {
-    val palette = ComicifyTheme.palette
+    val palette = KapowTheme.palette
     Canvas(
         modifier = Modifier
             .widthIn(max = IllustrationMaxWidth)
@@ -208,7 +208,7 @@ private fun Illustration(content: DrawScope.() -> Unit) {
 
 @Composable
 private fun ShelfDrawing(): DrawScope.() -> Unit {
-    val palette = ComicifyTheme.palette
+    val palette = KapowTheme.palette
     val spines = listOf(palette.accent, palette.accentPale, palette.secondary, palette.accentDeep, palette.good)
     return {
         val margin = size.width * 0.12f
@@ -230,7 +230,7 @@ private fun ShelfDrawing(): DrawScope.() -> Unit {
 
 @Composable
 private fun TapZonesDrawing(): DrawScope.() -> Unit {
-    val palette = ComicifyTheme.palette
+    val palette = KapowTheme.palette
     return {
         val zoneWidth = size.width * PAGE_TURN_ZONE_FRACTION
         val tint = palette.accent.copy(alpha = ZONE_TINT_ALPHA)
@@ -268,7 +268,7 @@ private fun DrawScope.drawChevron(at: Offset, pointingRight: Boolean, color: Col
 
 @Composable
 private fun StepDots(current: Int) {
-    val palette = ComicifyTheme.palette
+    val palette = KapowTheme.palette
     Row(horizontalArrangement = Arrangement.spacedBy(DotGap), verticalAlignment = Alignment.CenterVertically) {
         repeat(STEP_COUNT) { index ->
             Box(
@@ -287,7 +287,7 @@ private fun TextAction(label: String, onClick: () -> Unit) {
         text = label,
         style = MaterialTheme.typography.labelLarge,
         fontWeight = FontWeight.SemiBold,
-        color = ComicifyTheme.palette.accent,
+        color = KapowTheme.palette.accent,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)

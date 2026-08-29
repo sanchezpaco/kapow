@@ -1,7 +1,6 @@
 JAVA_HOME := /Applications/Android Studio.app/Contents/jbr/Contents/Home
 SDK := $(HOME)/Library/Android/sdk
 ADB := $(SDK)/platform-tools/adb
-BUILD_TOOLS := $(SDK)/build-tools/36.0.0
 GRADLEW := ./gradlew
 APK := app/build/outputs/apk/debug/app-debug.apk
 RELEASE_APK := app/build/outputs/apk/release/app-release.apk
@@ -11,16 +10,16 @@ BUNDLETOOL := $(HOME)/.android/tools/bundletool.jar
 JAVA := $(JAVA_HOME)/bin/java
 PLAY_JSON_KEY := $(shell sed -n 's/^kapow.play.serviceAccountJson=//p' local.properties)
 APP_ID := com.sanchezpaco.kapow.debug
-DEFAULT_DEVICE := R3GL60C82WD
 BUILD_LABEL := $(shell date +'%Y-%m-%d %H:%M') $(shell git rev-parse --short HEAD)
 
 export JAVA_HOME
 
-.PHONY: help build install run deploy devices clean release install-release deploy-release bundle deploy-bundle publish-internal
+.PHONY: help build test install run deploy devices clean release install-release deploy-release bundle deploy-bundle publish-internal
 
 help:
 	@echo "Kapow build targets:"
 	@echo "  make build          - assemble the debug APK"
+	@echo "  make test           - run the unit tests"
 	@echo "  make install        - install the debug APK on a device"
 	@echo "  make run            - launch the app on the device"
 	@echo "  make deploy         - build, install and run (debug)"
@@ -34,10 +33,13 @@ help:
 	@echo "  make clean          - gradle clean"
 	@echo ""
 	@echo "Pick a device explicitly with DEVICE=<serial>, e.g.:"
-	@echo "  make install DEVICE=$(DEFAULT_DEVICE)"
+	@echo "  make install DEVICE=emulator-5554"
 
 build:
 	$(GRADLEW) :app:assembleDebug -PbuildLabel="$(BUILD_LABEL)"
+
+test:
+	$(GRADLEW) :app:testDebugUnitTest
 
 install: build
 	@serial=$$($(MAKE) -s pick-device); \
@@ -96,5 +98,5 @@ pick-device:
 		read choice; \
 		echo "$$devices" | sed -n "$${choice}p"; \
 	else \
-		echo "$(DEFAULT_DEVICE)"; \
+		echo "No single device connected; pass DEVICE=<serial> (see make devices)" >&2; exit 1; \
 	fi

@@ -46,7 +46,7 @@ The home of the collection: import comics, browse covers, resume reading.
 
 ## Persistence (Room)
 
-`ComicifyDatabase` (`core/storage`) holds the library tables, exposed as Flows
+`KapowDatabase` (`core/storage`) holds the library tables, exposed as Flows
 through `LibraryRepository` and combined into `LibraryComic` domain models for
 the UI. Per-comic reading settings live in their own table keyed by document
 Uri (below); page detections are documented in `docs/ml-runtime.md`.
@@ -204,7 +204,7 @@ out to all targets; it also exposes the global reading direction for the
 
 ### Navigation and transitions
 
-`ComicifyRoot` derives a typed `Screen` (Library / Settings / AppSettings /
+`KapowRoot` derives a typed `Screen` (Library / Settings / AppSettings /
 Reader) from its state slots and renders it inside `SharedTransitionLayout` + `AnimatedContent`.
 Screens cross-fade; the reader additionally scales in from 94 %. The cover is a
 shared element between the grid card (or series stack) and the settings header:

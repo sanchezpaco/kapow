@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.comicify.R
-import com.comicify.core.ui.theme.ComicifyTheme
+import com.comicify.core.ui.theme.KapowTheme
 import com.comicify.feature.library.ui.GhostAction
 
 private val LicencesContentMaxWidth = 640.dp
@@ -48,7 +48,7 @@ private val attributions = listOf(
 
 @Composable
 fun LicencesScreen(onBack: () -> Unit) {
-    val palette = ComicifyTheme.palette
+    val palette = KapowTheme.palette
     val context = LocalContext.current
     BackHandler(onBack = onBack)
 
@@ -83,7 +83,7 @@ fun LicencesScreen(onBack: () -> Unit) {
 
 @Composable
 private fun AttributionRow(attribution: Attribution, onOpen: () -> Unit) {
-    val palette = ComicifyTheme.palette
+    val palette = KapowTheme.palette
     Column(
         modifier = Modifier
             .fillMaxWidth()

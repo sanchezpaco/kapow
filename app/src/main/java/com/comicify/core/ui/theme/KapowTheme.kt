@@ -14,9 +14,9 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 
-object ComicifyTheme {
-    val palette: ComicifyPalette
-        @Composable @ReadOnlyComposable get() = LocalComicifyPalette.current
+object KapowTheme {
+    val palette: KapowPalette
+        @Composable @ReadOnlyComposable get() = LocalKapowPalette.current
 }
 
 fun ThemeAccent.resolve(context: Context): Color =
@@ -28,15 +28,15 @@ private fun dynamicAccent(context: Context): Color? {
 }
 
 @Composable
-fun ComicifyTheme(choice: ThemeChoice = ThemeChoice.Default, content: @Composable () -> Unit) {
+fun KapowTheme(choice: ThemeChoice = ThemeChoice.Default, content: @Composable () -> Unit) {
     val context = LocalContext.current
-    val palette = remember(choice) { ComicifyPalette.of(choice.ground, choice.accent.resolve(context)) }
-    CompositionLocalProvider(LocalComicifyPalette provides palette) {
+    val palette = remember(choice) { KapowPalette.of(choice.ground, choice.accent.resolve(context)) }
+    CompositionLocalProvider(LocalKapowPalette provides palette) {
         MaterialTheme(colorScheme = palette.toColorScheme(), typography = Typography(), content = content)
     }
 }
 
-private fun ComicifyPalette.toColorScheme() = if (light) {
+private fun KapowPalette.toColorScheme() = if (light) {
     lightColorScheme(
         primary = accent,
         onPrimary = onAccent,
