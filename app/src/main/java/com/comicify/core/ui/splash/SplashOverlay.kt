@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
@@ -42,7 +43,7 @@ private const val MAX_MARK_GROWTH = 1.6f
 private const val PAGE_BLEED = 900f
 private const val BURST_LINES = 14
 private const val BURST_ANGLE_OFFSET = 0.3f
-private val burstInnerRadius = 110.dp
+private val burstInnerRadius = 100.dp
 private val burstOuterRadius = 300.dp
 private val burstLineLength = 28.dp
 private val burstLineMinLength = 6.dp
@@ -53,6 +54,7 @@ private const val WIPE_SLANT = 0.7f
 private const val KEYLINE_INK_WIDTH = 1.6f
 private const val KEYLINE_DRAWING_WIDTH = 2.2f
 private const val WARM_UP_FRAMES = 3
+private val panelsInsideIcon = setOf(1, 3, 4, 7)
 
 @Composable
 fun SplashOverlay(onFinished: () -> Unit, modifier: Modifier = Modifier) {
@@ -69,52 +71,71 @@ fun SplashOverlay(onFinished: () -> Unit, modifier: Modifier = Modifier) {
 
 private class SplashMetrics(val density: Float) {
     val iconUnit = LogoShapes.ICON_CIRCLE_DIAMETER_DP / LogoShapes.ICON_VISIBLE_UNITS * density
+    val iconMarkUnit = iconUnit * LogoShapes.LAUNCHER_MARK_SCALE
     val iconRadius = LogoShapes.ICON_CIRCLE_DIAMETER_DP / 2f * density
     fun pageUnit(size: Size): Float = PAGE_DP_PER_UNIT * density * max(size.width, size.height) / (REFERENCE_HEIGHT_DP * density)
-    fun markUnit(size: Size): Float {
-        val growth = min(size.width, size.height) / (REFERENCE_WIDTH_DP * density)
-        return MARK_DP_PER_UNIT * density * growth.coerceIn(1f, MAX_MARK_GROWTH)
-    }
-    fun markGrowth(size: Size): Float = markUnit(size) / (MARK_DP_PER_UNIT * density)
+    fun heroMarkUnit(size: Size): Float = MARK_DP_PER_UNIT * density * markGrowth(size)
+    fun markGrowth(size: Size): Float = (min(size.width, size.height) / (REFERENCE_WIDTH_DP * density)).coerceIn(1f, MAX_MARK_GROWTH)
+    fun coveringRadius(size: Size): Float = hypot(size.width, size.height) / 2f
 }
 
 private fun DrawScope.drawSplash(t: Float, metrics: SplashMetrics) {
-    val wipe = SplashTimeline.wipe(t)
-    val edgeTop = wipe * size.width * WIPE_TRAVEL
-    val edgeBottom = edgeTop - size.width * WIPE_SLANT
-    val remaining = Path().apply {
-        moveTo(edgeTop, 0f); lineTo(size.width * 2f, 0f); lineTo(size.width * 2f, size.height); lineTo(edgeBottom, size.height); close()
-    }
-    clipPath(remaining) {
+    clipPath(wipeRemainder(t)) {
         drawRect(LogoShapes.ink)
-        drawPage(t, metrics)
-        drawBurst(t, metrics)
-        drawMark(t, metrics)
-        drawSystemIcon(t, metrics)
+        clipPath(openingCircle(t, metrics)) {
+            drawPage(t, metrics)
+            drawBurst(t, metrics)
+            drawMark(t, metrics)
+        }
     }
-    if (wipe > 0f && wipe < 1f) {
-        drawLine(LogoShapes.white, Offset(edgeTop, 0f), Offset(edgeBottom, size.height), strokeWidth = wipeEdgeStroke.toPx())
+    drawWipeEdge(t)
+}
+
+private fun DrawScope.openingCircle(t: Float, metrics: SplashMetrics): Path {
+    val radius = SplashTimeline.lerp(metrics.iconRadius, metrics.coveringRadius(size), SplashTimeline.circleOpen(t))
+    return Path().apply { addOval(Rect(center, radius)) }
+}
+
+private fun DrawScope.wipeRemainder(t: Float): Path {
+    val edgeTop = wipeEdgeTop(t)
+    return Path().apply {
+        moveTo(edgeTop, 0f); lineTo(size.width * 2f, 0f); lineTo(size.width * 2f, size.height); lineTo(wipeEdgeBottom(edgeTop), size.height); close()
     }
 }
 
+private fun DrawScope.wipeEdgeTop(t: Float): Float = SplashTimeline.wipe(t) * size.width * WIPE_TRAVEL
+private fun DrawScope.wipeEdgeBottom(edgeTop: Float): Float = edgeTop - size.width * WIPE_SLANT
+
+private fun DrawScope.drawWipeEdge(t: Float) {
+    val wipe = SplashTimeline.wipe(t)
+    if (wipe <= 0f || wipe >= 1f) return
+    val edgeTop = wipeEdgeTop(t)
+    drawLine(LogoShapes.white, Offset(edgeTop, 0f), Offset(wipeEdgeBottom(edgeTop), size.height), strokeWidth = wipeEdgeStroke.toPx())
+}
+
 private fun DrawScope.drawPage(t: Float, metrics: SplashMetrics) {
-    val gutter = SplashTimeline.gutter(t)
-    inLogoSpace(metrics.pageUnit(size)) {
-        drawRect(LogoShapes.gutter, Offset(-PAGE_BLEED / 2, -PAGE_BLEED / 2), Size(PAGE_BLEED, PAGE_BLEED), alpha = gutter)
+    val unit = SplashTimeline.lerp(metrics.iconUnit, metrics.pageUnit(size), SplashTimeline.pageGrown(t))
+    inLogoSpace(unit) {
+        drawRect(LogoShapes.gutter, Offset(-PAGE_BLEED / 2, -PAGE_BLEED / 2), Size(PAGE_BLEED, PAGE_BLEED))
         rotate(LogoShapes.PAGE_TILT_DEGREES, LogoShapes.centre) {
             LogoShapes.panels.forEachIndexed { index, panel ->
-                drawRect(LogoShapes.panelFill(index), panel.topLeft, panel.size, alpha = SplashTimeline.panelFilled(t, index))
+                val filled = if (index in panelsInsideIcon) 1f else SplashTimeline.panelFilled(t, index)
+                drawRect(LogoShapes.panelFill(index), panel.topLeft, panel.size, alpha = filled)
             }
             LogoShapes.panels.forEachIndexed { index, panel -> drawKeyline(t, index, panel) }
         }
-        drawVignette(gutter)
+        drawVignette()
     }
 }
 
 private fun DrawScope.drawKeyline(t: Float, index: Int, panel: Rect) {
-    val perimeter = LogoShapes.panelPerimeter(panel)
+    if (index in panelsInsideIcon) {
+        drawRect(LogoShapes.ink, panel.topLeft, panel.size, style = Stroke(KEYLINE_INK_WIDTH))
+        return
+    }
     val drawn = SplashTimeline.keylineDrawn(t, index)
     if (drawn <= 0f) return
+    val perimeter = LogoShapes.panelPerimeter(panel)
     val inked = SplashTimeline.keylinesInked(t)
     drawRect(
         color = if (inked) LogoShapes.ink else LogoShapes.white,
@@ -127,8 +148,7 @@ private fun DrawScope.drawKeyline(t: Float, index: Int, panel: Rect) {
     )
 }
 
-private fun DrawScope.drawVignette(alpha: Float) {
-    if (alpha <= 0f) return
+private fun DrawScope.drawVignette() {
     drawRect(
         brush = Brush.radialGradient(
             LogoShapes.VIGNETTE_CLEAR_STOP to Color.Transparent,
@@ -138,7 +158,6 @@ private fun DrawScope.drawVignette(alpha: Float) {
         ),
         topLeft = Offset(-PAGE_BLEED / 2, -PAGE_BLEED / 2),
         size = Size(PAGE_BLEED, PAGE_BLEED),
-        alpha = alpha,
     )
 }
 
@@ -163,53 +182,29 @@ private fun DrawScope.drawBurst(t: Float, metrics: SplashMetrics) {
 }
 
 private fun DrawScope.drawMark(t: Float, metrics: SplashMetrics) {
-    val bubbleScale = SplashTimeline.bubbleScale(t)
-    val (squashX, squashY) = SplashTimeline.bubbleSquash(t)
-    inLogoSpace(metrics.markUnit(size)) {
-        if (bubbleScale > 0f) {
-            scale(bubbleScale * squashX, bubbleScale * squashY, LogoShapes.bubbleCentre) { drawBubble() }
-        }
-        if (SplashTimeline.kVisible(t)) {
-            scale(SplashTimeline.kScale(t), LogoShapes.kCentre) { drawK() }
-        }
+    val unit = SplashTimeline.lerp(metrics.iconMarkUnit, metrics.heroMarkUnit(size), SplashTimeline.markPop(t))
+    val (squashX, squashY) = SplashTimeline.markSquash(t)
+    withTransform({
+        translate(center.x, center.y)
+        scale(unit * squashX, unit * squashY, Offset.Zero)
+        translate(-LogoShapes.centre.x, -LogoShapes.centre.y)
+    }) {
+        drawBubble()
+        drawK()
     }
 }
 
-private fun DrawScope.drawSystemIcon(t: Float, metrics: SplashMetrics) {
-    val out = SplashTimeline.iconOut(t)
-    if (out >= 1f) return
-    val alpha = 1f - out
-    scale(SplashTimeline.iconScale(t), center) {
-        clipPath(Path().apply { addOval(Rect(center, metrics.iconRadius)) }) {
-            inLogoSpace(metrics.iconUnit) {
-                drawRect(LogoShapes.gutter, Offset(-PAGE_BLEED / 2, -PAGE_BLEED / 2), Size(PAGE_BLEED, PAGE_BLEED), alpha = alpha)
-                rotate(LogoShapes.PAGE_TILT_DEGREES, LogoShapes.centre) {
-                    LogoShapes.panels.forEachIndexed { index, panel ->
-                        drawRect(LogoShapes.panelFill(index), panel.topLeft, panel.size, alpha = alpha)
-                        drawRect(LogoShapes.ink, panel.topLeft, panel.size, style = Stroke(LogoShapes.PANEL_STROKE), alpha = alpha)
-                    }
-                }
-                drawVignette(alpha)
-            }
-            inLogoSpace(metrics.iconUnit * LogoShapes.LAUNCHER_MARK_SCALE) {
-                drawBubble(alpha)
-                drawK(alpha)
-            }
-        }
-    }
-}
-
-private fun DrawScope.drawBubble(alpha: Float = 1f) {
+private fun DrawScope.drawBubble() {
     val bubble = LogoShapes.bubble
-    drawPath(bubble, LogoShapes.white, alpha = alpha, style = Stroke(LogoShapes.BUBBLE_HALO, join = StrokeJoin.Round))
-    drawPath(bubble, LogoShapes.white, alpha = alpha)
-    drawPath(bubble, LogoShapes.ink, alpha = alpha, style = Stroke(LogoShapes.BUBBLE_STROKE, join = StrokeJoin.Round))
+    drawPath(bubble, LogoShapes.white, style = Stroke(LogoShapes.BUBBLE_HALO, join = StrokeJoin.Round))
+    drawPath(bubble, LogoShapes.white)
+    drawPath(bubble, LogoShapes.ink, style = Stroke(LogoShapes.BUBBLE_STROKE, join = StrokeJoin.Round))
 }
 
-private fun DrawScope.drawK(alpha: Float = 1f) {
+private fun DrawScope.drawK() {
     val k = LogoShapes.k
     translate(LogoShapes.kShadowOffset.x, LogoShapes.kShadowOffset.y) {
-        drawPath(k, LogoShapes.ink, alpha = alpha, style = Stroke(LogoShapes.K_SHADOW_STROKE, join = StrokeJoin.Round))
+        drawPath(k, LogoShapes.ink, style = Stroke(LogoShapes.K_SHADOW_STROKE, join = StrokeJoin.Round))
     }
     drawPath(
         k,
@@ -217,9 +212,8 @@ private fun DrawScope.drawK(alpha: Float = 1f) {
             0f to LogoShapes.yellow, 1f to LogoShapes.red,
             startY = LogoShapes.K_GRADIENT_TOP, endY = LogoShapes.K_GRADIENT_BOTTOM,
         ),
-        alpha = alpha,
     )
-    drawPath(k, LogoShapes.ink, alpha = alpha, style = Stroke(LogoShapes.K_STROKE, join = StrokeJoin.Round))
+    drawPath(k, LogoShapes.ink, style = Stroke(LogoShapes.K_STROKE, join = StrokeJoin.Round))
 }
 
 private fun DrawScope.inLogoSpace(pxPerUnit: Float, block: DrawScope.() -> Unit) {

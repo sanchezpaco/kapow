@@ -37,7 +37,6 @@ internal object LogoShapes {
     const val VIGNETTE_EDGE_ALPHA = 0.55f
 
     val bubble: Path = pathOf("M20,50 a34,25 0 1 1 68,0 a34,25 0 0 1 -19,22 L70,88 L56,75 a34,25 0 0 1 -36,-25 z")
-    val bubbleCentre = Offset(54f, 50f)
     const val BUBBLE_HALO = 7f
     const val BUBBLE_STROKE = 3f
 
@@ -45,7 +44,6 @@ internal object LogoShapes {
         "M66.47 31.41 57.37 47.22 67.98 61.91 57.93 64.79 50.21 55.97 50.91 65.98 41.77 67.30 " +
             "38.92 33.41 49.26 32.90 49.52 42.96 55.25 31.69Z",
     )
-    val kCentre = Offset(54f, 49f)
     const val K_STROKE = 2.2f
     const val K_SHADOW_STROKE = 3.6f
     val kShadowOffset = Offset(1.1f, 1.3f)

@@ -12,17 +12,18 @@ intent.
    process starts. `MainActivity` calls `installSplashScreen()` and hands
    over to `Theme.Kapow`.
 2. **Compose overlay** (`core/ui/splash/SplashOverlay.kt`), drawn on top of
-   `KapowRoot` from the first frame. Its first frames repaint exactly the same
-   icon, so the handover from the system splash is invisible. After three
-   warm-up frames (the library composes underneath during them) a linear
-   1 300 ms clock drives the sequence:
-   - 0–140 ms: the icon grows and fades out.
-   - 0–640 ms: the ten page panels draw their keylines in white, staggered
-     35 ms apart (dash-phase stroke), then the fills come in in cascade and
-     the gutter blue and vignette fade in; at 620 ms the keylines turn to ink.
-   - 380–720 ms: the bubble pops with squash & stretch and overshoot.
-   - 560–780 ms: the K slams from 4× to 1×, followed by a burst of impact
-     lines.
+   `KapowRoot` from the first frame. Its first frame repaints exactly the same
+   icon at the same place and size, so the handover from the system splash is
+   invisible, and the icon never disappears: it becomes the animation. After
+   three warm-up frames (the library composes underneath during them) a
+   linear 1 300 ms clock drives the sequence:
+   - 0–620 ms: the icon's circle opens until it covers the screen while the
+     page inside grows to full size; the panels that were hidden outside the
+     circle draw their keylines in white (dash-phase stroke, staggered 30 ms)
+     and fill in cascade, turning to ink at 700 ms. The four panels already
+     visible in the icon stay as they are.
+   - 300–760 ms: the bubble and the K grow from icon size to hero size with
+     squash & stretch and overshoot, followed by a burst of impact lines.
    - 1 000–1 300 ms: a diagonal wipe with a white edge reveals the app.
 
 Every shape and colour comes from `LogoShapes.kt`, the same values as
@@ -48,5 +49,5 @@ adb -s <device> shell monkey -p com.sanchezpaco.kapow.debug -c android.intent.ca
 
 Then `ffmpeg -i splash.mp4 -vf fps=30 %03d.png` and drop the frames identical
 to the previous one: a healthy run shows twenty or more distinct frames for
-the 1.3 s sequence. On the emulators the OS splash itself lingers for several
+the 1.3 s sequence (the Z Fold cover screen shows about thirty). On the emulators the OS splash itself lingers for several
 seconds before the process starts; that is the emulator, not the app.
