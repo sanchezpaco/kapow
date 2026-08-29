@@ -132,6 +132,14 @@
     <string name="reader_action_night_tint">Night tint</string>
     <string name="reader_action_direction_ltr">Reading direction: left to right</string>
     <string name="reader_action_direction_rtl">Reading direction: right to left</string>
+    <string name="reader_action_report_glitch">Report a visual glitch</string>
+    <string name="glitch_report_title">Report a visual glitch?</string>
+    <string name="glitch_report_body">An image of this page as it is shown and technical data (page, reading mode, device, app version, detected panels and bubbles) will be attached to an email. No personal data is included. You can review everything in your mail app before sending.</string>
+    <string name="glitch_report_confirm">Continue</string>
+    <string name="glitch_report_cancel">Cancel</string>
+    <string name="glitch_report_subject">Kapow: visual glitch report</string>
+    <string name="glitch_report_summary">Glitch on page %1$d of %2$d, %3$s, Kapow %4$s. Page image and report.json attached.</string>
+    <string name="glitch_report_chooser">Send the report with</string>
     <string name="reader_action_next_page">Next page</string>
     <string name="reader_action_previous_page">Previous page</string>
     <string name="reader_error_unsupported_format">This file format is not supported. Kapow reads CBZ, CBR and PDF files.</string>

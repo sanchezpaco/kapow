@@ -132,6 +132,14 @@
     <string name="reader_action_night_tint">Filtro nocturno</string>
     <string name="reader_action_direction_ltr">Sentido de lectura: izquierda a derecha</string>
     <string name="reader_action_direction_rtl">Sentido de lectura: derecha a izquierda</string>
+    <string name="reader_action_report_glitch">Informar de un fallo visual</string>
+    <string name="glitch_report_title">¿Informar de un fallo visual?</string>
+    <string name="glitch_report_body">Se adjuntará a un correo una imagen de esta página tal y como se muestra y datos técnicos (página, modo de lectura, dispositivo, versión de la app, viñetas y bocadillos detectados). No se incluye ningún dato personal. Podrás revisarlo todo en tu app de correo antes de enviarlo.</string>
+    <string name="glitch_report_confirm">Continuar</string>
+    <string name="glitch_report_cancel">Cancelar</string>
+    <string name="glitch_report_subject">Kapow: informe de fallo visual</string>
+    <string name="glitch_report_summary">Fallo en la página %1$d de %2$d, %3$s, Kapow %4$s. Se adjuntan la imagen de la página y report.json.</string>
+    <string name="glitch_report_chooser">Enviar el informe con</string>
     <string name="reader_action_next_page">Página siguiente</string>
     <string name="reader_action_previous_page">Página anterior</string>
     <string name="reader_error_unsupported_format">Este formato de archivo no es compatible. Kapow lee archivos CBZ, CBR y PDF.</string>

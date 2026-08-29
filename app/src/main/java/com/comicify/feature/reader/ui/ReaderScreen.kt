@@ -36,12 +36,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.ViewCarousel
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -111,7 +113,8 @@ fun ReaderScreen(
     onOpenNext: (() -> Unit)? = null,
     initialAmbient: Color? = null,
 ) {
-    val application = LocalContext.current.applicationContext as Application
+    val context = LocalContext.current
+    val application = context.applicationContext as Application
     val viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.factory(application, uri, initialPage))
     val state by viewModel.state.collectAsStateWithLifecycle()
     val windowState = rememberReadingWindowState()
@@ -124,6 +127,15 @@ fun ReaderScreen(
 
     LaunchedEffect(state.position.pageIndex, state.pageCount) {
         if (state.pageCount > 0) onPageChanged(state.position.pageIndex, state.pageCount)
+    }
+
+    LaunchedEffect(viewModel) { viewModel.shareRequests.collect(context::startActivity) }
+    var glitchDialogOpen by remember { mutableStateOf(false) }
+    if (glitchDialogOpen) {
+        GlitchReportDialog(
+            onConfirm = { glitchDialogOpen = false; viewModel.reportGlitch(posture) },
+            onDismiss = { glitchDialogOpen = false },
+        )
     }
 
     var ambient by remember { mutableStateOf(initialAmbient ?: InitialAmbient) }
@@ -209,6 +221,7 @@ fun ReaderScreen(
             onToggleGuidedFullScreen = viewModel::toggleGuidedFullScreen,
             onToggleNightTint = viewModel::toggleNightTint,
             onToggleDirection = viewModel::toggleReadingDirection,
+            onReportGlitch = { glitchDialogOpen = true },
             onClose = onClose,
             modifier = Modifier.align(Alignment.TopCenter),
         )
@@ -336,6 +349,7 @@ private fun TopChrome(
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
     onToggleDirection: () -> Unit,
+    onReportGlitch: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -375,6 +389,7 @@ private fun TopChrome(
                         onToggleGuidedFullScreen = onToggleGuidedFullScreen,
                         onToggleNightTint = onToggleNightTint,
                         onToggleDirection = onToggleDirection,
+                        onReportGlitch = onReportGlitch,
                     )
                 }
                 AnimatedVisibility(
@@ -442,6 +457,7 @@ private fun ReaderSettingsMenu(
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
     onToggleDirection: () -> Unit,
+    onReportGlitch: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -481,9 +497,26 @@ private fun ReaderSettingsMenu(
                     ),
                     onClick = onToggleDirection,
                 )
+                CircleControl(
+                    icon = Icons.Filled.BugReport,
+                    active = false,
+                    contentDescription = stringResource(R.string.reader_action_report_glitch),
+                    onClick = { expanded = false; onReportGlitch() },
+                )
             }
         }
     }
+}
+
+@Composable
+private fun GlitchReportDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.glitch_report_title)) },
+        text = { Text(stringResource(R.string.glitch_report_body)) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.glitch_report_confirm)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.glitch_report_cancel)) } },
+    )
 }
 
 @Composable

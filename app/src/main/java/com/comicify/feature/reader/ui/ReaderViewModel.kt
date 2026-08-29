@@ -1,6 +1,7 @@
 package com.comicify.feature.reader.ui
 
 import android.app.Application
+import android.content.Intent
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -22,14 +23,20 @@ import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.data.PanelDetector
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.ComicOpenError
+import com.comicify.core.window.ReadingPosture
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ReaderViewModel(
     application: Application,
@@ -40,6 +47,8 @@ class ReaderViewModel(
 
     private val _state = MutableStateFlow(ReaderUiState(position = ReadingPosition(pageIndex = initialPage)))
     val state: StateFlow<ReaderUiState> = _state.asStateFlow()
+    private val _shareRequests = MutableSharedFlow<Intent>(extraBufferCapacity = 1)
+    val shareRequests: SharedFlow<Intent> = _shareRequests.asSharedFlow()
 
     private val comicSettingsDao: ComicSettingsDao =
         EntryPointAccessors.fromApplication(application, DatabaseEntryPoint::class.java).comicSettingsDao()
@@ -196,6 +205,23 @@ class ReaderViewModel(
             }.collect { (direction, coverAlone) ->
                 _state.update { it.copy(direction = direction, coverAlone = coverAlone) }
             }
+        }
+    }
+
+    fun reportGlitch(posture: ReadingPosture) {
+        val loader = pageLoader ?: return
+        val current = _state.value
+        val request = GlitchReportRequest(
+            comicUri = uri,
+            pageIndex = current.position.pageIndex,
+            pageCount = current.pageCount,
+            guided = current.guided,
+            bubbleScale = current.bubbleScale.takeIf { current.bubblesEnlarged },
+            posture = posture,
+        )
+        viewModelScope.launch {
+            val intent = withContext(Dispatchers.IO) { GlitchReport(getApplication()).compose(loader, request) }
+            _shareRequests.emit(intent)
         }
     }
 

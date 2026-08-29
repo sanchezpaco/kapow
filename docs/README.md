@@ -13,6 +13,7 @@ How Kapow works, one concern per file.
 - [onboarding.md](onboarding.md) — first-launch steps, the DataStore flag, replay from Settings
 - [i18n.md](i18n.md) — the bilingual (ES/EN) resource strategy
 - [performance.md](performance.md) — fluidity baseline on the Fold, how to measure, ranked findings
+- [glitch-report.md](glitch-report.md) — "Report a visual glitch": composed page + report.json shared by mail through a FileProvider
 - [release.md](release.md) — upload key, signed AAB, bundletool install, Play upload
 
 Keep these in sync with the code. If behavior changes, update the matching doc in

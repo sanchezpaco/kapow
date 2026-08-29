@@ -99,7 +99,7 @@ class PageLoader(
         }.also { detectionStore.savePanels(index, it) }
     }
 
-    private suspend fun bubbles(index: Int): List<SpeechBubble> {
+    suspend fun bubbles(index: Int): List<SpeechBubble> {
         bubbleCache[index]?.let { return it }
         val mutex = synchronized(bubbleLocks) { bubbleLocks.getOrPut(index) { Mutex() } }
         return mutex.withLock {

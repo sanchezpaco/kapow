@@ -373,7 +373,7 @@ Strongly recommended:
 - [~] Accessibility floor: ghost actions and the series back button are
       48 dp; decorative icons next to text stay `null`; TalkBack pass on
       library + settings pending the Fold
-- [ ] "Report a visual glitch" from the reader HUD settings menu (gear):
+- [x] "Report a visual glitch" from the reader HUD settings menu (gear):
       a confirmation dialog ("an image of this page and technical data will be
       sent, no personal data") then ACTION_SEND via FileProvider with
       `sanchezpacodev@gmail.com` and the subject prefilled, user picks the
