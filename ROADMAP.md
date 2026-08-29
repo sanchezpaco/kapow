@@ -351,8 +351,9 @@ Blocking:
 - [~] Privacy policy URL + Play "Data safety" form (no data collected).
       Policy as `docs/privacy.md` (EN + ES: nothing collected, the glitch
       report is user-initiated mail from the user's own account, backups are
-      Android's own), served from GitHub Pages on the public repo; host still
-      to confirm. `dataExtractionRules` / `fullBackupContent` done: Room +
+      Android's own), live since 2026-08-29 at
+      <https://sanchezpaco.github.io/kapow/privacy> (GitHub Pages, `docs/` on
+      `main`); the Data safety form in Play Console is still to fill in. `dataExtractionRules` / `fullBackupContent` done: Room +
       DataStore only (`docs/settings.md` → Backup)
 - [x] Licences screen under Settings → About (`LicencesScreen`). Both model
       sources are Apache-2.0; the bubble student was trained with Ultralytics
