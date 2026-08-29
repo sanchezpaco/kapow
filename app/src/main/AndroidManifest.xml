@@ -20,7 +20,7 @@
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|density"
             android:exported="true"
             android:resizeableActivity="true"
-            android:theme="@style/Theme.Kapow">
+            android:theme="@style/Theme.Kapow.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

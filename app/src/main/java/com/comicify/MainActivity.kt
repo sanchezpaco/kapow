@@ -10,7 +10,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import android.graphics.Color
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.comicify.core.ui.splash.ColdStartSplash
+import com.comicify.core.ui.splash.SplashOverlay
 import com.comicify.core.input.VolumeKeyPageTurnDispatcher
 import com.comicify.core.input.volumeKeyPageTurnDirection
 import androidx.compose.runtime.getValue
@@ -23,14 +30,20 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         val initialUri = resolveViewIntentUri()
+        val animateColdStart = ColdStartSplash.claim(this) && initialUri == null
         val preferences = ReaderPreferencesRepository(applicationContext)
         setContent {
             val theme by preferences.theme.collectAsStateWithLifecycle(ThemeChoice.Default)
             LaunchedEffect(theme.ground.light) { enableEdgeToEdge(systemBarStyle(theme.ground.light)) }
+            var splashPlaying by remember { mutableStateOf(animateColdStart) }
             KapowTheme(choice = theme) {
-                KapowRoot(initialUri = initialUri)
+                Box {
+                    KapowRoot(initialUri = initialUri)
+                    if (splashPlaying) SplashOverlay(onFinished = { splashPlaying = false })
+                }
             }
         }
     }
