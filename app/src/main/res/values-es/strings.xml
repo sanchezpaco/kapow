@@ -119,7 +119,9 @@
     <string name="onboarding_modes_title">Dos formas de leer</string>
     <string name="onboarding_modes_body">Ambas están en los controles del lector y se pueden activar por defecto en Ajustes.</string>
     <string name="onboarding_guided_body">Lee viñeta a viñeta: cada toque pasa a la siguiente, encuadrada para la pantalla.</string>
+    <string name="onboarding_guided_note">* Funciona mejor en cómics con las viñetas bien delimitadas.</string>
     <string name="onboarding_bubbles_body">Redibuja los bocadillos más grandes para que la rotulación se lea bien en una pantalla pequeña.</string>
+    <string name="onboarding_modes_note">Estas funciones siguen mejorando. Si una página se ve mal, «Informar de un fallo visual» en los controles del lector nos la envía y nos ayuda a mejorarlas.</string>
 
     <string name="reader_loading">Cargando cómic…</string>
     <string name="reader_page_of">Página %1$d de %2$d</string>

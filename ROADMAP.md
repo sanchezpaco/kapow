@@ -377,10 +377,10 @@ Blocking:
       panels draw in, the bubble and the K pop, everything clears to the
       library. Cold start only — never when resuming from the background
       (`SplashScreen` API + Compose overlay gated on a process-level flag)
-- [ ] Honest copy for the smart modes (asked 2026-08-29): where the
-      onboarding and the store listing explain Guided View and enlarged
-      bubbles, say they work best on comics with clearly drawn panels, and add
-      a footnote that both can miss on some pages and are still being improved
+- [x] Honest copy for the smart modes (2026-08-29): the onboarding modes
+      step says what Guided View works best on and a
+      footnote states both are still being improved and points to "Report a
+      visual glitch"; the store description's privacy paragraph says the same
       (EN + ES)
 - [ ] Closing commit of the phase: `versionCode 1`, `versionName "1.0.0"`,
       tag `v1.0.0`, tick the remaining items

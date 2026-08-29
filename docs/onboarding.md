@@ -17,7 +17,11 @@ image assets):
    values from `TapZones`), chevrons, and the centre tap; the copy also covers
    pinch / double-tap zoom and swipe.
 3. **Modes** — Guided View and enlarged bubbles, with the same icons as the
-   reader HUD toggles, and the "Start reading" button.
+   reader HUD toggles, and the "Start reading" button. Guided View carries a
+   small note (`onboarding_guided_note`: works best on clearly drawn panel
+   borders) and a footnote says these features are still improving and that
+   "Report a visual glitch" in the reader controls sends the page to us
+   (`onboarding_modes_note`).
 
 "Skip" (top right) and "Start reading" both call `OnboardingViewModel.finish()`,
 which sets the flag; the screen leaves through the root's normal fade.

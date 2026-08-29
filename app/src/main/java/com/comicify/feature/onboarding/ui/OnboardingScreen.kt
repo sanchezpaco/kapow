@@ -128,8 +128,13 @@ private fun FolderStep(onPickFolder: () -> Unit) {
     Illustration(ShelfDrawing())
     StepText(title = stringResource(R.string.onboarding_folder_title), body = stringResource(R.string.onboarding_folder_body))
     PrimaryAction(icon = Icons.Outlined.CreateNewFolder, label = stringResource(R.string.library_pick_folder), onClick = onPickFolder)
+    Footnote(stringResource(R.string.onboarding_folder_sample))
+}
+
+@Composable
+private fun Footnote(text: String) {
     Text(
-        text = stringResource(R.string.onboarding_folder_sample),
+        text = text,
         style = MaterialTheme.typography.bodySmall,
         color = KapowTheme.palette.inkFaint,
         textAlign = TextAlign.Center,
@@ -145,8 +150,14 @@ private fun GesturesStep() {
 @Composable
 private fun ModesStep() {
     StepText(title = stringResource(R.string.onboarding_modes_title), body = stringResource(R.string.onboarding_modes_body))
-    ModeRow(icon = Icons.Filled.ViewCarousel, title = stringResource(R.string.reader_action_guided), body = stringResource(R.string.onboarding_guided_body))
+    ModeRow(
+        icon = Icons.Filled.ViewCarousel,
+        title = stringResource(R.string.reader_action_guided),
+        body = stringResource(R.string.onboarding_guided_body),
+        note = stringResource(R.string.onboarding_guided_note),
+    )
     ModeRow(icon = Icons.Filled.ChatBubbleOutline, title = stringResource(R.string.reader_action_enlarge_bubbles), body = stringResource(R.string.onboarding_bubbles_body))
+    Footnote(stringResource(R.string.onboarding_modes_note))
 }
 
 @Composable
@@ -168,7 +179,7 @@ private fun StepText(title: String, body: String) {
 }
 
 @Composable
-private fun ModeRow(icon: ImageVector, title: String, body: String) {
+private fun ModeRow(icon: ImageVector, title: String, body: String, note: String? = null) {
     val palette = KapowTheme.palette
     Row(
         modifier = Modifier
@@ -188,6 +199,7 @@ private fun ModeRow(icon: ImageVector, title: String, body: String) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(text = title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = palette.onGround)
             Text(text = body, style = MaterialTheme.typography.bodyMedium, color = palette.inkDim)
+            note?.let { Text(text = it, style = MaterialTheme.typography.bodySmall, color = palette.inkFaint) }
         }
     }
 }
