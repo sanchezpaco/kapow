@@ -21,7 +21,8 @@ preferences; the reader HUD still toggles some of them in place.
   Refresh button while a scan runs.
 - **Appearance** — theme picker, below.
 - **About** — version name and build label, "Show the introduction again"
-  (`docs/onboarding.md`) and "Open-source licences", which opens
+  (`docs/onboarding.md`), "Source code on GitHub" (opens the repository in
+  the browser) and "Open-source licences", which opens
   `LicencesScreen`: a static list of attributions (`attributions` in
   `LicencesScreen.kt` — library or model, licence, URL; tapping a row opens
   the URL). Names and licence identifiers are data, not translated copy. Keep

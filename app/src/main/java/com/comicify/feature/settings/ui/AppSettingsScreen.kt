@@ -1,5 +1,6 @@
 package com.comicify.feature.settings.ui
 
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -49,6 +50,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.comicify.BuildConfig
@@ -269,6 +271,8 @@ private fun ThemeAccent.labelRes(): Int = when (this) {
     ThemeAccent.Dynamic -> R.string.app_settings_accent_dynamic
 }
 
+private const val SOURCE_REPOSITORY_URL = "https://github.com/sanchezpaco/kapow"
+
 @Composable
 private fun AboutSection(onReplayOnboarding: () -> Unit, onOpenLicences: () -> Unit) {
     val palette = KapowTheme.palette
@@ -280,6 +284,10 @@ private fun AboutSection(onReplayOnboarding: () -> Unit, onOpenLicences: () -> U
     )
     AboutAction(label = stringResource(R.string.app_settings_replay_onboarding), onClick = onReplayOnboarding)
     AboutAction(label = stringResource(R.string.app_settings_licences), onClick = onOpenLicences)
+    val context = LocalContext.current
+    AboutAction(label = stringResource(R.string.app_settings_source_code)) {
+        context.startActivity(Intent(Intent.ACTION_VIEW, SOURCE_REPOSITORY_URL.toUri()))
+    }
 }
 
 @Composable
