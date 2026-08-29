@@ -13,9 +13,9 @@ Default on `UnfoldedSingle` and `CompactSingle`.
   so no zoom is needed for normal reading.
 - Gestures: single-finger horizontal swipe changes page; a tap on the outer 28 %
   of the width turns the page (`TapZones` in `PageOrder.kt`: the left zone goes
-  back and the right one forward, mirrored for right-to-left; in a spread the
-  zones keep the same 28 % of the *screen*, i.e. the outer 56 % of each half,
-  so the gutter stays a centre tap) and a tap
+  back and the right one forward, mirrored for right-to-left; in a spread each
+  half exposes its outer 40 %, i.e. 20 % of the screen per side, leaving a wide
+  centre so a tap for the chrome does not turn the page) and a tap
   in the middle toggles the chrome; while zoomed every tap is a centre tap.
   Pinch (two fingers) zooms; when zoomed, one finger pans (clamped to the page) with an inertial
   fling on release (velocity-tracked, `exponentialDecay` clamped to the pan
