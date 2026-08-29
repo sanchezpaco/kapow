@@ -127,15 +127,18 @@ class LibraryRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun saveProgress(comicId: Long, pageIndex: Int, pageCount: Int) {
+    override suspend fun saveProgress(comicId: Long, pageIndex: Int, pageCount: Int): Boolean {
+        val wasCompleted = readingStateDao.find(comicId)?.completed == true
+        val completed = LibraryCatalog.isCompleted(pageIndex, pageCount)
         readingStateDao.upsert(
             ReadingStateEntity(
                 comicId = comicId,
                 pageIndex = pageIndex,
-                completed = LibraryCatalog.isCompleted(pageIndex, pageCount),
+                completed = completed,
                 updatedAt = System.currentTimeMillis(),
             ),
         )
+        return completed && !wasCompleted
     }
 
     override suspend fun unshelve(comicId: Long) {

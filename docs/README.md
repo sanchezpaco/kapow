@@ -13,6 +13,7 @@ How Kapow works, one concern per file.
 - [library.md](library.md) — import, storage, metadata, persistence
 - [settings.md](settings.md) — app settings, themes, backup rules
 - [onboarding.md](onboarding.md) — first-launch steps, the DataStore flag, replay from Settings
+- [review-prompt.md](review-prompt.md) — Play In-App Review request: 3 finished comics, 60-day interval, on reader close
 - [splash.md](splash.md) — cold-start splash: system splash handover, the 1.3 s Compose sequence, gating
 - [i18n.md](i18n.md) — the bilingual (ES/EN) resource strategy
 - [performance.md](performance.md) — fluidity baseline on the Fold, how to measure, ranked findings

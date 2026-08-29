@@ -12,6 +12,7 @@ import com.comicify.feature.library.domain.LibraryScanError
 import com.comicify.feature.library.domain.LibrarySort
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +29,7 @@ class LibraryViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val scanning = MutableStateFlow(false)
+    val comicFinished = MutableSharedFlow<Unit>()
     private val scanError = MutableStateFlow<LibraryScanError?>(null)
     private val filter = MutableStateFlow(LibraryFilter.ALL)
     private val sort = MutableStateFlow(LibrarySort.TITLE)
@@ -77,7 +79,9 @@ class LibraryViewModel @Inject constructor(
     fun onRefresh() = runScan { repository.refresh() }
 
     fun saveProgress(comicId: Long, pageIndex: Int, pageCount: Int) {
-        viewModelScope.launch { repository.saveProgress(comicId, pageIndex, pageCount) }
+        viewModelScope.launch {
+            if (repository.saveProgress(comicId, pageIndex, pageCount)) comicFinished.emit(Unit)
+        }
     }
 
     fun onFilterSelected(selected: LibraryFilter) {

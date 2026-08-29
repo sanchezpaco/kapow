@@ -14,7 +14,7 @@ interface LibraryRepository {
     suspend fun seedSampleIfNeeded()
     suspend fun refresh()
     suspend fun generateMissingCovers()
-    suspend fun saveProgress(comicId: Long, pageIndex: Int, pageCount: Int)
+    suspend fun saveProgress(comicId: Long, pageIndex: Int, pageCount: Int): Boolean
     suspend fun unshelve(comicId: Long)
     suspend fun reshelve(comicId: Long)
     suspend fun setRead(comicId: Long, read: Boolean)

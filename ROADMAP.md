@@ -388,6 +388,9 @@ Blocking:
 - [x] Closing commit of the phase (2026-08-29): `versionCode 1`,
       `versionName "1.0.0"`, tag `v1.0.0`. Still open after the close: the
       Play Console upload and the launcher icon picker (moves to post-1.0)
+- [x] Rating prompt (2026-08-29): Play In-App Review requested when the
+      reader closes after the third finished comic, at most every 60 days;
+      no custom "do you like it?" dialog (see `docs/review-prompt.md`)
 - [x] Crash visibility: rely on Play Vitals (no third-party SDK). Opening a
       comic rethrows anything that is not a `ComicSourceException`; a page
       that fails to decode shows "Page N could not be decoded" and logs the

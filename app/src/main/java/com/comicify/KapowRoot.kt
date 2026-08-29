@@ -16,6 +16,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +39,8 @@ import com.comicify.feature.library.ui.LocalSharedTransitionScope
 import com.comicify.feature.onboarding.ui.OnboardingScreen
 import com.comicify.feature.onboarding.ui.OnboardingViewModel
 import com.comicify.feature.reader.ui.ReaderScreen
+import com.comicify.feature.review.ui.InAppReviewPrompt
+import com.comicify.feature.review.ui.ReviewPromptViewModel
 import com.comicify.feature.settings.ui.AppSettingsScreen
 import com.comicify.feature.settings.ui.LicencesScreen
 
@@ -62,6 +65,9 @@ fun KapowRoot(initialUri: Uri? = null) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val onboarding: OnboardingViewModel = hiltViewModel()
     val onboardingSeen by onboarding.seen.collectAsStateWithLifecycle()
+    val review: ReviewPromptViewModel = hiltViewModel()
+    LaunchedEffect(viewModel) { viewModel.comicFinished.collect { review.onComicFinished() } }
+    InAppReviewPrompt(review)
     var open by remember {
         mutableStateOf(initialUri?.let { OpenRequest(uri = it, comicId = null, initialPage = 0, ambient = null) })
     }
@@ -136,7 +142,7 @@ fun KapowRoot(initialUri: Uri? = null) {
                                 onPageChanged = { pageIndex, pageCount ->
                                     target.request.comicId?.let { viewModel.saveProgress(it, pageIndex, pageCount) }
                                 },
-                                onClose = { open = null },
+                                onClose = { open = null; review.onReaderClosed() },
                                 onOpenNext = target.request.comicId
                                     ?.let { LibraryCatalog.nextInSeries(state.allComics, it) }
                                     ?.let { next -> { open = next.toOpenRequest() } },
