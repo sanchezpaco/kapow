@@ -39,8 +39,8 @@ survives fold/unfold. This is the heart of the product. See `docs/foldable.md`.
 - [x] Observe `WindowLayoutInfo` posture + window size class
 - [x] Unfolded portrait → full single page at near-physical size
 - [x] Unfolded landscape → two-page spread (open-book layout)
-- [x] Tabletop posture → page on top half, controls on bottom half (implemented;
-      pending runtime verification on a physical foldable)
+- [x] Tabletop posture → page on top half, controls on bottom half (implemented,
+      verified on the Fold 2026-08-29)
 - [x] Cover screen (folded) → single page, tighter controls
 - [~] Posture transition preserving reading position (page-level done; panel-level with Guided View pending)
 - [x] Ambient backdrop: radial glow from each page's dominant color (Palette),
