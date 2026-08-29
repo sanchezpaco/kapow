@@ -59,3 +59,10 @@ app/src/main/java/com/comicify/
 ```
 
 See `CLAUDE.md` for the code rules this project follows.
+
+## Licence
+
+Kapow is free software under the [GNU AGPL-3.0](LICENSE). The speech-bubble
+model was trained with Ultralytics YOLO (AGPL-3.0); the app ships only the
+resulting weights and runs them with ONNX Runtime. Third-party attributions are
+listed in Settings → Open-source licences.

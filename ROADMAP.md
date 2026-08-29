@@ -384,9 +384,9 @@ Strongly recommended:
       the comic. No free-text field: the mail body carries a one-line summary
       the user can edit in the mail app. No backend, no SDK. Decided
       2026-08-29
-- [ ] Licensing decision before the first upload: the bubble student was
-      trained with Ultralytics (AGPL-3.0). Options: publish the repository
-      under AGPL-3.0 (cleanest for a free app) or buy an Ultralytics licence
+- [x] Licensing decision before the first upload: the bubble student was
+      trained with Ultralytics (AGPL-3.0). Decided 2026-08-29: the repository
+      is published under AGPL-3.0 (`LICENSE`); no Ultralytics licence needed
 
 Deferred to 1.1: tip jar under Settings → About as a one-off Play Billing
 product (an external Ko-fi / Buy Me a Coffee link risks a Play payments-policy
