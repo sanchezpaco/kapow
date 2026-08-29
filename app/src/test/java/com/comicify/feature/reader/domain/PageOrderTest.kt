@@ -93,11 +93,13 @@ class PageOrderTest {
     }
 
     @Test
-    fun spreadHalvesOnlyExposeTheirOuterEdge() {
-        assertEquals(TapZone.Previous, TapZones.LeftHalf.at(LeftToRight, 0.1f))
+    fun spreadHalvesKeepTheScreenWideZonesAndAGutterCentre() {
+        assertEquals(TapZone.Previous, TapZones.LeftHalf.at(LeftToRight, 0.5f))
+        assertEquals(TapZone.Center, TapZones.LeftHalf.at(LeftToRight, 0.6f))
         assertEquals(TapZone.Center, TapZones.LeftHalf.at(LeftToRight, 0.9f))
         assertEquals(TapZone.Center, TapZones.RightHalf.at(LeftToRight, 0.1f))
-        assertEquals(TapZone.Next, TapZones.RightHalf.at(LeftToRight, 0.9f))
+        assertEquals(TapZone.Center, TapZones.RightHalf.at(LeftToRight, 0.4f))
+        assertEquals(TapZone.Next, TapZones.RightHalf.at(LeftToRight, 0.5f))
         assertEquals(TapZone.Next, TapZones.LeftHalf.at(RightToLeft, 0.1f))
         assertEquals(TapZone.Previous, TapZones.RightHalf.at(RightToLeft, 0.9f))
     }
