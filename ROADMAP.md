@@ -39,7 +39,7 @@ survives fold/unfold. This is the heart of the product. See `docs/foldable.md`.
 - [x] Observe `WindowLayoutInfo` posture + window size class
 - [x] Unfolded portrait → full single page at near-physical size
 - [x] Unfolded landscape → two-page spread (open-book layout)
-- [~] Tabletop posture → page on top half, controls on bottom half (implemented;
+- [x] Tabletop posture → page on top half, controls on bottom half (implemented;
       pending runtime verification on a physical foldable)
 - [x] Cover screen (folded) → single page, tighter controls
 - [~] Posture transition preserving reading position (page-level done; panel-level with Guided View pending)
@@ -361,18 +361,18 @@ Blocking:
 Strongly recommended:
 
 - [x] Tap zones left/right for page turns (Phase 1 item still `[~]`)
-- [ ] Verify tabletop posture on the physical Fold (Phase 2 item still `[~]`)
+- [x] Verify tabletop posture on the physical Fold (verified 2026-08-29)
 - [x] `ComicNameParser`: split a number glued to the name (`Venomverse001`,
       `DoctorDoom9`) so issues group into their series
 - [x] Error states with clear copy: folder grant revoked after reinstall
       (`LibraryScanError.AccessLost`, `ComicOpenError.AccessLost`), corrupted
       archive (`ReadFailure`), password-protected PDF
       (`ComicOpenError.PasswordProtected`, verified on the emulator)
-- [ ] Cold start on a rebooted Fold (release) to confirm the 117 ms baseline;
-      the emulator's >10 s splash is the emulator
-- [~] Accessibility floor: ghost actions and the series back button are
+- [x] Cold start on a rebooted Fold (release) confirmed 2026-08-29; the
+      emulator's >10 s splash is the emulator
+- [x] Accessibility floor: ghost actions and the series back button are
       48 dp; decorative icons next to text stay `null`; TalkBack pass on
-      library + settings pending the Fold
+      library + settings done on the Fold 2026-08-29
 - [x] "Report a visual glitch" from the reader HUD settings menu (gear):
       a confirmation dialog ("an image of this page and technical data will be
       sent, no personal data") then ACTION_SEND via FileProvider with
