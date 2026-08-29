@@ -155,7 +155,7 @@ Goal: the details that make it feel premium.
       only with the device's own analysed bitmaps (`BubbleOutlineDump` →
       `DeviceOutlineRepro`)
 - [x] Silhouette ground truth (2026-08-27): 115 validated bubble outlines on
-      six series in `.claude/ml-spike-kit/gt/silhouettes.json`, scored by
+      six series in `tools/training/gt/silhouettes.json`, scored by
       `SpeechBubbleVisualizer` (`out/silhouettes.json`: mean IoU, share
       ≥ 0.9, box fallbacks per series). Baseline: mean IoU 0.861, 64/115
       ≥ 0.9, 18 box fallbacks — 17 of them the whole Spiderman 2099 page.
@@ -167,7 +167,7 @@ Goal: the details that make it feel premium.
       the global threshold. Spiderman 2099 box fallbacks 17 → 0, mean IoU
       0.758 → 0.879; digital series unchanged. See `docs/speech-bubbles.md`
 - [x] Bubble student v4 (2026-08-28): retrained on every comic in `comics/`
-      (121 files, 4,723 training pages of 31 series, 73 issues in 12 series
+      (private, not distributed; pipeline in `docs/training.md`) (121 files, 4,723 training pages of 31 series, 73 issues in 12 series
       never seen by v3, incl. the first European albums Blacksad and Rapaces
       and the painted Marvels: Ruinas), teacher pseudo-labels plus 57
       subagent-reviewed corrections on the new styles. Box ground truth
@@ -316,7 +316,7 @@ Goal: the details that make it feel premium.
       Appearance, About). Theme = ground (pure black / graphite / paper) × accent
       (7 curated presets with AA contrast on both grounds + Material You),
       picked from split-diagonal swatches with live preview; `LibraryPalette`
-      constants became getters over a `ComicifyPalette` composition local
+      constants became getters over a `KapowPalette` composition local
       and `MaterialTheme.colorScheme`; the reader keeps page, ambient and
       chrome, only the accent follows. Cover-alone stays per-comic (the
       column is not tri-state). See `docs/settings.md`

@@ -45,8 +45,9 @@ with score ≥ 0.35, and boxes are mapped back to normalized page coordinates.
 The session is created once per process from a copy of the asset in
 `filesDir` (ONNX Runtime needs a real file).
 
-Measured on the 77-page sample of the 11-comic corpus (`.claude/ml-spike-kit`
-holds the ground truth, scorer and dumps): panel F1 0.93 vs 0.77 for the
+Measured on the 77-page sample of the 11-comic corpus (`tools/training/`
+holds the ground truth and scorer, see `docs/training.md`; the corpus itself is
+private and not distributed): panel F1 0.93 vs 0.77 for the
 heuristic, 54/77 pages exact vs 29, ~100 ms per page on the Fold emulator vs
 ~540 ms. Largest wins on bleed-heavy and manga pages (Venomverse 7/7 exact);
 the only regression is clean Marvel grids where the heuristic was already
@@ -153,7 +154,7 @@ shown before its insets.
 boxes over page images. Point it at a folder of extracted page JPEGs:
 
 ```
-COMICIFY_PANEL_VIZ_DIR=/path/to/pages ./gradlew :app:testDebugUnitTest \
+KAPOW_PANEL_VIZ_DIR=/path/to/pages ./gradlew :app:testDebugUnitTest \
     --tests '*PanelDetectionVisualizer*' --rerun -i
 ```
 
@@ -203,5 +204,5 @@ on every page. Detection improvements are the only planned fix.
 `MlDetectorBenchmark` (androidTest, skipped unless `filesDir/mlspike/*.jpg`
 exist — copy pages in with `adb push` to `/data/local/tmp` and
 `run-as com.comicify.debug cp`) dumps ML and heuristic rects plus timings to
-`device.json`; `HeuristicRectsDump` (unit test, `COMICIFY_RECTS_DUMP_DIR`) does
-the same on the JVM. Both JSONs are scored by `.claude/ml-spike-kit/score.py`.
+`device.json`; `HeuristicRectsDump` (unit test, `KAPOW_RECTS_DUMP_DIR`) does
+the same on the JVM. Both JSONs are scored by `tools/training/score.py`.

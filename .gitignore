@@ -8,3 +8,5 @@
 .DS_Store
 captures/
 .claude/
+/tools/training/work/
+/tools/training/venv/
