@@ -159,7 +159,7 @@ Goal: the details that make it feel premium.
       `SpeechBubbleVisualizer` (`out/silhouettes.json`: mean IoU, share
       ≥ 0.9, box fallbacks per series). Baseline: mean IoU 0.861, 64/115
       ≥ 0.9, 18 box fallbacks — 17 of them the whole Spiderman 2099 page.
-      Prerequisite for the outlining work in `IMPROVEMENT_IDEAS.md`; see
+      Prerequisite for the outlining work in `docs/improvement-ideas.md`; see
       `docs/speech-bubbles.md`
 - [x] Per-bubble paper colour for scans (2026-08-27, idea 2): the paper of
       each ML box is estimated from its own interior and scanned paper

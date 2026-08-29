@@ -4,6 +4,12 @@
 
 # Kapow
 
+[![Build](https://github.com/sanchezpaco/kapow/actions/workflows/build.yml/badge.svg)](https://github.com/sanchezpaco/kapow/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/sanchezpaco/kapow?include_prereleases&label=release)](https://github.com/sanchezpaco/kapow/releases)
+[![Licence](https://img.shields.io/badge/licence-AGPL--3.0-blue)](LICENSE)
+![Android](https://img.shields.io/badge/Android-11%2B-3DDC84?logo=android&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin-Compose-7F52FF?logo=kotlin&logoColor=white)
+
 A native Android comic reader designed first for the **Samsung Z Fold** and
 usable on any Android 11+ device. The reading experience follows the device
 posture: full pages or a two-page spread unfolded, panel-by-panel **Guided

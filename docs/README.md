@@ -19,6 +19,8 @@ How Kapow works, one concern per file.
 - [release.md](release.md) — upload key, signed AAB, bundletool install, Play upload
 - [privacy.md](privacy.md) — the privacy policy published on GitHub Pages (EN + ES)
 - [bubble-refinement-loop.md](bubble-refinement-loop.md) — the iterative device-vs-offline loop used to polish bubble rendering
+- [product-ideas.md](product-ideas.md) — product ideas considered and not scheduled, including the rejected ones
+- [improvement-ideas.md](improvement-ideas.md) — measured technical polish ideas not yet on the roadmap
 
 Keep these in sync with the code. If behavior changes, update the matching doc in
 the same change.

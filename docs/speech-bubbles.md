@@ -276,7 +276,7 @@ Defensores page through the heuristic detector, and the polygon parser
 dropped the last vertex of every outline; both are fixed.
 
 The scanned series are where the outliner falls back to the rectangle; the
-ideas in `IMPROVEMENT_IDEAS.md` are now measurable against this file. When
+ideas in `docs/improvement-ideas.md` are now measurable against this file. When
 adding outlines, run `silhouettes.py candidates`, review the sheets, extend
 the override tables rather than editing polygons by hand, and keep the
 excluded boxes excluded.

@@ -1,7 +1,7 @@
 # Possible ideas
 
 Product-level ideas from the app review of 2026-08-28, not scheduled in
-`ROADMAP.md`. Technical polish items live in `IMPROVEMENT_IDEAS.md`.
+`ROADMAP.md`. Technical polish items live in `improvement-ideas.md`.
 
 Where the app stood at review time: the reader (Guided View, enlarged
 bubbles, foldable postures, jank-free page turns) is the strong part and has

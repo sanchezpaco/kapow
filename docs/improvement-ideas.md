@@ -3,7 +3,7 @@
 Ideas worth trying that are not scheduled in `ROADMAP.md`. Each entry says what
 we measured, what we would change and how we would know it worked. Numbers date
 from 2026-08-28. Product-level ideas (and rejected ones) are in
-`POSSIBLE_IDEAS.md`.
+`product-ideas.md`.
 
 ## Where the numbers stand
 
