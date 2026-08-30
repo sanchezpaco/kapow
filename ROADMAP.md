@@ -441,8 +441,9 @@ outliner idea 3b.
 
 ## Tester feedback — 1.0.x
 
-Feedback from the first testers (2026-08-30). Each item ships on its own
-`feedback/*` branch and is verified on the Fold and phone emulators.
+Feedback from the first testers (2026-08-30). Each item shipped on its own
+`feedback/*` branch, verified on the Fold and phone emulators and on the Z
+Fold, and closed as version 1.0.1 (`versionCode 2`, tag `v1.0.1`).
 
 - [x] Onboarding folder step: no visual confirmation after picking the
       folder. Show the chosen folder name and a "selected" state on the

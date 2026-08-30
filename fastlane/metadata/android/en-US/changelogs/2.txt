@@ -1,0 +1,5 @@
+• Split double pages: cut wide pages in half, per comic — Kapow suggests it when a comic looks that way
+• The library notices new comics when you come back to the app
+• Double-tap zoom now works reliably on every phone
+• Guided View goes straight to the first panel on each page
+• The onboarding confirms the folder you picked

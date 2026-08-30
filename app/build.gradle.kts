@@ -40,8 +40,8 @@ android {
         applicationId = "com.sanchezpaco.kapow"
         minSdk = 29
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "BUILD_LABEL", "\"$buildLabel\"")

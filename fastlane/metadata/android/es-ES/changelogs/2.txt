@@ -1,0 +1,5 @@
+• Dividir páginas dobles: corta por la mitad las páginas apaisadas, por cómic — Kapow lo sugiere cuando un cómic parece venir así
+• La biblioteca detecta cómics nuevos al volver a la app
+• El doble toque para hacer zoom funciona en cualquier móvil
+• La Vista guiada va directa a la primera viñeta de cada página
+• La introducción confirma la carpeta elegida
