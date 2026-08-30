@@ -64,6 +64,7 @@ ReadingState(
 
 ComicSettings(
     documentUri, rightToLeft?, coverAlone, bubblesEnlarged?, guided?,
+    bubbleScale?, splitWidePages,
 )
 ```
 
@@ -181,7 +182,8 @@ tweaked individually from inside the series screen.
 
 - Header washed with the cover's ambient colour (cover shared with the card).
 - Reading direction, cover alone in the spread (pairing parity, labelled
-  "Cover on its own page (pairs 2-3, 4-5…)"), enlarged bubbles on open and
+  "Cover on its own page (pairs 2-3, 4-5…)"), split wide pages (see
+  `reading-modes.md#split-wide-pages`), enlarged bubbles on open and
   Guided View on open. Chips are ordered Default · On · Off and wrap on narrow
   widths; the "Default" chip spells out the global value it falls back to
   ("Default (Left to right)", "Default (Off)"). The selected chip uses the

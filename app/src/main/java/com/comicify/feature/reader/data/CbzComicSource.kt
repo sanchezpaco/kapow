@@ -22,6 +22,9 @@ class CbzComicSource private constructor(
             decodeSampled(bytes, targetWidth)
         }
 
+    override suspend fun pageAspect(index: Int): Float =
+        withContext(Dispatchers.IO) { zip.getInputStream(entries[index]).use(::decodeAspect) }
+
     override fun close() {
         runCatching { zip.close() }
         runCatching { cacheFile.delete() }

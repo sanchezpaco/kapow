@@ -2,11 +2,21 @@ package com.comicify.feature.reader.data
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import java.io.InputStream
+
+private const val UNKNOWN_ASPECT = 1f
 
 internal val imageExtensions = setOf("jpg", "jpeg", "png", "webp", "gif", "bmp")
 
 internal fun String.hasImageExtension(): Boolean =
     substringAfterLast('.', "").lowercase() in imageExtensions
+
+internal fun decodeAspect(stream: InputStream): Float {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    BitmapFactory.decodeStream(stream, null, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return UNKNOWN_ASPECT
+    return bounds.outWidth.toFloat() / bounds.outHeight
+}
 
 internal fun decodeSampled(bytes: ByteArray, targetWidth: Int): Bitmap {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }

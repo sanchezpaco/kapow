@@ -21,6 +21,7 @@ import com.comicify.feature.reader.data.ComicSourceFactory
 import com.comicify.feature.reader.data.PageDetectionStore
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.data.PanelDetector
+import com.comicify.feature.reader.data.SplitPagesComicSource
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.ComicOpenError
 import com.comicify.core.window.ReadingPosture
@@ -53,6 +54,7 @@ class ReaderViewModel(
     private val comicSettingsDao: ComicSettingsDao =
         EntryPointAccessors.fromApplication(application, DatabaseEntryPoint::class.java).comicSettingsDao()
     private var source: ComicSource? = null
+    private var sourceMode: SourceMode? = null
     var pageLoader: PageLoader? = null
         private set
 
@@ -62,23 +64,55 @@ class ReaderViewModel(
         observeNightTint()
         observeKeepScreenOn()
         observeBubbleScale()
-        observeReadingDirection()
+        observeComicSettings()
     }
 
     private fun openComic() {
         viewModelScope.launch {
-            applyOpenDefaults(preferencesRepository.openDefaults.first(), comicSettingsDao.find(uri.toString()))
-            runCatching { ComicSourceFactory.open(getApplication(), uri, state.value.position.pageIndex) }
-                .onSuccess { opened ->
-                    source = opened
-                    pageLoader = PageLoader(opened, viewModelScope, PanelDetector.forContext(getApplication()), detectionStore())
-                    _state.update { it.copy(loading = false, pageCount = opened.pageCount) }
-                }
-                .onFailure { throwable ->
-                    val error = (throwable as? ComicSourceException)?.error ?: throw throwable
-                    _state.update { it.copy(loading = false, error = error) }
-                }
+            val settings = comicSettingsDao.find(uri.toString())
+            applyOpenDefaults(preferencesRepository.openDefaults.first(), settings)
+            val mode = SourceMode(
+                splitWidePages = settings?.splitWidePages ?: false,
+                direction = effectiveDirection(preferencesRepository.readingDirection.first(), settings),
+            )
+            loadSource(mode) { state.value.position.pageIndex }
         }
+    }
+
+    private fun reopenComic(mode: SourceMode) {
+        val previous = source ?: return
+        val sourcePage = previous.sourcePage(state.value.position.pageIndex)
+        viewModelScope.launch {
+            _state.update { it.copy(loading = true) }
+            loadSource(mode) { opened -> opened.pageOfSourcePage(sourcePage) }
+        }
+    }
+
+    private suspend fun loadSource(mode: SourceMode, landingPage: (ComicSource) -> Int) {
+        val previous = source
+        runCatching { openSource(mode) }
+            .onSuccess { opened ->
+                source = opened
+                sourceMode = mode
+                previous?.close()
+                pageLoader = PageLoader(opened, viewModelScope, PanelDetector.forContext(getApplication()), detectionStore(mode))
+                val page = landingPage(opened).coerceIn(0, opened.pageCount - 1)
+                _state.update {
+                    it.copy(loading = false, pageCount = opened.pageCount, position = it.position.copy(pageIndex = page))
+                }
+            }
+            .onFailure { throwable ->
+                val error = (throwable as? ComicSourceException)?.error ?: throw throwable
+                _state.update { it.copy(loading = false, error = error) }
+            }
+    }
+
+    private suspend fun openSource(mode: SourceMode): ComicSource {
+        val opened = ComicSourceFactory.open(getApplication(), uri, state.value.position.pageIndex)
+        if (!mode.splitWidePages) return opened
+        return runCatching { SplitPagesComicSource.of(opened, mode.direction) }
+            .onFailure { opened.close() }
+            .getOrThrow()
     }
 
     private fun applyOpenDefaults(defaults: OpenDefaults, settings: ComicSettingsEntity?) {
@@ -90,9 +124,9 @@ class ReaderViewModel(
         }
     }
 
-    private fun detectionStore(): PageDetectionStore {
+    private fun detectionStore(mode: SourceMode): PageDetectionStore {
         val dao = EntryPointAccessors.fromApplication(getApplication(), DatabaseEntryPoint::class.java).pageDetectionDao()
-        return PageDetectionStore(dao, uri.toString())
+        return PageDetectionStore(dao, uri.toString(), mode.splitWidePages)
     }
 
     fun onPageChanged(pageIndex: Int) {
@@ -193,19 +227,48 @@ class ReaderViewModel(
         }
     }
 
-    private fun observeReadingDirection() {
+    fun toggleSplitWidePages() {
+        val split = !_state.value.splitWidePages
+        viewModelScope.launch {
+            val settings = comicSettingsDao.find(uri.toString()) ?: emptySettings()
+            comicSettingsDao.upsert(settings.copy(splitWidePages = split))
+        }
+    }
+
+    private fun emptySettings() = ComicSettingsEntity(
+        documentUri = uri.toString(),
+        rightToLeft = null,
+        coverAlone = false,
+        bubblesEnlarged = null,
+        guided = null,
+    )
+
+    private fun observeComicSettings() {
         viewModelScope.launch {
             combine(preferencesRepository.readingDirection, comicSettingsDao.observe(uri.toString())) { global, settings ->
-                val direction = when (settings?.rightToLeft) {
-                    null -> global
-                    true -> ReadingDirection.RightToLeft
-                    false -> ReadingDirection.LeftToRight
+                ComicPreferences(
+                    direction = effectiveDirection(global, settings),
+                    coverAlone = settings?.coverAlone ?: false,
+                    splitWidePages = settings?.splitWidePages ?: false,
+                )
+            }.collect { preferences ->
+                _state.update {
+                    it.copy(
+                        direction = preferences.direction,
+                        coverAlone = preferences.coverAlone,
+                        splitWidePages = preferences.splitWidePages,
+                    )
                 }
-                direction to (settings?.coverAlone ?: false)
-            }.collect { (direction, coverAlone) ->
-                _state.update { it.copy(direction = direction, coverAlone = coverAlone) }
+                applySourceMode(SourceMode(preferences.splitWidePages, preferences.direction))
             }
         }
+    }
+
+    private fun applySourceMode(mode: SourceMode) {
+        val current = sourceMode ?: return
+        if (!current.rebuiltBy(mode)) return
+        sourceMode = mode
+        reopenComic(mode)
     }
 
     fun reportGlitch(posture: ReadingPosture) {
@@ -235,3 +298,26 @@ class ReaderViewModel(
         }
     }
 }
+
+private data class SourceMode(val splitWidePages: Boolean, val direction: ReadingDirection) {
+    fun rebuiltBy(next: SourceMode): Boolean =
+        next.splitWidePages != splitWidePages || (splitWidePages && next.direction != direction)
+}
+
+private data class ComicPreferences(
+    val direction: ReadingDirection,
+    val coverAlone: Boolean,
+    val splitWidePages: Boolean,
+)
+
+private fun effectiveDirection(global: ReadingDirection, settings: ComicSettingsEntity?): ReadingDirection =
+    when (settings?.rightToLeft) {
+        null -> global
+        true -> ReadingDirection.RightToLeft
+        false -> ReadingDirection.LeftToRight
+    }
+
+private fun ComicSource?.sourcePage(page: Int): Int = (this as? SplitPagesComicSource)?.sourcePageOf(page) ?: page
+
+private fun ComicSource.pageOfSourcePage(sourcePage: Int): Int =
+    (this as? SplitPagesComicSource)?.pageOfSource(sourcePage) ?: sourcePage

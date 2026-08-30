@@ -97,6 +97,9 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
         SettingRow(label = stringResource(R.string.detail_setting_cover_alone)) {
             OnOffChips(selected = settings.coverAlone, onSelect = { viewModel.onSettingsChanged(settings.copy(coverAlone = it)) })
         }
+        SettingRow(label = stringResource(R.string.detail_setting_split_wide_pages)) {
+            OnOffChips(selected = settings.splitWidePages, onSelect = { viewModel.onSettingsChanged(settings.copy(splitWidePages = it)) })
+        }
         SettingRow(label = stringResource(R.string.detail_setting_bubbles)) {
             TriStateChips(
                 selected = settings.bubblesEnlarged,

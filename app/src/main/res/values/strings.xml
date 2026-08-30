@@ -66,6 +66,7 @@
     <string name="detail_settings">Reading settings</string>
     <string name="detail_setting_direction">Reading direction</string>
     <string name="detail_setting_cover_alone">Cover on its own page (pairs 2-3, 4-5…)</string>
+    <string name="detail_setting_split_wide_pages">Split wide pages (two comic pages in one)</string>
     <string name="detail_setting_bubbles">Enlarged bubbles on open</string>
     <string name="detail_setting_guided">Guided view on open</string>
     <string name="detail_option_ltr">Left to right</string>
@@ -132,6 +133,7 @@
     <string name="reader_action_guided_full_screen">Panel on full screen</string>
     <string name="reader_action_guided_keep_spread">Panel within the spread</string>
     <string name="reader_action_night_tint">Night tint</string>
+    <string name="reader_action_split_wide_pages">Split wide pages</string>
     <string name="reader_action_direction_ltr">Reading direction: left to right</string>
     <string name="reader_action_direction_rtl">Reading direction: right to left</string>
     <string name="reader_action_report_glitch">Report a visual glitch</string>

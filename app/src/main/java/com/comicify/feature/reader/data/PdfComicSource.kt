@@ -23,6 +23,11 @@ class PdfComicSource private constructor(
             renderLock.withLock { renderPage(index, targetWidth) }
         }
 
+    override suspend fun pageAspect(index: Int): Float =
+        withContext(Dispatchers.IO) {
+            renderLock.withLock { renderer.openPage(index).use { it.width.toFloat() / it.height } }
+        }
+
     private fun renderPage(index: Int, targetWidth: Int): Bitmap =
         renderer.openPage(index).use { page ->
             val width = if (targetWidth > 0) targetWidth else page.width
