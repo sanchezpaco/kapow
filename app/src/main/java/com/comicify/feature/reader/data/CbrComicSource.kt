@@ -46,6 +46,11 @@ class CbrComicSource private constructor(
             decodeSampled(file.readBytes(), targetWidth)
         }
 
+    override suspend fun pageAspect(index: Int): Float =
+        withContext(Dispatchers.IO) {
+            extractedFiles.getValue(itemIndices[index]).await().inputStream().use(::decodeAspect)
+        }
+
     private fun extractAllItems() {
         try {
             extractionBatches.forEach { batch -> archive.extract(batch, false, ItemToFileCallback()) }

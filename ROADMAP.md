@@ -450,7 +450,7 @@ Feedback from the first testers (2026-08-30). Each item ships on its own
 - [x] Library does not notice comics added to the folder while the app is
       open. Rescan the folder whenever the library comes to the foreground
       (app start and return from background), keeping the manual refresh
-- [ ] Split double pages: some PDFs (and scans) come with two comic pages per
+- [x] Split double pages: some PDFs (and scans) come with two comic pages per
       file page. Per-comic "Split wide pages" toggle, in the comic settings
       screen and in the reader gear menu, that cuts landscape pages in half
       and presents each half as its own page in reading-direction order

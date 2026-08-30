@@ -21,4 +21,5 @@ data class ReaderUiState(
     val pendingJump: Int? = null,
     val direction: ReadingDirection = ReadingDirection.LeftToRight,
     val coverAlone: Boolean = false,
+    val splitWidePages: Boolean = false,
 )

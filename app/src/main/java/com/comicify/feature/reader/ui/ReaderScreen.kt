@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.VerticalSplit
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -215,12 +216,14 @@ fun ReaderScreen(
             bubbleScale = state.bubbleScale,
             nightTintEnabled = state.nightTintEnabled,
             direction = state.direction,
+            splitWidePages = state.splitWidePages,
             onToggleGuided = viewModel::toggleGuided,
             onToggleBubblesEnlarged = viewModel::toggleBubblesEnlarged,
             onBubbleScale = viewModel::setBubbleScale,
             onToggleGuidedFullScreen = viewModel::toggleGuidedFullScreen,
             onToggleNightTint = viewModel::toggleNightTint,
             onToggleDirection = viewModel::toggleReadingDirection,
+            onToggleSplitWidePages = viewModel::toggleSplitWidePages,
             onReportGlitch = { glitchDialogOpen = true },
             onClose = onClose,
             modifier = Modifier.align(Alignment.TopCenter),
@@ -343,12 +346,14 @@ private fun TopChrome(
     bubbleScale: Float,
     nightTintEnabled: Boolean,
     direction: ReadingDirection,
+    splitWidePages: Boolean,
     onToggleGuided: () -> Unit,
     onToggleBubblesEnlarged: () -> Unit,
     onBubbleScale: (Float) -> Unit,
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
     onToggleDirection: () -> Unit,
+    onToggleSplitWidePages: () -> Unit,
     onReportGlitch: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
@@ -386,9 +391,11 @@ private fun TopChrome(
                         guidedFullScreen = guidedFullScreen,
                         nightTintEnabled = nightTintEnabled,
                         direction = direction,
+                        splitWidePages = splitWidePages,
                         onToggleGuidedFullScreen = onToggleGuidedFullScreen,
                         onToggleNightTint = onToggleNightTint,
                         onToggleDirection = onToggleDirection,
+                        onToggleSplitWidePages = onToggleSplitWidePages,
                         onReportGlitch = onReportGlitch,
                     )
                 }
@@ -454,9 +461,11 @@ private fun ReaderSettingsMenu(
     guidedFullScreen: Boolean,
     nightTintEnabled: Boolean,
     direction: ReadingDirection,
+    splitWidePages: Boolean,
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
     onToggleDirection: () -> Unit,
+    onToggleSplitWidePages: () -> Unit,
     onReportGlitch: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -496,6 +505,12 @@ private fun ReaderSettingsMenu(
                         if (direction == ReadingDirection.RightToLeft) R.string.reader_action_direction_rtl else R.string.reader_action_direction_ltr,
                     ),
                     onClick = onToggleDirection,
+                )
+                CircleControl(
+                    icon = Icons.Filled.VerticalSplit,
+                    active = splitWidePages,
+                    contentDescription = stringResource(R.string.reader_action_split_wide_pages),
+                    onClick = onToggleSplitWidePages,
                 )
                 CircleControl(
                     icon = Icons.Filled.BugReport,

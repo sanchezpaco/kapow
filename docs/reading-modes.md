@@ -110,6 +110,40 @@ pinch/double-tap zoom). It is a static render enhancement — no page zoom, no
 bubble-to-bubble navigation, nothing to order — so it deliberately sidesteps
 panel segmentation and reading-order errors. Full detail in `speech-bubbles.md`.
 
+## Split wide pages
+
+Some PDFs and scans store two comic pages side by side in one landscape file
+page. The per-comic setting "Split wide pages"
+(`ComicSettings.splitWidePages`, in the comic settings screen and in the
+reader's gear menu) cuts every landscape page in half and presents each half as
+its own page.
+
+- The split lives in the data layer, in `SplitPagesComicSource`, a `ComicSource`
+  that wraps the real one. On open it probes every page's aspect ratio
+  (`ComicSource.pageAspect`: a bounds-only `BitmapFactory` decode for images,
+  `PdfRenderer.Page` width/height for PDF), builds the logical page list once
+  with the pure `SplitPages.of` (`reader/domain/SplitPages.kt`) and keeps it for
+  the life of the source. A page counts as wide when its aspect ratio is greater
+  than `WIDE_PAGE_ASPECT` (1), so portrait and square pages pass through
+  untouched.
+- Half order follows the effective reading direction: left half first in
+  `LeftToRight`, right half first in `RightToLeft`. Changing the direction while
+  the setting is on rebuilds the source.
+- A half is decoded by asking the inner source for twice the target width and
+  cropping; everything downstream (pager, thumbnails, preloading, reading
+  position, Guided View, bubbles) only sees a longer page list.
+- Persisted detections are keyed by document Uri + page index, so the same index
+  must not return the unsplit page's panels and bubbles: `PageDetectionStore`
+  appends `+split` to `DETECTIONS_VERSION` when the setting is on. The row's
+  primary key stays (Uri, page), so a mode change overwrites rather than
+  duplicating, and deleting a comic's detections still clears everything with
+  one query.
+- Toggling from inside the reader rebuilds the source
+  (`ReaderViewModel.reopenComic`) and maps the position exactly: the current
+  page is converted to its source page through the old source and back to the
+  first half of that source page through the new one. The reader surfaces are
+  keyed on the `PageLoader`, so the pager is recreated on the mapped page.
+
 ## Per-comic settings
 
 `ReaderViewModel` reads the comic's `comic_settings` row (`ComicSettingsDao`)
@@ -118,7 +152,8 @@ initial off state; `rightToLeft`, when not null, overrides the global reading
 direction, and the reader's direction toggle then writes the override instead
 of the global preference; `bubbleScale` works the same way for the HUD slider
 (override wins, and dragging the slider updates the override when one exists);
-`coverAlone` feeds the spread pairing above.
+`coverAlone` feeds the spread pairing above and `splitWidePages` the split
+described above.
 Everything else stays global in `ReaderPreferencesRepository`.
 
 ## Reading direction
@@ -159,7 +194,8 @@ is unit-tested directly (`PageOrderTest`).
   screen).
 - The top bar keeps only two always-visible controls — the Guided View toggle and
   a settings **gear** — plus the close button. The gear opens a dropdown with the
-  rest of the reader settings (night tint, reading direction, and, in the spread,
+  rest of the reader settings (night tint, reading direction, split wide
+  pages, and, in the spread,
   the panel-layout toggle) and a posture label. Because immersive mode hides the
   status bar, the top bar pads for `displayCutout` (unioned with `statusBars`), so
   the controls never sit under the foldable's front-camera cutout.

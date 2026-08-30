@@ -66,6 +66,7 @@
     <string name="detail_settings">Ajustes de lectura</string>
     <string name="detail_setting_direction">Sentido de lectura</string>
     <string name="detail_setting_cover_alone">Portada sola (empareja 2-3, 4-5…)</string>
+    <string name="detail_setting_split_wide_pages">Dividir páginas dobles (dos páginas en una)</string>
     <string name="detail_setting_bubbles">Bocadillos ampliados al abrir</string>
     <string name="detail_setting_guided">Vista guiada al abrir</string>
     <string name="detail_option_ltr">Izquierda a derecha</string>
@@ -134,6 +135,7 @@
     <string name="reader_action_guided_full_screen">Viñeta a pantalla completa</string>
     <string name="reader_action_guided_keep_spread">Viñeta dentro de la doble página</string>
     <string name="reader_action_night_tint">Filtro nocturno</string>
+    <string name="reader_action_split_wide_pages">Dividir páginas dobles</string>
     <string name="reader_action_direction_ltr">Sentido de lectura: izquierda a derecha</string>
     <string name="reader_action_direction_rtl">Sentido de lectura: derecha a izquierda</string>
     <string name="reader_action_report_glitch">Informar de un fallo visual</string>

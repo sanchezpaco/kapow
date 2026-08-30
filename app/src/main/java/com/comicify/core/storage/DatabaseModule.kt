@@ -19,7 +19,7 @@ object DatabaseModule {
     @Singleton
     fun database(@ApplicationContext context: Context): KapowDatabase =
         Room.databaseBuilder(context, KapowDatabase::class.java, "comicify.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .build()
 
     @Provides
@@ -76,5 +76,11 @@ private val MIGRATION_5_6 = object : Migration(5, 6) {
 private val MIGRATION_6_7 = object : Migration(6, 7) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE comic_settings ADD COLUMN bubbleScale REAL")
+    }
+}
+
+private val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE comic_settings ADD COLUMN splitWidePages INTEGER NOT NULL DEFAULT 0")
     }
 }

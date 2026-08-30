@@ -23,6 +23,13 @@ class FolderComicSource private constructor(
             decodeSampled(bytes, targetWidth)
         }
 
+    override suspend fun pageAspect(index: Int): Float =
+        withContext(Dispatchers.IO) {
+            context.contentResolver.openInputStream(pageUris[index]).use {
+                decodeAspect(requireNotNull(it) { "Cannot open page stream" })
+            }
+        }
+
     override fun close() = Unit
 
     companion object {

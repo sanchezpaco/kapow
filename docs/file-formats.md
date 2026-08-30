@@ -10,6 +10,7 @@ interface ComicSource {
     val pageCount: Int
     suspend fun pageNames(): List<String>
     suspend fun decodePage(index: Int, targetWidth: Int): Bitmap
+    suspend fun pageAspect(index: Int): Float
 }
 ```
 
@@ -19,6 +20,10 @@ interface ComicSource {
   surface width. Full-resolution decode happens only for zoom.
 - Decoding is off the main thread (`Dispatchers.Default`/`IO`), invoked via use
   cases from the `data` layer.
+- `pageAspect` is the cheapest possible size probe (bounds-only decode for
+  images, page width/height for PDF); `SplitPagesComicSource` uses it to find
+  the landscape pages that hold two comic pages. See
+  `reading-modes.md#split-wide-pages`.
 
 ## CBZ (Phase 1)
 
