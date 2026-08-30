@@ -184,8 +184,10 @@ Annotated PNGs land in `<dir>/out`. Iterate there, then trust the unit tests.
   but blank corridor/wall would otherwise be toured as dead space).
 - **Robust base**: double-tap zooms 2× around the tapped point, refitting the
   view to fill the viewport (`GuidedFocus.zoomed`); one finger pans while
-  zoomed, clamped to the page; double-tap again, or advancing, returns to the
-  panel fit. This works on every page, including full-page fallbacks.
+  zoomed, clamped to the page (only once the finger passes `touchSlop`, see
+  `PanSlop` in `reading-modes.md`, so a shaky tap stays a tap); double-tap
+  again, or advancing, returns to the panel fit. This works on every page,
+  including full-page fallbacks.
 - **Spread posture** (unfolded landscape): by default the two-page spread stays
   on screen and only the active page's half animates panel by panel while the
   other page is shown whole as context (tapping it moves back/forward). A HUD
