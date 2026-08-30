@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import com.comicify.feature.reader.data.PageArt
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
+import com.comicify.feature.reader.domain.PanSlop
 import com.comicify.feature.reader.domain.TapZone
 import com.comicify.feature.reader.domain.TapZones
 import com.comicify.feature.reader.data.PaintedBubble
@@ -151,20 +152,28 @@ fun ZoomablePage(
                             flingJob?.cancel()
                             val tracker = VelocityTracker()
                             var panned = false
+                            var slop = PanSlop()
+                            var pastSlop = false
                             do {
                                 val event = awaitPointerEvent()
                                 val pressed = event.changes.count { it.pressed }
                                 if (pressed >= 2 || scale > 1f) {
-                                    val next = (scale * event.calculateZoom()).coerceIn(1f, MAX_SCALE)
-                                    scale = next
-                                    if (next > 1f) {
-                                        if (pressed == 1) event.changes.firstOrNull { it.pressed }?.let(tracker::addPointerInputChange)
-                                        offset = clampOffset(offset + event.calculatePan(), size, next)
-                                        panned = true
-                                    } else {
-                                        offset = Offset.Zero
+                                    if (!pastSlop) {
+                                        slop = slop.plus(event.calculatePan())
+                                        pastSlop = pressed >= 2 || slop.exceeds(viewConfiguration.touchSlop)
                                     }
-                                    event.changes.forEach { if (it.positionChanged()) it.consume() }
+                                    if (pastSlop) {
+                                        val next = (scale * event.calculateZoom()).coerceIn(1f, MAX_SCALE)
+                                        scale = next
+                                        if (next > 1f) {
+                                            if (pressed == 1) event.changes.firstOrNull { it.pressed }?.let(tracker::addPointerInputChange)
+                                            offset = clampOffset(offset + event.calculatePan(), size, next)
+                                            panned = true
+                                        } else {
+                                            offset = Offset.Zero
+                                        }
+                                        event.changes.forEach { if (it.positionChanged()) it.consume() }
+                                    }
                                 }
                             } while (event.changes.any { it.pressed })
 

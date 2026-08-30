@@ -24,6 +24,13 @@ Default on `UnfoldedSingle` and `CompactSingle`.
   zoom/pan detector only consumes events when two fingers are down or the page
   is already zoomed, so single-finger swipes always reach the
   pager (a custom `awaitEachGesture`, not `detectTransformGestures`).
+  While zoomed, a one-finger pan only starts once the finger has travelled past
+  `viewConfiguration.touchSlop` (`PanSlop` in `reader/domain`, unit-tested):
+  below that nothing moves and nothing is consumed, so a slightly shaky tap
+  still reaches `detectTapGestures` and double-tap zooms back out instead of
+  nudging the page (it was flaky on phones, where taps wobble more than on the
+  Fold). Pinches skip the slop and take the events on the first move, exactly as
+  before, so the pager can never steal a two-finger gesture.
 - Instead of a flat-black letterbox, the whole reader background is an **ambient
   radial glow** derived from the current page's dominant color (androidx
   Palette), cross-fading when the page changes. See `ambient-backdrop` below.

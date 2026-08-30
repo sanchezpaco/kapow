@@ -454,7 +454,7 @@ Feedback from the first testers (2026-08-30). Each item ships on its own
       file page. Per-comic "Split wide pages" toggle, in the comic settings
       screen and in the reader gear menu, that cuts landscape pages in half
       and presents each half as its own page in reading-direction order
-- [ ] Double-tap to zoom on regular phones often pans the page a little
+- [x] Double-tap to zoom on regular phones often pans the page a little
       instead of toggling zoom: the second tap is read as a tiny drag.
       Tolerate touch slop between the taps so double-tap wins
 - [x] Guided View: drop the whole-page overview stop when entering a page —

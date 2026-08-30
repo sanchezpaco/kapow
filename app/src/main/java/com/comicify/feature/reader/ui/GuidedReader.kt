@@ -57,6 +57,7 @@ import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.domain.FullPagePanel
 import com.comicify.feature.reader.domain.GuidedFocus
 import com.comicify.feature.reader.domain.PageOrder
+import com.comicify.feature.reader.domain.PanSlop
 import com.comicify.feature.reader.domain.TapZone
 import com.comicify.feature.reader.domain.TapZones
 import kotlinx.coroutines.Job
@@ -295,11 +296,17 @@ private fun GuidedPanel(
                     var live = view.value
                     var virtual = Offset(live.left, live.top)
                     var panned = false
+                    var slop = PanSlop()
+                    var pastSlop = false
                     do {
                         val event = awaitPointerEvent()
                         val pressed = event.changes.count { it.pressed }
                         val image = currentArt?.image
-                        if (image != null && size != IntSize.Zero) {
+                        if (!pastSlop) {
+                            slop = slop.plus(event.calculatePan())
+                            pastSlop = pressed >= 2 || slop.exceeds(viewConfiguration.touchSlop)
+                        }
+                        if (pastSlop && image != null && size != IntSize.Zero) {
                             val drawn = GuidedFocus.fit(live, image.size(), size.toSize())
                             if (pressed >= 2) {
                                 val zoomChange = event.calculateZoom()
