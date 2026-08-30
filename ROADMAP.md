@@ -444,7 +444,7 @@ outliner idea 3b.
 Feedback from the first testers (2026-08-30). Each item ships on its own
 `feedback/*` branch and is verified on the Fold and phone emulators.
 
-- [ ] Onboarding folder step: no visual confirmation after picking the
+- [x] Onboarding folder step: no visual confirmation after picking the
       folder. Show the chosen folder name and a "selected" state on the
       button, so the user knows the step is done before moving on
 - [ ] Library does not notice comics added to the folder while the app is

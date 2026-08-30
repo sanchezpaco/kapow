@@ -115,6 +115,7 @@
     <string name="onboarding_folder_title">Tus cómics, tu carpeta</string>
     <string name="onboarding_folder_body">Indica a Kapow la carpeta donde guardas tus archivos CBZ, CBR y PDF. Con ella construye la estantería y la mantiene al día.</string>
     <string name="onboarding_folder_sample">Puedes hacerlo más tarde desde Ajustes. Ya hay un cómic de muestra en la estantería.</string>
+    <string name="onboarding_folder_selected">Carpeta seleccionada</string>
     <string name="onboarding_gestures_title">Gestos de lectura</string>
     <string name="onboarding_gestures_body">Toca el borde izquierdo o derecho para pasar página y el centro para los controles. Pellizca o toca dos veces para ampliar; desliza para moverte entre páginas.</string>
     <string name="onboarding_modes_title">Dos formas de leer</string>

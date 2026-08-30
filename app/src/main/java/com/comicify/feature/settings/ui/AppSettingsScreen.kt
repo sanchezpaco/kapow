@@ -59,6 +59,7 @@ import com.comicify.core.ui.BubbleScaleRow
 import com.comicify.core.ui.OnOffChips
 import com.comicify.core.ui.OptionChips
 import com.comicify.core.ui.SettingRow
+import com.comicify.core.ui.folderDisplayName
 import com.comicify.core.ui.theme.KapowPalette
 import com.comicify.core.ui.theme.KapowTheme
 import com.comicify.core.ui.theme.ThemeAccent
@@ -187,9 +188,6 @@ private fun RescanAction(scanning: Boolean, onRefresh: () -> Unit) {
         )
     }
 }
-
-private fun folderDisplayName(treeUri: String): String =
-    Uri.decode(treeUri).substringAfterLast(':').substringAfterLast('/').ifEmpty { treeUri }
 
 @Composable
 private fun AppearanceSection(theme: ThemeChoice, onThemeSelected: (ThemeChoice) -> Unit) {

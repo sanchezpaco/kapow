@@ -13,6 +13,12 @@ image assets):
 1. **Folder** — "Choose folder" launches the same `OpenDocumentTree` picker as
    the library and feeds `LibraryViewModel.onFolderPicked`; the note says the
    sample comic is already on the shelf and the folder can be chosen later.
+   Once a folder is set the button turns into a tonal "Folder selected" with a
+   check icon and the note becomes the folder's display name
+   (`core/ui/folderDisplayName`, the same helper Settings uses); tapping it
+   picks another folder. The step reads `LibraryUiState.folderUri` (the
+   persisted `LibraryPreferences` value), so a folder chosen earlier is already
+   confirmed when the onboarding is replayed from Settings.
 2. **Gestures** — a page with the two tap-zone bands (20 % each side, the
    values from `TapZones`), chevrons, and the centre tap; the copy also covers
    pinch / double-tap zoom and swipe.

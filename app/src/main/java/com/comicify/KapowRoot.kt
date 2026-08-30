@@ -102,6 +102,7 @@ fun KapowRoot(initialUri: Uri? = null) {
                 ) {
                     when (target) {
                         Screen.Onboarding -> OnboardingScreen(
+                            folderUri = state.folderUri,
                             onFolderPicked = viewModel::onFolderPicked,
                             onFinished = { appSettingsOpen = false; onboarding.finish() },
                         )
