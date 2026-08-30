@@ -75,16 +75,11 @@ fun GuidedStops(current: Int, count: Int, modifier: Modifier = Modifier) {
     ) {
         for (index in 0 until count) {
             val isActive = index == current
-            val isOverview = index == 0
-            val tint = if (isActive) active else idle
             Box(
                 modifier = Modifier
-                    .size(
-                        width = if (isOverview) 12.dp else if (isActive) 8.dp else 6.dp,
-                        height = if (isOverview || isActive) 8.dp else 6.dp,
-                    )
-                    .clip(if (isOverview) RoundedCornerShape(2.dp) else CircleShape)
-                    .background(tint),
+                    .size(if (isActive) 8.dp else 6.dp)
+                    .clip(CircleShape)
+                    .background(if (isActive) active else idle),
             )
         }
         Icon(

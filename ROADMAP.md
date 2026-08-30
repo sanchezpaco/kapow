@@ -73,9 +73,9 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       that keeps true splashes as one stop
 - [x] Reading-order sorting of detected panels (mutual-centre rows, LTR,
       containers before their insets)
-- [x] Guided navigation: tap zones advance panel with animated pan/zoom, a
-      whole-page overview stop on entering each multi-panel page, and a HUD
-      stops indicator with an end-of-page cue
+- [x] Guided navigation: tap zones advance panel with animated pan/zoom,
+      entering a page straight on its first panel, and a HUD stops indicator
+      with an end-of-page cue
 - [x] Spread posture: guided within the two-page spread (active half focuses,
       other page as context) or full screen, toggle in the HUD
 - [x] Robust base: double-tap zoom around the tapped point + one-finger pan in
@@ -429,6 +429,30 @@ product (an external Ko-fi / Buy Me a Coffee link risks a Play payments-policy
 rejection; decided 2026-08-29), reading stats / recently read, home-screen widget, automatic
 day/night theme, ComicVine metadata, panel-level posture transition,
 outliner idea 3b.
+
+---
+
+## Tester feedback — 1.0.x
+
+Feedback from the first testers (2026-08-30). Each item ships on its own
+`feedback/*` branch and is verified on the Fold and phone emulators.
+
+- [ ] Onboarding folder step: no visual confirmation after picking the
+      folder. Show the chosen folder name and a "selected" state on the
+      button, so the user knows the step is done before moving on
+- [ ] Library does not notice comics added to the folder while the app is
+      open. Rescan the folder whenever the library comes to the foreground
+      (app start and return from background), keeping the manual refresh
+- [ ] Split double pages: some PDFs (and scans) come with two comic pages per
+      file page. Per-comic "Split wide pages" toggle, in the comic settings
+      screen and in the reader gear menu, that cuts landscape pages in half
+      and presents each half as its own page in reading-direction order
+- [ ] Double-tap to zoom on regular phones often pans the page a little
+      instead of toggling zoom: the second tap is read as a tiny drag.
+      Tolerate touch slop between the taps so double-tap wins
+- [x] Guided View: drop the whole-page overview stop when entering a page —
+      go straight to the first panel so the flow is not interrupted on every
+      page turn
 
 ---
 
