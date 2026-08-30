@@ -432,6 +432,17 @@ outliner idea 3b.
 
 ---
 
+## Tester feedback — 1.0.x
+
+- [x] A comic added to the folder while the app is open only showed up after a
+      manual refresh. The library now rescans the folder by itself whenever the
+      app comes to the foreground (`ON_START` in `KapowRoot`): silent, skipped
+      when no folder is chosen or a scan is already running, and not re-run on
+      internal navigation such as closing the reader. Manual rescan stays. See
+      `docs/library.md`
+
+---
+
 ## Non-goals
 
 - No online store, DRM, or downloading of copyrighted content. Kapow reads

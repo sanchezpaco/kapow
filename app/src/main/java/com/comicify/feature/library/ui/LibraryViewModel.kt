@@ -12,10 +12,12 @@ import com.comicify.feature.library.domain.LibraryScanError
 import com.comicify.feature.library.domain.LibrarySort
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -33,6 +35,7 @@ class LibraryViewModel @Inject constructor(
     private val sort = MutableStateFlow(LibrarySort.TITLE)
     private val query = MutableStateFlow("")
     private val openedSeries = MutableStateFlow<String?>(null)
+    private var foregroundScan: Job? = null
 
     val state: StateFlow<LibraryUiState> =
         combine(
@@ -75,6 +78,14 @@ class LibraryViewModel @Inject constructor(
     fun onFolderPicked(treeUri: Uri) = runScan { repository.setFolder(treeUri) }
 
     fun onRefresh() = runScan { repository.refresh() }
+
+    fun onForeground() {
+        if (scanning.value || foregroundScan?.isActive == true) return
+        foregroundScan = viewModelScope.launch {
+            if (repository.folderUri.first() == null) return@launch
+            scanCatching { repository.refresh() }
+        }
+    }
 
     fun saveProgress(comicId: Long, pageIndex: Int, pageCount: Int) {
         viewModelScope.launch { repository.saveProgress(comicId, pageIndex, pageCount) }
@@ -133,23 +144,25 @@ class LibraryViewModel @Inject constructor(
     }
 
     private fun runScan(scan: suspend () -> Unit) {
-        viewModelScope.launch {
-            scanning.value = true
-            scanError.value = null
-            try {
-                scan()
-                repository.generateMissingCovers()
-            } catch (cancellation: CancellationException) {
-                throw cancellation
-            } catch (error: SecurityException) {
-                Log.e(LIBRARY_TAG, "Folder access lost", error)
-                scanError.value = LibraryScanError.AccessLost
-            } catch (error: Exception) {
-                Log.e(LIBRARY_TAG, "Folder scan failed", error)
-                scanError.value = LibraryScanError.ReadFailure
-            } finally {
-                scanning.value = false
-            }
+        viewModelScope.launch { scanCatching(scan) }
+    }
+
+    private suspend fun scanCatching(scan: suspend () -> Unit) {
+        scanning.value = true
+        scanError.value = null
+        try {
+            scan()
+            repository.generateMissingCovers()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (error: SecurityException) {
+            Log.e(LIBRARY_TAG, "Folder access lost", error)
+            scanError.value = LibraryScanError.AccessLost
+        } catch (error: Exception) {
+            Log.e(LIBRARY_TAG, "Folder scan failed", error)
+            scanError.value = LibraryScanError.ReadFailure
+        } finally {
+            scanning.value = false
         }
     }
 }
