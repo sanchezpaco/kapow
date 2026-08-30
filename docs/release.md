@@ -41,6 +41,14 @@ unsigned; nothing falls back to the debug key.
   created in Play Console with its first bundle uploaded by hand (the API
   cannot create apps or make the first upload).
 
+## Closing a version
+
+Bump `versionCode` and `versionName` in `app/build.gradle.kts`, add the
+version's section to `CHANGELOG.md` (user-facing changes only, Keep a
+Changelog headings) and the Play "What's new" text as
+`fastlane/metadata/android/<locale>/changelogs/<versionCode>.txt` in both
+locales, commit as "Close version X.Y.Z" and tag `vX.Y.Z`.
+
 ## Checks after a release build
 
 - `apksigner verify --print-certs` on the APK shows `CN=Kapow`; the bundle
