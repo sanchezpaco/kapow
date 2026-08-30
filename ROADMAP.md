@@ -447,7 +447,7 @@ Feedback from the first testers (2026-08-30). Each item ships on its own
 - [x] Onboarding folder step: no visual confirmation after picking the
       folder. Show the chosen folder name and a "selected" state on the
       button, so the user knows the step is done before moving on
-- [ ] Library does not notice comics added to the folder while the app is
+- [x] Library does not notice comics added to the folder while the app is
       open. Rescan the folder whenever the library comes to the foreground
       (app start and return from background), keeping the manual refresh
 - [ ] Split double pages: some PDFs (and scans) come with two comic pages per

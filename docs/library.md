@@ -29,6 +29,27 @@ The home of the collection: import comics, browse covers, resume reading.
 - Scanning stays responsive: each discovered comic is inserted immediately with
   `pageCount`/`coverPath` left null, and covers fill in afterwards (below).
 
+### When the library rescans
+
+- **Automatically, whenever the app comes to the foreground.** `KapowRoot`
+  hooks `Lifecycle.Event.ON_START` (`LifecycleEventEffect`) and calls
+  `LibraryViewModel.onForeground()`, so a file dropped into the folder while the
+  app sat in the background is on the shelf by the time the user looks at it,
+  without touching refresh. The trigger sits in `KapowRoot`, not in
+  `LibraryScreen`: the root stays composed across internal navigation, so
+  closing the reader or leaving the settings screen does **not** rescan and
+  going back from a page turn stays instant. Because the activity declares
+  `configChanges` for orientation/size, folding and unfolding does not restart
+  it either.
+- The rescan is silent: it never blanks the grid — the shelf keeps rendering the
+  comics already in Room while the scan runs, and the only feedback is the
+  header's small "Scanning" spinner row.
+- It is skipped when no folder is chosen (the folder Uri is read first, so a
+  folder-less install does not even flip the scanning flag) and when a scan is
+  already running, so overlapping scans are impossible.
+- **Manually**, from Settings → Comics folder → Rescan (`onRefresh`), and
+  implicitly when a folder is picked (`setFolder` scans the new tree).
+
 ## Sample comic
 
 - A short bundled comic (`assets/sample.cbz`) gives a freshly installed app

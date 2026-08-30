@@ -25,8 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.comicify.feature.library.domain.LibraryCatalog
@@ -63,6 +65,7 @@ private sealed interface Screen {
 fun KapowRoot(initialUri: Uri? = null) {
     val viewModel: LibraryViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onForeground() }
     val onboarding: OnboardingViewModel = hiltViewModel()
     val onboardingSeen by onboarding.seen.collectAsStateWithLifecycle()
     val review: ReviewPromptViewModel = hiltViewModel()
