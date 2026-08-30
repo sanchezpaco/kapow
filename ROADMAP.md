@@ -432,6 +432,16 @@ outliner idea 3b.
 
 ---
 
+## Tester feedback — 1.0.x
+
+- [x] Onboarding folder step gave no sign that the folder had been picked
+      (2026-08-30): once `LibraryUiState.folderUri` is set the button becomes a
+      tonal "Folder selected" with a check icon and the note under it shows the
+      folder's display name; tapping it picks another folder. Source of truth is
+      the persisted folder, so a replay from Settings → About opens confirmed
+
+---
+
 ## Non-goals
 
 - No online store, DRM, or downloading of copyrighted content. Kapow reads

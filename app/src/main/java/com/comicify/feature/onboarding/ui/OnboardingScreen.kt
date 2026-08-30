@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.ViewCarousel
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.comicify.R
+import com.comicify.core.ui.folderDisplayName
 import com.comicify.core.ui.theme.KapowTheme
 import com.comicify.feature.library.ui.PrimaryAction
 import kotlinx.coroutines.launch
@@ -64,11 +66,12 @@ private val IllustrationCorner = 18.dp
 private val PageAspectRatio = 1.5f
 private const val PAGE_TURN_ZONE_FRACTION = 0.2f
 private const val ZONE_TINT_ALPHA = 0.22f
+private const val CONFIRMED_TINT_ALPHA = 0.16f
 private val DotSize = 8.dp
 private val DotGap = 8.dp
 
 @Composable
-fun OnboardingScreen(onFolderPicked: (Uri) -> Unit, onFinished: () -> Unit) {
+fun OnboardingScreen(folderUri: String?, onFolderPicked: (Uri) -> Unit, onFinished: () -> Unit) {
     val pagerState = rememberPagerState { STEP_COUNT }
     val scope = rememberCoroutineScope()
     val palette = KapowTheme.palette
@@ -99,7 +102,7 @@ fun OnboardingScreen(onFolderPicked: (Uri) -> Unit, onFinished: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
                     when (step) {
-                        STEP_FOLDER -> FolderStep(onPickFolder = { folderLauncher.launch(null) })
+                        STEP_FOLDER -> FolderStep(folderUri = folderUri, onPickFolder = { folderLauncher.launch(null) })
                         STEP_GESTURES -> GesturesStep()
                         STEP_MODES -> ModesStep()
                     }
@@ -124,11 +127,33 @@ fun OnboardingScreen(onFolderPicked: (Uri) -> Unit, onFinished: () -> Unit) {
 }
 
 @Composable
-private fun FolderStep(onPickFolder: () -> Unit) {
+private fun FolderStep(folderUri: String?, onPickFolder: () -> Unit) {
     Illustration(ShelfDrawing())
     StepText(title = stringResource(R.string.onboarding_folder_title), body = stringResource(R.string.onboarding_folder_body))
-    PrimaryAction(icon = Icons.Outlined.CreateNewFolder, label = stringResource(R.string.library_pick_folder), onClick = onPickFolder)
-    Footnote(stringResource(R.string.onboarding_folder_sample))
+    if (folderUri == null) {
+        PrimaryAction(icon = Icons.Outlined.CreateNewFolder, label = stringResource(R.string.library_pick_folder), onClick = onPickFolder)
+        Footnote(stringResource(R.string.onboarding_folder_sample))
+    } else {
+        ConfirmedAction(label = stringResource(R.string.onboarding_folder_selected), onClick = onPickFolder)
+        Footnote(folderDisplayName(folderUri))
+    }
+}
+
+@Composable
+private fun ConfirmedAction(label: String, onClick: () -> Unit) {
+    val palette = KapowTheme.palette
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(palette.accent.copy(alpha = CONFIRMED_TINT_ALPHA))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(imageVector = Icons.Outlined.CheckCircle, contentDescription = null, tint = palette.accent, modifier = Modifier.size(18.dp))
+        Text(text = label, color = palette.accent, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+    }
 }
 
 @Composable

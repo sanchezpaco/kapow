@@ -114,6 +114,7 @@
     <string name="onboarding_folder_title">Your comics, your folder</string>
     <string name="onboarding_folder_body">Point Kapow at the folder where you keep your CBZ, CBR and PDF files. It builds the bookshelf and keeps it up to date.</string>
     <string name="onboarding_folder_sample">You can do this later from Settings. A sample comic is already on the shelf.</string>
+    <string name="onboarding_folder_selected">Folder selected</string>
     <string name="onboarding_gestures_title">Reading gestures</string>
     <string name="onboarding_gestures_body">Tap the left or right edge to turn the page, tap the middle for the controls. Pinch or double-tap to zoom in; swipe to move between pages.</string>
     <string name="onboarding_modes_title">Two ways to read</string>

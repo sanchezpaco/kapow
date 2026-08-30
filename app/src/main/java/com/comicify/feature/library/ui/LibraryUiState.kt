@@ -10,7 +10,7 @@ data class LibraryUiState(
     val loading: Boolean = true,
     val scanning: Boolean = false,
     val scanError: LibraryScanError? = null,
-    val hasFolder: Boolean = false,
+    val folderUri: String? = null,
     val filter: LibraryFilter = LibraryFilter.ALL,
     val sort: LibrarySort = LibrarySort.TITLE,
     val query: String = "",

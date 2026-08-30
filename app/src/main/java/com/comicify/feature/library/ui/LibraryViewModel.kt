@@ -51,7 +51,7 @@ class LibraryViewModel @Inject constructor(
                 loading = false,
                 scanning = isScanning,
                 scanError = error,
-                hasFolder = folder != null,
+                folderUri = folder,
                 filter = selectedFilter,
                 sort = selectedSort,
                 query = searchQuery,
