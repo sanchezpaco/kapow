@@ -135,6 +135,8 @@
     <string name="reader_action_guided_full_screen">Viñeta a pantalla completa</string>
     <string name="reader_action_guided_keep_spread">Viñeta dentro de la doble página</string>
     <string name="reader_action_night_tint">Filtro nocturno</string>
+    <string name="reader_split_suggestion">Parece que este cómic tiene dos páginas por imagen</string>
+    <string name="reader_split_suggestion_action">Dividir</string>
     <string name="reader_action_split_wide_pages">Dividir páginas dobles</string>
     <string name="reader_action_direction_ltr">Sentido de lectura: izquierda a derecha</string>
     <string name="reader_action_direction_rtl">Sentido de lectura: derecha a izquierda</string>

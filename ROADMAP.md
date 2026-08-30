@@ -457,6 +457,11 @@ Feedback from the first testers (2026-08-30). Each item ships on its own
 - [x] Double-tap to zoom on regular phones often pans the page a little
       instead of toggling zoom: the second tap is read as a tiny drag.
       Tolerate touch slop between the taps so double-tap wins
+- [x] Suggest the split (decided 2026-08-30, no centre-gutter check): when
+      ≥ 80 % of the pages after the cover are landscape, a one-time snackbar
+      offers "Split"; accepted or dismissed, it never asks again for that
+      comic. Onboarding stays untouched — it is a niche setting, surfaced at
+      the moment it matters
 - [x] Guided View: drop the whole-page overview stop when entering a page —
       go straight to the first panel so the flow is not interrupted on every
       page turn

@@ -144,6 +144,20 @@ its own page.
   first half of that source page through the new one. The reader surfaces are
   keyed on the `PageLoader`, so the pager is recreated on the mapped page.
 
+### Suggesting the split
+
+Opening a comic with the setting off probes every page's aspect (the same
+`pageAspect` the split uses) and, when at least 80 % of the pages after the
+cover are wider than tall (`SplitSuggestion.shouldSuggest`, at least two
+such pages), shows a snackbar once: "This comic looks like it has two pages
+per image · Split". The action turns the setting on; accepting or dismissing
+records `ComicSettings.splitSuggested` so the comic never asks again. The
+check is purely geometric, so a landscape-format comic gets the same
+suggestion — that is why it suggests rather than splits on its own. On
+RAR files the probe waits for the archive extraction, so the snackbar can
+appear a few seconds after the first page.
+
+
 ## Per-comic settings
 
 `ReaderViewModel` reads the comic's `comic_settings` row (`ComicSettingsDao`)

@@ -51,6 +51,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -90,7 +94,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.comicify.R
 import com.comicify.core.input.PageTurnDirection
-import com.comicify.feature.reader.domain.TapZone
 import com.comicify.core.input.RegisterVolumeKeyPageTurns
 import com.comicify.core.window.ReadingPosture
 import com.comicify.core.window.rememberReadingWindowState
@@ -98,6 +101,7 @@ import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
 import com.comicify.feature.reader.domain.ComicOpenError
+import com.comicify.feature.reader.domain.TapZone
 import kotlinx.coroutines.flow.MutableSharedFlow
 
 private const val CHROME_SLIDE_MS = 200
@@ -248,7 +252,32 @@ fun ReaderScreen(
             onLibrary = onClose,
             onResume = { atEnd = false },
         )
+
+        SplitSuggestionSnackbar(
+            suggested = state.splitSuggested,
+            onAccept = viewModel::acceptSplitSuggestion,
+            onDismiss = viewModel::dismissSplitSuggestion,
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding(),
+        )
     }
+}
+
+@Composable
+private fun SplitSuggestionSnackbar(
+    suggested: Boolean,
+    onAccept: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val host = remember { SnackbarHostState() }
+    val message = stringResource(R.string.reader_split_suggestion)
+    val action = stringResource(R.string.reader_split_suggestion_action)
+    LaunchedEffect(suggested) {
+        if (!suggested) return@LaunchedEffect
+        val result = host.showSnackbar(message, actionLabel = action, duration = SnackbarDuration.Long)
+        if (result == SnackbarResult.ActionPerformed) onAccept() else onDismiss()
+    }
+    SnackbarHost(host, modifier = modifier)
 }
 
 private const val END_OVERSCROLL_TRIGGER = 160f

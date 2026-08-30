@@ -85,7 +85,7 @@ ReadingState(
 
 ComicSettings(
     documentUri, rightToLeft?, coverAlone, bubblesEnlarged?, guided?,
-    bubbleScale?, splitWidePages,
+    bubbleScale?, splitWidePages, splitSuggested,
 )
 ```
 

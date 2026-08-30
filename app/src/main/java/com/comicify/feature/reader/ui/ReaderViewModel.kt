@@ -3,6 +3,7 @@ package com.comicify.feature.reader.ui
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -13,6 +14,7 @@ import com.comicify.core.storage.ComicSettingsEntity
 import com.comicify.core.storage.DatabaseEntryPoint
 import com.comicify.core.storage.OpenDefaults
 import com.comicify.core.storage.ReaderPreferencesRepository
+import com.comicify.core.window.ReadingPosture
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.domain.model.ReadingPosition
 import com.comicify.feature.reader.data.ComicSource
@@ -24,20 +26,23 @@ import com.comicify.feature.reader.data.PanelDetector
 import com.comicify.feature.reader.data.SplitPagesComicSource
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.ComicOpenError
-import com.comicify.core.window.ReadingPosture
+import com.comicify.feature.reader.domain.SplitSuggestion
 import dagger.hilt.android.EntryPointAccessors
+import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private const val READER_TAG = "Reader"
 
 class ReaderViewModel(
     application: Application,
@@ -76,7 +81,29 @@ class ReaderViewModel(
                 direction = effectiveDirection(preferencesRepository.readingDirection.first(), settings),
             )
             loadSource(mode) { state.value.position.pageIndex }
+            if (!mode.splitWidePages && settings?.splitSuggested != true) suggestSplitIfMostlyWide()
         }
+    }
+
+    private suspend fun suggestSplitIfMostlyWide() {
+        val opened = source ?: return
+        val aspects = try {
+            (0 until opened.pageCount).map { opened.pageAspect(it) }
+        } catch (e: IOException) {
+            Log.w(READER_TAG, "Page aspect probe failed, no split suggestion", e)
+            return
+        }
+        if (SplitSuggestion.shouldSuggest(aspects)) _state.update { it.copy(splitSuggested = true) }
+    }
+
+    fun acceptSplitSuggestion() {
+        _state.update { it.copy(splitSuggested = false) }
+        updateSettings { it.copy(splitWidePages = true, splitSuggested = true) }
+    }
+
+    fun dismissSplitSuggestion() {
+        _state.update { it.copy(splitSuggested = false) }
+        updateSettings { it.copy(splitSuggested = true) }
     }
 
     private fun reopenComic(mode: SourceMode) {
@@ -229,9 +256,13 @@ class ReaderViewModel(
 
     fun toggleSplitWidePages() {
         val split = !_state.value.splitWidePages
+        updateSettings { it.copy(splitWidePages = split) }
+    }
+
+    private fun updateSettings(transform: (ComicSettingsEntity) -> ComicSettingsEntity) {
         viewModelScope.launch {
             val settings = comicSettingsDao.find(uri.toString()) ?: emptySettings()
-            comicSettingsDao.upsert(settings.copy(splitWidePages = split))
+            comicSettingsDao.upsert(transform(settings))
         }
     }
 
