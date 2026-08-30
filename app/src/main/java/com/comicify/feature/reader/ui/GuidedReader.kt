@@ -110,9 +110,8 @@ fun GuidedReader(
         val loaded = runCatching { loader.load(page) }.getOrNull()
         loaded?.let { arts = arts + (page to it); onAmbient(it.ambient) }
         val detected = runCatching { loader.panels(page) }.getOrDefault(listOf(FullPagePanel))
-        val stops = if (detected.size > 1) listOf(FullPagePanel) + detected else detected
-        panels = stops
-        panelIndex = if (panelIndex == LAST_PANEL) stops.lastIndex else panelIndex.coerceIn(0, stops.lastIndex)
+        panels = detected
+        panelIndex = if (panelIndex == LAST_PANEL) detected.lastIndex else panelIndex.coerceIn(0, detected.lastIndex)
         loader.preload(page, (page - 1)..(page + 2), bubbleScale = null, panels = true)
         if (spread) {
             val sibling = spreadStart * 2 + 1 - page
@@ -150,8 +149,7 @@ fun GuidedReader(
     LaunchedEffect(panelIndex, panels.size) { onGuidedStop(panelIndex, panels.size) }
 
     val currentStop = panels.getOrElse(panelIndex) { FullPagePanel }
-    val isOverview = panels.size > 1 && panelIndex == 0
-    val autoPan = AUTO_PAN_ENABLED && !isOverview && isLargeStop(currentStop)
+    val autoPan = AUTO_PAN_ENABLED && isLargeStop(currentStop)
     val panelView = GuidedFocus.frame(currentStop, PANEL_PADDING)
     val resetKey = page to panelIndex
 

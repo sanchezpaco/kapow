@@ -163,14 +163,13 @@ Annotated PNGs land in `<dir>/out`. Iterate there, then trust the unit tests.
 ## Navigation and framing
 
 - Left 20 % / right 20 % tap zones go to the previous / next panel; the centre
-  toggles the chrome. Multi-panel pages prepend a **whole-page overview stop**,
-  so moving forward into a page shows it whole first, then the panels; moving
-  back lands on the previous page's last panel. Splashes (a single stop) are
-  entered whole as before.
+  toggles the chrome. The stops of a page are exactly its detected panels:
+  moving forward into a page lands on its first panel, moving back lands on the
+  previous page's last panel. Splashes and full-page fallbacks are a single stop
+  showing the whole page.
 - A HUD stops indicator (always visible in Guided View) shows the current
-  position as a row of dots — the overview is a rounded marker, panels are
-  circles — with a chevron that lights up on the last stop to signal that the
-  next tap turns the page.
+  position as a row of dots, with a chevron that lights up on the last stop to
+  signal that the next tap turns the page.
 - `GuidedFocus.frame` pads the panel rect by 2 % of the page and clamps it to
   the page. `GuidedPage` animates an `Animatable<Rect>` (520 ms, FastOutSlowIn)
   and draws the focused panel bright over the rest of the page dimmed — a
