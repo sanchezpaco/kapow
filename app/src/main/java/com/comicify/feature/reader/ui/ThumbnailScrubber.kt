@@ -90,8 +90,8 @@ private fun ThumbnailCell(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    var thumb by remember(index) { mutableStateOf<ImageBitmap?>(null) }
-    LaunchedEffect(index, visible) {
+    var thumb by remember(loader, index) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(loader, index, visible) {
         if (visible && thumb == null) thumb = runCatching { loader.loadThumb(index) }.getOrNull()
     }
 
