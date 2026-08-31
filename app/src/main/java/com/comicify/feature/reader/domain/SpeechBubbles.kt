@@ -46,6 +46,7 @@ private const val MAX_MARGIN_CAP_FRACTION = 0.08f
 private const val MIN_GROWTH_SHARE = 0.01f
 private const val MAX_SEED_EXTENSIONS = 5
 private const val MIN_OVERLAP_TO_MERGE = 0.15f
+private const val LINKED_SILHOUETTE_OVERLAP = 0.2f
 private const val GUTTER_MIN_RUN_FRACTION = 0.3f
 private const val GUTTER_MAX_THICKNESS_FRACTION = 0.012f
 private const val BOX_RIM_MARGIN_FRACTION = 0.01f
@@ -94,10 +95,23 @@ object SpeechBubbles {
 
     fun outlined(classes: PixelClasses, boxes: List<Rect>, extractText: Boolean = false): List<SpeechBubble> {
         val darkCore = withSolidCore(classes.solidDark, classes.width, classes.height)
-        return boxes.map { outlined(classes, darkCore, it, extractText) }
+        val silhouettes = boxes.map { silhouetteOf(classes, darkCore, it, extractText) }
+        return mergeLinked(silhouettes).map { it.blob.toBubble(classes.width, classes.height, it.text) }
     }
 
-    private fun outlined(classes: PixelClasses, darkCore: BooleanArray, box: Rect, extractText: Boolean): SpeechBubble {
+    private class Silhouette(val blob: Blob, val text: List<Rect>)
+
+    private fun mergeLinked(silhouettes: List<Silhouette>): List<Silhouette> {
+        val merged = ArrayList<Silhouette>()
+        silhouettes.sortedByDescending { it.blob.pixels }.forEach { candidate ->
+            val partner = merged.indexOfFirst { it.blob.stronglyOverlaps(candidate.blob, LINKED_SILHOUETTE_OVERLAP) }
+            if (partner < 0) merged.add(candidate)
+            else merged[partner] = Silhouette(merged[partner].blob.union(candidate.blob), merged[partner].text + candidate.text)
+        }
+        return merged
+    }
+
+    private fun silhouetteOf(classes: PixelClasses, darkCore: BooleanArray, box: Rect, extractText: Boolean): Silhouette {
         val width = classes.width
         val height = classes.height
         val pageSide = min(width, height)
@@ -105,14 +119,14 @@ object SpeechBubbles {
         val frame = inner.inflate((pageSide * BOX_RIM_MARGIN_FRACTION).toInt(), width, height)
         val paper = bodyWithin(paperCells(classes, inner), inner, frame, width)?.credibleWithin(inner)?.grownTowardsShortSides(classes.solidPale, width)
         val dark = bodyWithin({ darkCore[it] }, inner, frame, width)?.credibleWithin(inner)
-        val body = listOfNotNull(paper, dark).maxByOrNull { it.insidePixels } ?: return Blob.filled(inner).toBubble(width, height)
+        val body = listOfNotNull(paper, dark).maxByOrNull { it.insidePixels } ?: return Silhouette(Blob.filled(inner), emptyList())
         val text = if (!extractText) emptyList() else {
             val onPaper = body === paper
             textIn(body.blob, if (onPaper) classes.ink else classes.light, if (onPaper) INK_ON_PAPER.minWordInkShare else LIGHT_ON_DARK.minWordInkShare, pageSide, width, height)
         }
         val maxRim = (pageSide * MAX_RIM_FRACTION).toInt()
         val blob = body.blob
-        return blob.dilated(max(OUTLINE_MARGIN, blob.rimThickness(classes.ink, maxRim, width, height)), width, height).toBubble(width, height, text)
+        return Silhouette(blob.dilated(max(OUTLINE_MARGIN, blob.rimThickness(classes.ink, maxRim, width, height)), width, height), text)
     }
 
     private fun textIn(body: Blob, ink: BooleanArray, minInkShare: Float, pageSide: Int, width: Int, height: Int): List<Rect> {
@@ -482,6 +496,16 @@ private class Blob(val box: Box, val cells: BooleanArray) {
             if (contains(x, y) && other.contains(x, y)) return true
         }
         return false
+    }
+
+    fun stronglyOverlaps(other: Blob, share: Float): Boolean {
+        val overlap = box.intersect(other.box)
+        if (overlap.width <= 0 || overlap.height <= 0) return false
+        var shared = 0
+        for (y in overlap.top until overlap.bottom) for (x in overlap.left until overlap.right) {
+            if (contains(x, y) && other.contains(x, y)) shared++
+        }
+        return shared >= share * min(pixels, other.pixels)
     }
 
     fun union(other: Blob): Blob {

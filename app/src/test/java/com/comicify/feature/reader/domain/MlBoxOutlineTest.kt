@@ -12,8 +12,10 @@ class MlBoxOutlineTest {
     private val panel = Box(20, 20, 380, 580)
     private val shade = 0xFFDCDCDC.toInt()
 
-    private fun outlined(page: SyntheticPage, box: Box): SpeechBubble =
-        SpeechBubbles.outlined(PixelClasses.classify(page.pixels, page.width, page.height, 1), listOf(box.toRect(page.width, page.height))).single()
+    private fun outlined(page: SyntheticPage, box: Box): SpeechBubble = outlined(page, listOf(box)).single()
+
+    private fun outlined(page: SyntheticPage, boxes: List<Box>): List<SpeechBubble> =
+        SpeechBubbles.outlined(PixelClasses.classify(page.pixels, page.width, page.height, 1), boxes.map { it.toRect(page.width, page.height) })
 
     private fun SyntheticPage.ovalBubble(center: Offset, rx: Int, ry: Int) = apply {
         for (y in 0 until height) for (x in 0 until width) {
@@ -104,6 +106,24 @@ class MlBoxOutlineTest {
         val text = SpeechBubbles.outlined(classes, boxes, extractText = true).single().text
         assertEquals(2, text.size)
         assertTrue(text.all { it.top >= 100f / 600 && it.bottom <= 170f / 600 && it.left >= 100f / 400 && it.right <= 220f / 400 })
+    }
+
+    @Test
+    fun oneBalloonSplitIntoOverlappingBoxesMergesIntoOneUnit() {
+        val page = SyntheticPage(400, 600).fill(panel, RED).fill(Box(96, 166, 304, 234), BLACK).fill(Box(100, 170, 300, 230), WHITE)
+        val bubbles = outlined(page, listOf(Box(96, 166, 224, 234), Box(176, 166, 304, 234)))
+        assertEquals(1, bubbles.size)
+        val merged = bubbles.single()
+        assertTrue(merged.contains(Offset(120f / 400, 200f / 600)))
+        assertTrue(merged.contains(Offset(280f / 400, 200f / 600)))
+    }
+
+    @Test
+    fun separateBubblesAreNotMerged() {
+        val page = SyntheticPage(400, 600).fill(panel, RED)
+            .ovalBubble(Offset(110f, 200f), 40, 30).ovalBubble(Offset(300f, 200f), 40, 30)
+        val bubbles = outlined(page, listOf(Box(70, 170, 150, 230), Box(260, 170, 340, 230)))
+        assertEquals(2, bubbles.size)
     }
 
     @Test

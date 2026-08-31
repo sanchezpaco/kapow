@@ -276,15 +276,46 @@ with silhouette overlap past the bar 18 → 2, stuck-at-1× 1 → 0, at a modest
 uncovered cost (+32 %, an eighth of what the rejected two-region round below
 cost). Verified on the Fold emulator: Venomverse 001-001/001-019 read
 complete, Shangri-La 01(30)'s buried "UNA OBRA MAESTRA" pair now reads (both
-copies separated). The remaining defect is the **ghost behind a separated
-pair**: on linked balloons the artist drew as one continuous speech (two
-lobes that overlap heavily), separating them to satisfy the ceiling opens a
-gap the width of their original overlap, and the `CrescentFill` there shows a
+copies separated). That left one defect: the **ghost behind a separated
+pair**. On linked balloons the artist drew as one continuous speech (two
+lobes that overlap heavily), separating them to satisfy the ceiling opened a
+gap the width of their original overlap, and the `CrescentFill` there showed a
 faint double of the original text. The uncovered metric is area-based and
 under-weights it (0.0033 of the page reads as a visible ghost), the same
-blind spot pattern again. The real fix is to **enlarge such linked pairs as
-one unit** (as the heuristic's `mergeSharingPaper` does) rather than let the
-ceiling separate them — the next task, tracked in a handoff.
+blind spot pattern again, so it was judged by eye too.
+
+The fix removes the gap at its source, in `SpeechBubbles.outlined`
+(`mergeLinked`): the model emits one box per balloon, so a linked pair arrives
+as two boxes the layout then has to separate. After outlining every box, pairs
+whose dilated silhouettes **overlap strongly** — shared cells ≥
+`LINKED_SILHOUETTE_OVERLAP` (20 %) of the smaller silhouette — are unioned into
+a single `SpeechBubble` (their blobs merged, then re-traced by `toBubble`, so a
+fused pair yields one clean outline), exactly as the heuristic path unions
+`mergeOverlapping` blobs. `BubbleLayout` then grows the unit about its joint
+centre and never opens a gap between the lobes; `CrescentFill` fills the union
+footprint as one. The threshold is deliberately high (a genuine linked waist
+shares ~30–50 % of the smaller balloon; an incidental tail-cross a few per
+cent) so it is a **hybrid**: only truly fused pairs merge, and the push/reanchor
+machinery still wins the separations it can when there is room — merging *all*
+art-overlapping pairs was rejected (corpus bad pages 6 → 18). The union is
+purely geometric (silhouette cells, not text), so the device path is unchanged
+in cost; it changes persisted outlines, so `DETECTIONS_VERSION` gains
+`+linked-v1`.
+
+On the 215-page general sample (boxes fixed, `mergeLinked` vs the ceiling
+alone) 37 pages merged a pair: summed `worstTextHidden` 0.035 → 0.002 (−94 %,
+the last buried-text page, Venomverse 001-015, cleared), summed `uncovered`
+0.627 → 0.617 (net down — the linked-pair ghosts closed: Shangri-La 02(80)
+0.0033 → 0, 01(72) 0.0202 → 0.0180), pages with serious silhouette overlap
+70 → 53. The threshold is a genuine tradeoff, not a clean separator: a real
+linked waist shares 0.36–0.45 of the smaller silhouette, but manga balloons
+the artist draws touching (One Piece) share 0.20–0.38 — the same range as the
+Venomverse pairs whose copies *do* bury text. 0.20 is set to catch the
+buried-text/ghost cases (the primary goal); its cost is over-merging a few
+manga pages where separate touching balloons become one unit (One Piece
+p.137-15 uncovered +0.0134, text still readable). Telling those apart needs the
+text-burial outcome, i.e. text extraction on device — deferred until the layout
+consumes text.
 
 Reverted alongside: a larger "two regions per bubble" round (mutually
 exclusive owned silhouettes + an erased full-body footprint feeding

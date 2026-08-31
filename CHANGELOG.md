@@ -21,6 +21,12 @@ All notable user-facing changes to Kapow. The format follows
   how many collide. Across a broad test corpus the pages left with any
   balloon's text still hidden dropped to zero, and no balloon is ever left
   un-enlarged — at the cost of slightly smaller bubbles on crowded pages.
+- No more faint ghost of the original behind linked balloons. When the artist
+  draws one continuous speech as two heavily overlapping lobes, the two
+  enlarged copies used to be pushed apart and the gap between them showed a
+  faint double of the text underneath (Shangri-La, manga shout clusters).
+  Such linked pairs are now enlarged as a single balloon, so no gap opens.
+  Saved detections are recomputed on next read (detections version bump).
 
 ### Changed
 - Better speech-bubble detection (student v5): trained on eleven more series
