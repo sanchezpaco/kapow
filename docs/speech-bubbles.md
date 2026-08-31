@@ -262,6 +262,37 @@ Shangri-La 01(30) that reads as a ghost line of the original's text behind
 the moved copy. Same failure shape as the bug above — a page-normalized
 metric hiding a legibility defect — and the next thing to attack.
 
+`buriedGrowth` was then replaced by `buriedShare`: instead of only charging
+the *growth* of an art-overlapping pair's overlap, a pair is charged the
+larger of that growth and its **absolute overlap beyond a ceiling**
+(`BURIED_SHARE_TOLERANCE` = 10 % of the smaller bubble), whatever the artist
+drew — no pair may bury more than a tenth of its neighbour. The final
+coverage-relaxation shrink also floors at `CONTAINED_SCALE_FLOOR` (1.15×)
+instead of 1×, so no bubble is ever left un-enlarged (the feature loses its
+point otherwise). Judged against the text-aware metric on the 215-page
+general sample, this took pages with any text hidden past `TEXT_HIDDEN_SHARE`
+from 1 to 0 and the summed `worstTextHidden` 0.199 → 0.035 (−82 %), pages
+with silhouette overlap past the bar 18 → 2, stuck-at-1× 1 → 0, at a modest
+uncovered cost (+32 %, an eighth of what the rejected two-region round below
+cost). Verified on the Fold emulator: Venomverse 001-001/001-019 read
+complete, Shangri-La 01(30)'s buried "UNA OBRA MAESTRA" pair now reads (both
+copies separated). The remaining defect is the **ghost behind a separated
+pair**: on linked balloons the artist drew as one continuous speech (two
+lobes that overlap heavily), separating them to satisfy the ceiling opens a
+gap the width of their original overlap, and the `CrescentFill` there shows a
+faint double of the original text. The uncovered metric is area-based and
+under-weights it (0.0033 of the page reads as a visible ghost), the same
+blind spot pattern again. The real fix is to **enlarge such linked pairs as
+one unit** (as the heuristic's `mergeSharingPaper` does) rather than let the
+ceiling separate them — the next task, tracked in a handoff.
+
+Reverted alongside: a larger "two regions per bubble" round (mutually
+exclusive owned silhouettes + an erased full-body footprint feeding
+`CrescentFill`) drove the text metric to 0 on those same pages but blew
+uncovered up 5–7× (grey inpaint smears from the extra separation), so only
+the absolute-overlap ceiling and the shrink floor were kept from it. Patch
+saved at `.claude/handoffs/assets/2026-08-31-ceiling-ghost-discarded.patch`.
+
 ## Outlining a box (`SpeechBubbles.outlined`)
 
 For each ML box the detector looks for the bubble body inside it: the

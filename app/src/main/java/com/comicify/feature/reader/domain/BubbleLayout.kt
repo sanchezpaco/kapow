@@ -19,6 +19,7 @@ private val ANCHOR_SHARES = listOf(0f, 0.5f, 1f)
 private const val COLLISION_OUTLINE_VERTICES = 48
 private const val INTRUSION_EPSILON = 1e-3f
 private const val PAIR_COLLISION_COST = 2
+private const val BURIED_SHARE_TOLERANCE = 0.1f
 
 data class EnlargedBubble(val bubble: SpeechBubble, val scale: Float, val target: Rect) {
     fun map(point: Offset): Offset = Offset(
@@ -35,7 +36,7 @@ object BubbleLayout {
         val targets = placed.map { it.grown(scale) }.toMutableList()
         val silhouettes = Silhouettes(bubbles)
         separate(targets, placed, silhouettes)
-        shrinkOverlapping(targets, placed, silhouettes, floor = 1f, coverage = 0f)
+        shrinkOverlapping(targets, placed, silhouettes, CONTAINED_SCALE_FLOOR, coverage = 0f)
         return bubbles.indices.map { EnlargedBubble(bubbles[it], targets[it].width / bubbles[it].box.width, targets[it]) }
     }
 
@@ -74,16 +75,17 @@ object BubbleLayout {
         fun excess(i: Int, j: Int, a: Rect, b: Rect): Float {
             if (!a.collides(b)) return 0f
             return excesses.getOrPut(Placement(i, j, a, b)) {
-                (mutualIntrusion(i, a, j, b) - original[min(i, j)][max(i, j)]).coerceAtLeast(0f) + buriedGrowth(i, j, a, b)
+                (mutualIntrusion(i, a, j, b) - original[min(i, j)][max(i, j)]).coerceAtLeast(0f) + buriedShare(i, j, a, b)
             }
         }
 
-        private fun buriedGrowth(i: Int, j: Int, a: Rect, b: Rect): Float {
-            val drawn = artOverlap[min(i, j)][max(i, j)]
-            if (drawn <= 0f) return 0f
-            val grown = overlapArea(placedExtent(i, a), placedExtent(j, b))
+        private fun buriedShare(i: Int, j: Int, a: Rect, b: Rect): Float {
+            val buried = overlapArea(placedExtent(i, a), placedExtent(j, b))
+            if (buried <= 0f) return 0f
             val smallest = min(extents[i].area, extents[j].area)
-            return ((grown - drawn) / smallest).coerceAtLeast(0f)
+            val beyondArt = (buried - artOverlap[min(i, j)][max(i, j)]) / smallest
+            val beyondCeiling = buried / smallest - BURIED_SHARE_TOLERANCE
+            return max(beyondArt, beyondCeiling).coerceAtLeast(0f)
         }
 
         private fun overlapArea(a: Rect, b: Rect): Float {

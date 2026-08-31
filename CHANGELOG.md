@@ -14,12 +14,13 @@ All notable user-facing changes to Kapow. The format follows
 - Enlarged bubbles no longer bury each other's text. Two balloons the
   artist drew overlapping used to grow into each other unchecked — on the
   worst pages a balloon ended up almost entirely hidden and unreadable
-  (Venomverse, Shangri-La, Spiderman 2099, LOK: Soul Reaver). A pair may now
-  keep only the overlap the artist drew, and any growth beyond it is
-  resolved by moving or shrinking the pair; collision resolution also picks
-  positions by how deep bubbles intrude instead of how many collide. Across
-  a 156-page test corpus the worst hidden share dropped from 88 % to 25 %,
-  at the cost of slightly smaller bubbles on crowded pages.
+  (Venomverse, Shangri-La, Spiderman 2099, LOK: Soul Reaver). No enlarged
+  copy may now cover more than a tenth of its neighbour, whatever the artist
+  drew; anything beyond that is resolved by moving or shrinking the pair, and
+  collision resolution picks positions by how deep bubbles intrude instead of
+  how many collide. Across a broad test corpus the pages left with any
+  balloon's text still hidden dropped to zero, and no balloon is ever left
+  un-enlarged — at the cost of slightly smaller bubbles on crowded pages.
 
 ### Changed
 - Better speech-bubble detection (student v5): trained on eleven more series
