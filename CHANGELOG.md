@@ -27,6 +27,11 @@ All notable user-facing changes to Kapow. The format follows
   faint double of the text underneath (Shangri-La, manga shout clusters).
   Such linked pairs are now enlarged as a single balloon, so no gap opens.
   Saved detections are recomputed on next read (detections version bump).
+- Less smudge behind enlarged bubbles. When a copy has to slide aside to avoid
+  covering a neighbour, it now slides back over its own original as far as the
+  free space allows, so the vacated area it leaves for the background fill to
+  paint is as small as possible — noticeably cleaner over detailed art. It
+  never slides back over a neighbour's text.
 
 ### Changed
 - Better speech-bubble detection (student v5): trained on eleven more series

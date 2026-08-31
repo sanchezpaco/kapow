@@ -700,6 +700,25 @@ sliding, and slide only when nothing else fits.
    0): a copy may uncover up to 15 %, 50 % and finally the whole original per
    axis, never farther than one box away; what still collides is shrunk
    towards 1× (`BubbleLayoutTest.crowdedClusterEndsWithoutOverlappingCopies`).
+6. A final **cover-the-vacated-area** pass (`coverOriginals`) pulls each copy
+   back toward the position where it is centred on its own original (full
+   coverage, `Placed.grown`), as far along that path (`COVER_STEPS` = 8) as it
+   can go while a neighbour is not (a) collided, (b) overlapped in silhouette
+   any more than it already is, or (c) intruded into in its text body any more
+   than it already is. Steps 3–5 slide copies apart to break collisions, which
+   leaves the vacated original showing as a `CrescentFill` smudge over the art;
+   this pass reclaims that area wherever it is free, so the copy covers its
+   footprint instead. The three neighbour tests keep it strictly safe: a copy
+   may only grow back into space no other bubble holds — never further over a
+   neighbour's text. The text-body test (`textIntrusion`, the same measure as
+   the collision check) is the one that matters: bounding-box overlap alone is
+   too loose for a tight black-bubble cluster and let a copy graze a
+   neighbour's last line (Venomverse 001-019). On the 215-page general sample
+   this took summed uncovered 0.617 → 0.394 (−36 %) with summed
+   `worstTextHidden` unchanged at 0.002 (corpus max 0.018 → 0.002, no page's
+   text newly hidden); Shangri-La, Venomverse, Titán and the One Piece
+   linked-pair page (0.030 → 0.013) all lose most of their smudge. Layout only,
+   so no `DETECTIONS_VERSION` bump.
 
 Measured with the uncovered-area metric in `SpeechBubbleVisualizer`
 (`metrics.json`: per bubble and per page, as a share of the page; original

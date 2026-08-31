@@ -20,6 +20,7 @@ private const val COLLISION_OUTLINE_VERTICES = 48
 private const val INTRUSION_EPSILON = 1e-3f
 private const val PAIR_COLLISION_COST = 2
 private const val BURIED_SHARE_TOLERANCE = 0.1f
+private const val COVER_STEPS = 8
 
 data class EnlargedBubble(val bubble: SpeechBubble, val scale: Float, val target: Rect) {
     fun map(point: Offset): Offset = Offset(
@@ -37,8 +38,50 @@ object BubbleLayout {
         val silhouettes = Silhouettes(bubbles)
         separate(targets, placed, silhouettes)
         shrinkOverlapping(targets, placed, silhouettes, CONTAINED_SCALE_FLOOR, coverage = 0f)
+        coverOriginals(targets, placed, silhouettes)
         return bubbles.indices.map { EnlargedBubble(bubbles[it], targets[it].width / bubbles[it].box.width, targets[it]) }
     }
+
+    private fun coverOriginals(targets: MutableList<Rect>, placed: List<Placed>, silhouettes: Silhouettes) {
+        repeat(SEPARATION_PASSES) {
+            var moved = false
+            for (k in targets.indices) {
+                val ideal = placed[k].grown(targets[k].width / placed[k].box.width)
+                if (ideal.approximately(targets[k])) continue
+                val pulled = furthestCovering(k, targets[k], ideal, targets, placed[k], silhouettes)
+                if (!pulled.approximately(targets[k])) {
+                    targets[k] = pulled
+                    moved = true
+                }
+            }
+            if (!moved) return
+        }
+    }
+
+    private fun furthestCovering(k: Int, from: Rect, ideal: Rect, targets: List<Rect>, placed: Placed, silhouettes: Silhouettes): Rect {
+        val others = targets.indices.filter { it != k }
+        val currentOverlap = others.associateWith { silhouettes.overlap(k, from, it, targets[it]) }
+        val currentIntrusion = others.associateWith { silhouettes.textIntrusion(k, from, it, targets[it]) }
+        for (step in COVER_STEPS downTo 1) {
+            val candidate = with(placed) { from.lerpTo(ideal, step.toFloat() / COVER_STEPS).clamped() }
+            val safe = others.all {
+                !silhouettes.collide(k, it, candidate, targets[it]) &&
+                    silhouettes.overlap(k, candidate, it, targets[it]) <= currentOverlap.getValue(it) + OVERLAP_EPSILON &&
+                    silhouettes.textIntrusion(k, candidate, it, targets[it]) <= currentIntrusion.getValue(it) + INTRUSION_EPSILON
+            }
+            if (safe) return candidate
+        }
+        return from
+    }
+
+    private fun Rect.lerpTo(target: Rect, t: Float): Rect {
+        val x = left + (target.left - left) * t
+        val y = top + (target.top - top) * t
+        return Rect(x, y, x + width, y + height)
+    }
+
+    private fun Rect.approximately(other: Rect): Boolean =
+        kotlin.math.abs(left - other.left) < OVERLAP_EPSILON && kotlin.math.abs(top - other.top) < OVERLAP_EPSILON
 
     private fun Rect.scaledAbout(anchor: Offset, scale: Float) = Rect(
         anchor.x + (left - anchor.x) * scale, anchor.y + (top - anchor.y) * scale,
@@ -71,6 +114,10 @@ object BubbleLayout {
         private val excesses = HashMap<Placement, Float>()
 
         fun collide(i: Int, j: Int, a: Rect, b: Rect): Boolean = excess(i, j, a, b) > INTRUSION_EPSILON
+
+        fun overlap(i: Int, a: Rect, j: Int, b: Rect): Float = overlapArea(placedExtent(i, a), placedExtent(j, b))
+
+        fun textIntrusion(i: Int, a: Rect, j: Int, b: Rect): Float = mutualIntrusion(i, a, j, b)
 
         fun excess(i: Int, j: Int, a: Rect, b: Rect): Float {
             if (!a.collides(b)) return 0f

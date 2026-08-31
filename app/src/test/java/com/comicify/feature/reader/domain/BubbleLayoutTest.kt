@@ -6,6 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.max
 import kotlin.math.min
 
 class BubbleLayoutTest {
@@ -63,6 +64,16 @@ class BubbleLayoutTest {
     }
 
     @Test
+    fun aSlidCopyIsReturnedOverItsOriginalWhenTheVacatedAreaIsFree() {
+        val wide = bubble(0.30f, 0.40f, 0.62f, 0.50f)
+        val bubbles = listOf(wide, bubble(0.60f, 0.40f, 0.74f, 0.50f), bubble(0.58f, 0.32f, 0.72f, 0.40f))
+        val enlarged = BubbleLayout.enlarge(bubbles, 1.3f)
+        for (i in enlarged.indices) for (j in i + 1 until enlarged.size) assertFalse(collide(enlarged[i], enlarged[j]))
+        val wideCopy = enlarged.first { it.bubble === wide }
+        assertTrue("the wide copy is pulled back over its original", uncoveredShare(wideCopy) < 0.05f)
+    }
+
+    @Test
     fun copyContainsTheOriginalWhenItFits() {
         val neighbours = listOf(bubble(0.3f, 0.40f, 0.5f, 0.46f), bubble(0.3f, 0.47f, 0.5f, 0.53f))
         val enlarged = BubbleLayout.enlarge(neighbours, 1.3f)
@@ -116,6 +127,14 @@ class BubbleLayoutTest {
         val target = enlarged.target
         assertTrue("$target should contain $box", target.left <= box.left + EPSILON && target.top <= box.top + EPSILON &&
             target.right >= box.right - EPSILON && target.bottom >= box.bottom - EPSILON)
+    }
+
+    private fun uncoveredShare(enlarged: EnlargedBubble): Float {
+        val box = enlarged.bubble.box
+        val target = enlarged.target
+        val x = (max(0f, target.left - box.left) + max(0f, box.right - target.right)) / box.width
+        val y = (max(0f, target.top - box.top) + max(0f, box.bottom - target.bottom)) / box.height
+        return max(x, y)
     }
 
     private fun assertCovers(enlarged: EnlargedBubble) {
