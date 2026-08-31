@@ -1,0 +1,4 @@
+• Los bocadillos ampliados ya no se tapan el texto entre ellos
+• Los globos que el autor dibujó como una sola frase se amplían juntos, sin texto fantasma detrás
+• Menos manchón detrás de un bocadillo ampliado que tuvo que apartarse: vuelve a cubrir su hueco
+• Las cajas de texto entintadas (p. ej. LOK: Soul Reaver) conservan sus últimas líneas al ampliar

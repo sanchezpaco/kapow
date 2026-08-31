@@ -7,6 +7,8 @@ All notable user-facing changes to Kapow. The format follows
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-08-31
+
 ### Fixed
 - Tinted caption boxes (parchment-yellow narration in LOK: Soul Reaver,
   Fallen Brothers) no longer cut their last lines when enlarged: the per-box

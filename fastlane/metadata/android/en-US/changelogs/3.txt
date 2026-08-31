@@ -1,0 +1,4 @@
+• Enlarged speech bubbles no longer cover each other's text
+• Balloons the artist drew as one speech now grow together, with no ghost text left behind them
+• Less smudge behind an enlarged bubble that had to move aside — it slides back over its own spot
+• Tinted caption boxes (e.g. LOK: Soul Reaver) keep their last lines when enlarged
