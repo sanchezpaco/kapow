@@ -53,7 +53,9 @@ private const val MIN_BOX_BODY_SHARE = 0.25f
 private const val SHORT_SIDE_MARGIN_FACTOR = 2
 private const val SHORT_SIDE_MARGIN_SLACK = 2
 
-data class SpeechBubble(val box: Rect, val outlines: List<List<Offset>>) {
+const val TEXT_VERSION = "text-v1"
+
+data class SpeechBubble(val box: Rect, val outlines: List<List<Offset>>, val text: List<Rect> = emptyList()) {
     fun interiorSamples(perAxis: Int): List<Offset> =
         (0 until perAxis).flatMap { r ->
             (0 until perAxis).map { c ->
@@ -90,12 +92,12 @@ object SpeechBubbles {
         return mergeOverlapping(white + captions + negatives).map { it.toBubble(classes.width, classes.height) }
     }
 
-    fun outlined(classes: PixelClasses, boxes: List<Rect>): List<SpeechBubble> {
+    fun outlined(classes: PixelClasses, boxes: List<Rect>, extractText: Boolean = false): List<SpeechBubble> {
         val darkCore = withSolidCore(classes.solidDark, classes.width, classes.height)
-        return boxes.map { outlined(classes, darkCore, it) }
+        return boxes.map { outlined(classes, darkCore, it, extractText) }
     }
 
-    private fun outlined(classes: PixelClasses, darkCore: BooleanArray, box: Rect): SpeechBubble {
+    private fun outlined(classes: PixelClasses, darkCore: BooleanArray, box: Rect, extractText: Boolean): SpeechBubble {
         val width = classes.width
         val height = classes.height
         val pageSide = min(width, height)
@@ -104,9 +106,40 @@ object SpeechBubbles {
         val paper = bodyWithin(paperCells(classes, inner), inner, frame, width)?.credibleWithin(inner)?.grownTowardsShortSides(classes.solidPale, width)
         val dark = bodyWithin({ darkCore[it] }, inner, frame, width)?.credibleWithin(inner)
         val body = listOfNotNull(paper, dark).maxByOrNull { it.insidePixels } ?: return Blob.filled(inner).toBubble(width, height)
+        val text = if (!extractText) emptyList() else {
+            val onPaper = body === paper
+            textIn(body.blob, if (onPaper) classes.ink else classes.light, if (onPaper) INK_ON_PAPER.minWordInkShare else LIGHT_ON_DARK.minWordInkShare, pageSide, width, height)
+        }
         val maxRim = (pageSide * MAX_RIM_FRACTION).toInt()
         val blob = body.blob
-        return blob.dilated(max(OUTLINE_MARGIN, blob.rimThickness(classes.ink, maxRim, width, height)), width, height).toBubble(width, height)
+        return blob.dilated(max(OUTLINE_MARGIN, blob.rimThickness(classes.ink, maxRim, width, height)), width, height).toBubble(width, height, text)
+    }
+
+    private fun textIn(body: Blob, ink: BooleanArray, minInkShare: Float, pageSide: Int, width: Int, height: Int): List<Rect> {
+        val minWordHeight = (pageSide * MIN_WORD_HEIGHT_FRACTION).toInt()
+        val maxBlockHeight = (pageSide * MAX_TEXT_BLOCK_HEIGHT_FRACTION).toInt()
+        val box = body.box
+        val holes = body.interiorHoles().segment(box.width, box.height, MIN_LINE_PIXELS)
+        val inkPerHole = inkPerLabelInBox(holes, ink, box, width)
+        return holes.components
+            .filter { inkPerHole[it.label] >= it.pixels * minInkShare && it.box.height in minWordHeight..maxBlockHeight && it.box.width >= minWordHeight }
+            .map {
+                Rect(
+                    (box.left + it.box.left) / width.toFloat(),
+                    (box.top + it.box.top) / height.toFloat(),
+                    (box.left + it.box.right) / width.toFloat(),
+                    (box.top + it.box.bottom) / height.toFloat(),
+                )
+            }
+    }
+
+    private fun inkPerLabelInBox(holes: Segmentation, ink: BooleanArray, box: Box, width: Int): IntArray {
+        val counts = IntArray((holes.components.maxOfOrNull { it.label } ?: -1) + 1)
+        for (y in 0 until box.height) for (x in 0 until box.width) {
+            val label = holes.labels[y * box.width + x]
+            if (label != NO_LABEL && label < counts.size && ink[(box.top + y) * width + box.left + x]) counts[label]++
+        }
+        return counts
     }
 
     private class Body(val blob: Blob, val insidePixels: Int) {
@@ -580,10 +613,10 @@ private class Blob(val box: Box, val cells: BooleanArray) {
         return if (lastDense == maxRim) 0 else lastDense
     }
 
-    fun toBubble(width: Int, height: Int): SpeechBubble =
+    fun toBubble(width: Int, height: Int, text: List<Rect> = emptyList()): SpeechBubble =
         SpeechBubble(box.toRect(width, height), components().map { part ->
             part.simplified(part.contour()).map { Offset(it.first / width.toFloat(), it.second / height.toFloat()) }
-        })
+        }, text)
 
     private fun components(): List<Blob> {
         val labels = cells.segment(box.width, box.height, 1)

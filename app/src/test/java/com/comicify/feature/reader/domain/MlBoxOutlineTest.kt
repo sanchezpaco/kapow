@@ -95,6 +95,18 @@ class MlBoxOutlineTest {
     }
 
     @Test
+    fun letteringInsideABubbleIsExtractedAsTextBoxesOnlyWhenAsked() {
+        val page = SyntheticPage(400, 600).fill(panel, RED).fill(Box(100, 100, 220, 170), WHITE)
+            .fill(Box(120, 125, 150, 133), BLACK).fill(Box(160, 125, 195, 133), BLACK)
+        val classes = PixelClasses.classify(page.pixels, page.width, page.height, 1)
+        val boxes = listOf(Box(94, 94, 226, 176).toRect(page.width, page.height))
+        assertTrue(SpeechBubbles.outlined(classes, boxes).single().text.isEmpty())
+        val text = SpeechBubbles.outlined(classes, boxes, extractText = true).single().text
+        assertEquals(2, text.size)
+        assertTrue(text.all { it.top >= 100f / 600 && it.bottom <= 170f / 600 && it.left >= 100f / 400 && it.right <= 220f / 400 })
+    }
+
+    @Test
     fun shadingNotEnclosedByInkIsLeftOut() {
         val page = SyntheticPage(400, 600).fill(panel, RED).fill(Box(100, 100, 220, 150), WHITE).fill(Box(100, 150, 220, 178), shade)
         val bubble = outlined(page, Box(92, 92, 228, 178))

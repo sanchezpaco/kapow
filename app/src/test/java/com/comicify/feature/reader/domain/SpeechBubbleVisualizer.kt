@@ -10,6 +10,7 @@ import java.awt.Image
 import java.awt.RenderingHints
 import java.awt.geom.Area
 import java.awt.geom.Path2D
+import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 import java.io.File
 import java.util.Locale
@@ -32,6 +33,7 @@ private const val CRESCENT_CROP_PAD = 0.3f
 private const val CRESCENT_GAP = 6
 private const val BUBBLE_SCALE_ENV = "KAPOW_BUBBLE_SCALE"
 private const val OCCLUDED_SHARE = 0.1f
+private const val TEXT_HIDDEN_SHARE = 0.1f
 
 private class SilhouetteTruth(val series: String, val box: Rect, val polygon: List<Offset>)
 private class SilhouetteScore(val series: String, val iou: Float?, val boxFallback: Boolean)
@@ -57,7 +59,7 @@ class SpeechBubbleVisualizer {
             val started = System.nanoTime()
             val classes = PixelClasses.classify(pixels, page.width, page.height, pool)
             val boxes = mlBoxes[file.name]?.map { inContent(it, content) }
-            val bubbles = boxes?.let { SpeechBubbles.outlined(classes, it) } ?: SpeechBubbles.detect(classes)
+            val bubbles = boxes?.let { SpeechBubbles.outlined(classes, it, extractText = true) } ?: SpeechBubbles.detect(classes)
             val millis = (System.nanoTime() - started) / 1_000_000
             val layoutStarted = System.nanoTime()
             val enlarged = BubbleLayout.enlarge(bubbles, scale)
@@ -136,13 +138,14 @@ class SpeechBubbleVisualizer {
             val t = b.target
             "{\"scale\": ${f(b.scale)}, \"box\": [${f(box.left)}, ${f(box.top)}, ${f(box.right)}, ${f(box.bottom)}], " +
                 "\"target\": [${f(t.left)}, ${f(t.top)}, ${f(t.right)}, ${f(t.bottom)}], \"coversOriginal\": ${covers(b)}, " +
-                "\"uncovered\": ${f(uncovered[i])}, \"outlines\": ${outlines(b.bubble)}}"
+                "\"uncovered\": ${f(uncovered[i])}, \"text\": ${textBoxes(b.bubble)}, \"outlines\": ${outlines(b.bubble)}}"
         }.joinToString(", ")
         return "  {\"page\": \"$name\", \"scale\": ${f(scale)}, \"width\": $width, \"height\": $height, \"content\": [${f(content.left)}, ${f(content.top)}, ${f(content.right)}, ${f(content.bottom)}], \"pool\": $pool, \"ms\": $millis, \"layoutMs\": $layoutMillis, " +
             "\"count\": ${enlarged.size}, \"stuckAtOne\": $stuck, \"constrained\": $constrained, " +
             "\"collisions\": ${occlusion.collisions}, \"collisionArea\": ${f(occlusion.collisionArea)}, " +
             "\"intrusions\": ${occlusion.intrusions}, \"intrusionArea\": ${f(occlusion.intrusionArea)}, " +
             "\"occluded\": ${occlusion.occluded}, \"worstOccluded\": ${f(occlusion.worstOccluded)}, " +
+            "\"textOccluded\": ${occlusion.textOccluded}, \"worstTextHidden\": ${f(occlusion.worstTextHidden)}, " +
             "\"uncovered\": ${f(uncovered.sum())}, \"silhouettes\": [${silhouettes(scores)}], \"bubbles\": [$bubbles]}"
     }
 
@@ -153,6 +156,8 @@ class SpeechBubbleVisualizer {
         val intrusionArea: Float,
         val occluded: Int,
         val worstOccluded: Float,
+        val textOccluded: Int,
+        val worstTextHidden: Float,
     )
 
     private fun occlusion(enlarged: List<EnlargedBubble>, width: Int, height: Int): Occlusion {
@@ -181,7 +186,32 @@ class SpeechBubbleVisualizer {
             }
         }
         val hidden = hiddenShares(big, copies, width, height)
-        return Occlusion(collisions, collisionArea, intrusions, intrusionArea, hidden.count { it >= OCCLUDED_SHARE }, hidden.maxOrNull() ?: 0f)
+        val textHidden = textHiddenShares(big, copies, width, height)
+        return Occlusion(
+            collisions, collisionArea, intrusions, intrusionArea,
+            hidden.count { it >= OCCLUDED_SHARE }, hidden.maxOrNull() ?: 0f,
+            textHidden.count { it >= TEXT_HIDDEN_SHARE }, textHidden.maxOrNull() ?: 0f,
+        )
+    }
+
+    private fun textHiddenShares(big: List<EnlargedBubble>, copies: List<Area>, width: Int, height: Int): List<Float> {
+        val textAreas = big.map { b ->
+            Area().apply {
+                b.bubble.text.forEach { r ->
+                    val tl = b.map(Offset(r.left, r.top))
+                    val br = b.map(Offset(r.right, r.bottom))
+                    add(Area(Rectangle2D.Float(tl.x * width, tl.y * height, (br.x - tl.x) * width, (br.y - tl.y) * height)))
+                }
+            }
+        }
+        return big.indices.map { i ->
+            if (textAreas[i].isEmpty) return@map 0f
+            val over = Area()
+            for (j in i + 1 until big.size) if (overlaps(big[i].target, big[j].target)) over.add(copies[j])
+            if (over.isEmpty) return@map 0f
+            val buried = Area(textAreas[i]).apply { intersect(over) }
+            rasterArea(buried, width, height) / rasterArea(textAreas[i], width, height).coerceAtLeast(1).toFloat()
+        }
     }
 
     private fun hiddenShares(big: List<EnlargedBubble>, copies: List<Area>, width: Int, height: Int): List<Float> =
@@ -223,6 +253,10 @@ class SpeechBubbleVisualizer {
         val box = b.bubble.box
         val t = b.target
         return t.left <= box.left + 1e-3f && t.top <= box.top + 1e-3f && t.right >= box.right - 1e-3f && t.bottom >= box.bottom - 1e-3f
+    }
+
+    private fun textBoxes(bubble: SpeechBubble) = bubble.text.joinToString(", ", "[", "]") {
+        "[${f(it.left)}, ${f(it.top)}, ${f(it.right)}, ${f(it.bottom)}]"
     }
 
     private fun outlines(bubble: SpeechBubble) = bubble.outlines.joinToString(", ", "[", "]") { outline ->
@@ -315,6 +349,13 @@ class SpeechBubbleVisualizer {
                 (bubble.box.left * page.width).roundToInt(), (bubble.box.top * page.height).roundToInt(),
                 (bubble.box.width * page.width).roundToInt(), (bubble.box.height * page.height).roundToInt(),
             )
+            g.color = Color(0, 200, 0, 200)
+            bubble.text.forEach { r ->
+                g.drawRect(
+                    (r.left * page.width).roundToInt(), (r.top * page.height).roundToInt(),
+                    (r.width * page.width).roundToInt(), (r.height * page.height).roundToInt(),
+                )
+            }
         }
         g.dispose()
         return page

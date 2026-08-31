@@ -213,6 +213,31 @@ superset of the area bar — 27 of 156 corpus pages against 11 — and the 16
 it adds are small balloons with their text cut. `KAPOW_BUBBLE_SCALE`
 sweeps the metric across the user-facing 1.1–2.0 range.
 
+`worstOccluded` still measures the share of the whole *silhouette* hidden,
+which over- and under-counts the thing that matters: a copy can bury a
+neighbour's paper margin (harmless) or its last text line (unreadable) for
+the same score. The text-aware metric measures the letters. Each bubble now
+carries its `text`: the word boxes inside it, extracted by reusing the same
+word machinery the heuristic uses (`interiorHoles` of the body → `segment` →
+the `MIN_WORD_HEIGHT_FRACTION`/`MAX_TEXT_BLOCK_HEIGHT_FRACTION`/ink-share
+filter) but run **inside the already-known ML box and its already-computed
+paper/dark body** instead of over the whole page, so it never fires on art —
+the model has already found the balloon. It is a separately versioned unit
+(`TEXT_VERSION`, `text-v1`) so the text finder can iterate as its own
+"model"; it is off by default (`SpeechBubbles.outlined(..., extractText)`),
+computed only in the visualizer for now, and adds no device cost until the
+layout consumes it (at which point it joins `DETECTIONS_VERSION` and is
+persisted). The visualizer draws the word boxes on `-bubbles.png` and reports
+`worstTextHidden` (the largest share of any copy's own text, drawn at its
+enlarged position, hidden by the copies drawn after it) and `textOccluded`
+(copies past `TEXT_HIDDEN_SHARE` = 0.10) alongside `worstOccluded`. It is
+strictly sharper: on the acceptance pages LOK p.20 reads `worstOccluded`
+0.247 but `worstTextHidden` 0.000 (the overlap there is paper margin, not
+text — the ghost-line bug below, not copy-over-copy), Shangri-La 01(30) reads
+0.243 / 0.210 (a real burial — "UNA OBRA MAESTRA" over "ES LA ANTÍTESIS…"),
+and Venomverse 001-001, the tester's page, reads 0.077 / 0.013 (the committed
+fix already cleared it).
+
 Three layout rules changed with the metric as gate: intrusion depth is
 measured relative to the host's **original** size, not its target;
 `reanchorPair` picks positions by **total intrusion depth** instead of
