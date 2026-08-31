@@ -2,8 +2,9 @@ import os,sys
 from ultralytics import YOLO
 from paths import DATA,MODELS,DEVICE
 model=YOLO(sys.argv[1] if len(sys.argv)>1 else MODELS+'/teacher.pt')
+LABELS=DATA+'/'+(sys.argv[2] if len(sys.argv)>2 else 'labels')
 for split in ('train','val'):
-    imgs=DATA+f'/images/{split}'; labs=DATA+f'/labels/{split}'; os.makedirs(labs,exist_ok=True)
+    imgs=DATA+f'/images/{split}'; labs=f'{LABELS}/{split}'; os.makedirs(labs,exist_ok=True)
     files=sorted(f for f in os.listdir(imgs) if not os.path.exists(f'{labs}/{os.path.splitext(f)[0]}.txt')); total=0
     for i in range(0,len(files),16):
         batch=[imgs+'/'+f for f in files[i:i+16]]

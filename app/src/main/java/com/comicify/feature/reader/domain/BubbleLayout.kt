@@ -65,11 +65,34 @@ object BubbleLayout {
         }
         private val extents = bubbles.map { bubble -> bubble.outlines.flatten().let { points -> Rect(points.minOf { it.x }, points.minOf { it.y }, points.maxOf { it.x }, points.maxOf { it.y }) } }
         private val original = bubbles.indices.map { i -> bubbles.indices.map { j -> if (i < j) mutualIntrusion(i, bubbles[i].box, j, bubbles[j].box) else 0f } }
+        private val artOverlap = bubbles.indices.map { i -> bubbles.indices.map { j -> if (i < j) overlapArea(extents[i], extents[j]) else 0f } }
 
-        private val collisions = HashMap<Placement, Boolean>()
+        private val excesses = HashMap<Placement, Float>()
 
-        fun collide(i: Int, j: Int, a: Rect, b: Rect): Boolean =
-            a.collides(b) && collisions.getOrPut(Placement(i, j, a, b)) { mutualIntrusion(i, a, j, b) > original[min(i, j)][max(i, j)] + INTRUSION_EPSILON }
+        fun collide(i: Int, j: Int, a: Rect, b: Rect): Boolean = excess(i, j, a, b) > INTRUSION_EPSILON
+
+        fun excess(i: Int, j: Int, a: Rect, b: Rect): Float {
+            if (!a.collides(b)) return 0f
+            return excesses.getOrPut(Placement(i, j, a, b)) {
+                (mutualIntrusion(i, a, j, b) - original[min(i, j)][max(i, j)]).coerceAtLeast(0f) + buriedGrowth(i, j, a, b)
+            }
+        }
+
+        private fun buriedGrowth(i: Int, j: Int, a: Rect, b: Rect): Float {
+            val drawn = artOverlap[min(i, j)][max(i, j)]
+            if (drawn <= 0f) return 0f
+            val grown = overlapArea(placedExtent(i, a), placedExtent(j, b))
+            val smallest = min(extents[i].area, extents[j].area)
+            return ((grown - drawn) / smallest).coerceAtLeast(0f)
+        }
+
+        private fun overlapArea(a: Rect, b: Rect): Float {
+            val width = min(a.right, b.right) - max(a.left, b.left)
+            val height = min(a.bottom, b.bottom) - max(a.top, b.top)
+            return if (width > 0f && height > 0f) width * height else 0f
+        }
+
+        private val Rect.area: Float get() = width * height
 
         private fun mutualIntrusion(i: Int, a: Rect, j: Int, b: Rect): Float = intrusion(j, b, i, a) + intrusion(i, a, j, b)
 
@@ -112,7 +135,7 @@ object BubbleLayout {
             val hostExtent = extents[into]
             val hostScale = target.width / host.box.width
             val hostOutline by lazy { host.outlines.flatten().map { Offset(target.left + (it.x - host.box.left) * hostScale, target.top + (it.y - host.box.top) * hostScale) } }
-            val size = min(target.width, target.height)
+            val size = min(host.box.width, host.box.height)
             var depth = 0f
             source.outlines.forEach { outline ->
                 outline.forEach { point ->
@@ -159,14 +182,14 @@ object BubbleLayout {
         val others = targets.indices.filter { it != i && it != j }
         val positionsI = containedPositions(targets[i], placed[i])
         val positionsJ = containedPositions(targets[j], placed[j])
-        val costI = positionsI.map { a -> others.count { silhouettes.collide(i, it, a, targets[it]) } }
-        val costJ = positionsJ.map { b -> others.count { silhouettes.collide(j, it, b, targets[it]) } }
+        val costI = positionsI.map { a -> others.sumOf { silhouettes.excess(i, it, a, targets[it]).toDouble() }.toFloat() }
+        val costJ = positionsJ.map { b -> others.sumOf { silhouettes.excess(j, it, b, targets[it]).toDouble() }.toFloat() }
         var bestCost = pairCost(i, j, targets, silhouettes)
         var best: Pair<Rect, Rect>? = null
         positionsI.forEachIndexed { ai, a ->
             positionsJ.forEachIndexed { bi, b ->
-                val cost = costI[ai] + costJ[bi] + if (silhouettes.collide(i, j, a, b)) PAIR_COLLISION_COST else 0
-                if (cost < bestCost) {
+                val cost = costI[ai] + costJ[bi] + silhouettes.excess(i, j, a, b) * PAIR_COLLISION_COST
+                if (cost < bestCost - INTRUSION_EPSILON) {
                     bestCost = cost
                     best = a to b
                 }
@@ -178,8 +201,8 @@ object BubbleLayout {
         }
     }
 
-    private fun pairCost(i: Int, j: Int, targets: List<Rect>, silhouettes: Silhouettes): Int =
-        collisions(i, targets, silhouettes) + collisions(j, targets, silhouettes)
+    private fun pairCost(i: Int, j: Int, targets: List<Rect>, silhouettes: Silhouettes): Float =
+        intrusionCost(i, targets, silhouettes) + intrusionCost(j, targets, silhouettes)
 
     private fun containedPositions(current: Rect, placed: Placed): List<Rect> {
         val box = placed.box
@@ -192,8 +215,8 @@ object BubbleLayout {
         }
     }
 
-    private fun collisions(k: Int, targets: List<Rect>, silhouettes: Silhouettes): Int =
-        targets.indices.count { other -> other != k && silhouettes.collide(k, other, targets[k], targets[other]) }
+    private fun intrusionCost(k: Int, targets: List<Rect>, silhouettes: Silhouettes): Float =
+        targets.indices.sumOf { other -> if (other == k) 0.0 else silhouettes.excess(k, other, targets[k], targets[other]).toDouble() }.toFloat()
 
     private fun Rect.reduced(placed: Placed, floor: Float): Rect {
         val current = width / placed.box.width

@@ -139,6 +139,39 @@ the nested box on the 2000 px offline page, but on the Fold emulator — the
 analysis runs at 1000 px there — v4 yields one box and the enlarged caption
 reads complete; verified on the emulator, not yet on the physical Fold.
 
+Student v5 (2026-08-31) extends the corpus with eleven series new to the
+folder — Superman (ECC), Arkham Asylum (painted, hand-lettered), Outlast,
+Ultimate Wolverine, Do Androids Dream of Electric Sheep (Norma), Crossed,
+Sonic (cartoon), Zombillenium (European BD), Batman: Terrores Nocturnos, and
+the first PDF sources (LOK: Soul Reaver, Fallen Brothers, rasterised with
+`pdftoppm -r 200`) — 1,791 pages added (5,977 train / 536 val). Three process
+changes over v4: pages are pseudo-labelled by the **union of the teacher and
+v4** (IoU ≥ 0.5 match) and only the 342 pages where they disagree went to
+vision subagents for review (19 % of the new pages, against 500 blind pages
+for v4); the review now also **removes false positives** (boxes indexed on
+the rendered page; 67 boxes added, 283 removed — chat-avatar icons, credits
+pages, loose lettering over art; `tools/training/gt/v5_bubble_corrections
+.json`); and training stops early (`patience=15`). A first run with the
+v3-era schedule (lr0 0.01) never recovered from warmup — the best checkpoint
+was epoch 1, i.e. v4 perturbed, and it scored worse than v4. The kept run
+fine-tunes from v4 at **lr0 0.001, warmup 1 epoch, 30 epochs** (2.9 h MPS,
+best epoch 28). The box ground truth grew to 193 pages of 28 series (7 new
+series incl. both PDFs; Blacksad re-annotated after its 0.88 turned out to be
+offset ground-truth boxes, not detector misses — v4 scores 1.00 on the fixed
+file). On it, bubble F1 v4 0.970 → v5 0.973 (precision 0.963 → 0.969, recall
+0.978 → 0.976); Fallen Brothers 0.92 → 0.96, Ruinas 0.97 → 1.00,
+Zombillenium 0.90 → 0.92, Sonic and Androides 1.00. Cost: Inmortalidad
+0.92 → 0.86 and Ben Reilly #03 0.98 → 0.96 — three shout balloons without a
+white body (black "TUYA!" oval, spiky scream balloons over art), a family
+adjacent to the removed false positives. Silhouette IoU 0.881 → 0.875 on the
+old corpus, 0.881 → 0.887 on the Doom set, uncovered area unchanged on all
+three corpora. The fp16/ORT conversion keeps GT F1 at 0.973 bit-for-bit on
+190 of 193 pages (the other three trade one sub-threshold box). Shipping v5
+also surfaced a render bug unrelated to the detector — LOK's tinted yellow
+captions cut their last line — fixed in `PaperTone` the same day (see the
+outlining section; repro kept in the training kit under
+`lok7_tinted_caption/`).
+
 Compression of the teacher, for the record: weight-only int8 (per-channel
 int8 Conv weights + `DequantizeLinear`, fp32 activations,
 a one-off script not kept in the repository) kept identical detections at 26 MB and
@@ -154,6 +187,55 @@ them as one, rendering the same balloon twice, side by side. `detect()` now
 merges boxes with IoU ≥ 0.5 (their union) before returning, for both the
 panel and bubble models. Diagnosed by reproducing on-device (`Muerte by
 ALHma[CRG]`, Marvel Saga 14 "Swing Shift") and dumping raw box coordinates.
+
+## Copy overlap (occlusion) — metric and layout rules
+
+Detection F1, silhouette IoU, uncovered area and the constrained/stuck
+counts all validate their own layer; none of them saw the final rendered
+result hiding text: an enlarged copy drawn over a neighbouring balloon's
+text (reported by a tester on Venomverse, 2026-08-31; 15 of 157 corpus
+pages had serious cases, Shangri-La and Spiderman 2099 worst). The
+visualizer now measures it per page: `collisions` / `collisionArea`
+(pairs of enlarged silhouettes that overlap, and the page fraction they
+share — rim-dilation makes tiny kisses unavoidable, so judge by area;
+≥ 0.005 of the page is the "serious" bar) and `intrusions` /
+`intrusionArea` (an enlarged copy over another bubble's original
+silhouette where that bubble's own copy no longer covers it).
+
+Area alone still hid the worst cases: a small balloon can be buried whole
+and still cover a negligible share of the page (Venomverse 001-001, the
+page the tester reported, scored 0.0059 — under the serious bar). The
+metric that reveals it is per victim: `worstOccluded` is the largest share
+of any enlarged copy hidden by the copies drawn after it (draw order is the
+`enlarged` list order, in both the visualizer and `BubbleOverlay`), and
+`occluded` counts the copies past `OCCLUDED_SHARE` (0.10). It is a strict
+superset of the area bar — 27 of 156 corpus pages against 11 — and the 16
+it adds are small balloons with their text cut. `KAPOW_BUBBLE_SCALE`
+sweeps the metric across the user-facing 1.1–2.0 range.
+
+Three layout rules changed with the metric as gate: intrusion depth is
+measured relative to the host's **original** size, not its target;
+`reanchorPair` picks positions by **total intrusion depth** instead of
+counting colliding pairs, which used to trade a harmless margin graze for a
+deep overlap over text; and `buriedGrowth` charges a pair for the growth of
+its **absolute** overlap beyond what the artist drew. The last one is what
+the first two could not reach: the exemption for an art-overlapping pair
+was expressed in normalized depth, which is nearly invariant under joint
+concentric scaling, so such a pair stayed exempt forever while its absolute
+overlap grew up to 3.8× (26 of the 27 bad pages were this family, 0 were
+detection errors). Charging the growth in page area, normalized by the
+smaller bubble, took bad pages 27 → 18 and the worst case 0.879 → 0.247,
+costing constrained +46 % and delivered scale −1 %.
+
+Scaling art-overlapping pairs as rigid groups (preserving the artist's
+stacking, scaled) was tried and REJECTED: it forfeits the separations the
+push/reanchor machinery does win — corpus bad pages 6 → 18.
+
+Known cost: separating more exposes more of each original, so
+`intrusionArea` rose 24 % and uncovered 32 %; on LOK p.20 and
+Shangri-La 01(30) that reads as a ghost line of the original's text behind
+the moved copy. Same failure shape as the bug above — a page-normalized
+metric hiding a legibility defect — and the next thing to attack.
 
 ## Outlining a box (`SpeechBubbles.outlined`)
 
@@ -176,7 +258,19 @@ luminance of its brightest 40 % of cells and the median red-green /
 green-blue tints of the cells within 12 of it; when that paper is scanned —
 luminance in 200 until 236 — the body is the component of cells within
 `max(14, (255 - paper) / 2 + 8)` of the paper luminance and within 12 / 16
-of its tints (`PixelClasses.colors`, the mean colour per cell). Brighter
+of its tints (`PixelClasses.colors`, the mean colour per cell). On strongly
+tinted paper those bands widen with the tint (2026-08-31, for LOK's
+parchment-yellow captions, green-blue tint ≈ 70): the luminance tolerance
+also floors at 0.55 × (|red-green| + |green-blue|) and the drift limits at
+half the respective tint plus slack, and both drift limits additionally
+floor at 0.3 × the total tint — shading on a tinted paper warms the
+red-green balance in proportion to the whole tint (a LOK fold shadow moves
+red-green from 9 to ≈ 22 while its own red-green tint would only allow 12),
+parchment texture modulates a tinted tone far more than scanner grain does
+a neutral one, and the tint gates keep carrying the discrimination against
+neighbouring art. A neutral tone reproduces the old bands exactly. Before this the paper body of those
+captions disconnected after the first text band and the enlarged copy cut
+the last lines. Brighter
 paper keeps the global `solidPaper` so digital pages cannot move; darker
 "paper" is art (a box full of red would otherwise become its own body) and
 falls through to the old path. Spiderman 2099: 17 box fallbacks → 0, mean

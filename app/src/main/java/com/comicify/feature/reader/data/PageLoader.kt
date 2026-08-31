@@ -122,7 +122,8 @@ class PageLoader(
     private suspend fun planOverlay(index: Int, scale: Float): List<PaintedBubble> {
         val bubbles = bubbles(index)
         val art = load(index)
-        return timed("bubble plan", index) { withContext(Dispatchers.Default) { BubblePlan.of(art.analysis, BubbleLayout.enlarge(bubbles, scale)) } }
+        val enlarged = BubbleLayout.enlarge(bubbles, scale)
+        return timed("bubble plan", index) { withContext(Dispatchers.Default) { BubblePlan.of(art.analysis, enlarged) } }
     }
 
     private suspend fun detectBubbles(index: Int): List<SpeechBubble> {

@@ -30,6 +30,8 @@ private const val BOX_FALLBACK_FILL = 0.97f
 private const val CRESCENT_MIN_UNCOVERED = 0.0005f
 private const val CRESCENT_CROP_PAD = 0.3f
 private const val CRESCENT_GAP = 6
+private const val BUBBLE_SCALE_ENV = "KAPOW_BUBBLE_SCALE"
+private const val OCCLUDED_SHARE = 0.1f
 
 private class SilhouetteTruth(val series: String, val box: Rect, val polygon: List<Offset>)
 private class SilhouetteScore(val series: String, val iou: Float?, val boxFallback: Boolean)
@@ -41,6 +43,7 @@ class SpeechBubbleVisualizer {
         val dir = System.getenv(PAGES_DIR_ENV)?.let(::File)
         assumeTrue(dir != null && dir.isDirectory)
         val out = File(dir, "out").apply { mkdirs() }
+        val scale = System.getenv(BUBBLE_SCALE_ENV)?.toFloat() ?: BUBBLE_ENLARGE_SCALE
         val pages = ArrayList<String>()
         val mlBoxes = mlBoxes(File(dir!!, ML_BOXES_FILE))
         val truths = silhouetteTruths(File(SILHOUETTE_TRUTH_FILE))
@@ -48,16 +51,16 @@ class SpeechBubbleVisualizer {
         dir.listFiles { f -> f.extension.lowercase() in setOf("jpg", "jpeg", "png") }!!.sorted().forEach { file ->
             val full = subsampledToAnalysis(ImageIO.read(file))
             val content = content(full)
-            val page = cropped(full, content)
+            val page = atAnalysisSize(cropped(full, content))
             val pixels = page.getRGB(0, 0, page.width, page.height, null, 0, page.width)
-            val pool = maxOf(1, (minOf(page.width, page.height) / ANALYSIS_SIDE.toFloat()).roundToInt())
+            val pool = 1
             val started = System.nanoTime()
             val classes = PixelClasses.classify(pixels, page.width, page.height, pool)
             val boxes = mlBoxes[file.name]?.map { inContent(it, content) }
             val bubbles = boxes?.let { SpeechBubbles.outlined(classes, it) } ?: SpeechBubbles.detect(classes)
             val millis = (System.nanoTime() - started) / 1_000_000
             val layoutStarted = System.nanoTime()
-            val enlarged = BubbleLayout.enlarge(bubbles, BUBBLE_ENLARGE_SCALE)
+            val enlarged = BubbleLayout.enlarge(bubbles, scale)
             val layoutMillis = (System.nanoTime() - layoutStarted) / 1_000_000
             val pageScores = truths[file.name].orEmpty().map { silhouetteScore(it, bubbles, content, page.width, page.height) }
             scores.addAll(pageScores)
@@ -73,7 +76,7 @@ class SpeechBubbleVisualizer {
             println("${file.name}: fill ${fillMillis}ms for ${fills.size} bubbles")
             ImageIO.write(withOutlines(preview, bubbles), "png", File(out, file.nameWithoutExtension + "-bubbles.png"))
             ImageIO.write(page, "png", File(out, file.nameWithoutExtension + "-page.png"))
-            pages.add(pageMetrics(file.name, page.width, page.height, content, pool, millis, layoutMillis, enlarged, pageScores))
+            pages.add(pageMetrics(file.name, scale, page.width, page.height, content, pool, millis, layoutMillis, enlarged, pageScores))
             println("${file.name}: ${bubbles.size} bubbles in ${millis}ms, layout ${layoutMillis}ms")
         }
         File(out, "metrics.json").writeText(pages.joinToString(",\n", "[\n", "\n]\n"))
@@ -123,10 +126,11 @@ class SpeechBubbleVisualizer {
         }.groupBy({ it.first }, { it.second })
     }
 
-    private fun pageMetrics(name: String, width: Int, height: Int, content: Rect, pool: Int, millis: Long, layoutMillis: Long, enlarged: List<EnlargedBubble>, scores: List<SilhouetteScore>): String {
+    private fun pageMetrics(name: String, scale: Float, width: Int, height: Int, content: Rect, pool: Int, millis: Long, layoutMillis: Long, enlarged: List<EnlargedBubble>, scores: List<SilhouetteScore>): String {
         val stuck = enlarged.count { it.scale <= 1f + STUCK_SCALE_EPSILON }
-        val constrained = enlarged.count { it.scale < BUBBLE_ENLARGE_SCALE - STUCK_SCALE_EPSILON }
+        val constrained = enlarged.count { it.scale < scale - STUCK_SCALE_EPSILON }
         val uncovered = uncoveredAreas(enlarged, width, height)
+        val occlusion = occlusion(enlarged, width, height)
         val bubbles = enlarged.mapIndexed { i, b ->
             val box = b.bubble.box
             val t = b.target
@@ -134,10 +138,62 @@ class SpeechBubbleVisualizer {
                 "\"target\": [${f(t.left)}, ${f(t.top)}, ${f(t.right)}, ${f(t.bottom)}], \"coversOriginal\": ${covers(b)}, " +
                 "\"uncovered\": ${f(uncovered[i])}, \"outlines\": ${outlines(b.bubble)}}"
         }.joinToString(", ")
-        return "  {\"page\": \"$name\", \"width\": $width, \"height\": $height, \"content\": [${f(content.left)}, ${f(content.top)}, ${f(content.right)}, ${f(content.bottom)}], \"pool\": $pool, \"ms\": $millis, \"layoutMs\": $layoutMillis, " +
+        return "  {\"page\": \"$name\", \"scale\": ${f(scale)}, \"width\": $width, \"height\": $height, \"content\": [${f(content.left)}, ${f(content.top)}, ${f(content.right)}, ${f(content.bottom)}], \"pool\": $pool, \"ms\": $millis, \"layoutMs\": $layoutMillis, " +
             "\"count\": ${enlarged.size}, \"stuckAtOne\": $stuck, \"constrained\": $constrained, " +
+            "\"collisions\": ${occlusion.collisions}, \"collisionArea\": ${f(occlusion.collisionArea)}, " +
+            "\"intrusions\": ${occlusion.intrusions}, \"intrusionArea\": ${f(occlusion.intrusionArea)}, " +
+            "\"occluded\": ${occlusion.occluded}, \"worstOccluded\": ${f(occlusion.worstOccluded)}, " +
             "\"uncovered\": ${f(uncovered.sum())}, \"silhouettes\": [${silhouettes(scores)}], \"bubbles\": [$bubbles]}"
     }
+
+    private class Occlusion(
+        val collisions: Int,
+        val collisionArea: Float,
+        val intrusions: Int,
+        val intrusionArea: Float,
+        val occluded: Int,
+        val worstOccluded: Float,
+    )
+
+    private fun occlusion(enlarged: List<EnlargedBubble>, width: Int, height: Int): Occlusion {
+        val big = enlarged.filter { it.scale > 1f }
+        val copies = big.map { Area(shape(it.bubble.outlines, width, height, it::map)) }
+        val originals = big.map { Area(shape(it.bubble.outlines, width, height) { p -> p }) }
+        val pageArea = width.toFloat() * height
+        var collisions = 0
+        var collisionArea = 0f
+        var intrusions = 0
+        var intrusionArea = 0f
+        for (i in big.indices) for (j in big.indices) {
+            if (i >= j) continue
+            if (overlaps(big[i].target, big[j].target)) {
+                val shared = Area(copies[i]).apply { intersect(copies[j]) }
+                val area = rasterArea(shared, width, height)
+                if (area > 0) { collisions++; collisionArea += area / pageArea }
+            }
+        }
+        for (i in big.indices) for (j in big.indices) {
+            if (i == j) continue
+            if (overlaps(big[i].target, big[j].bubble.box)) {
+                val shared = Area(copies[i]).apply { intersect(originals[j]); subtract(copies[j]) }
+                val area = rasterArea(shared, width, height)
+                if (area > 0) { intrusions++; intrusionArea += area / pageArea }
+            }
+        }
+        val hidden = hiddenShares(big, copies, width, height)
+        return Occlusion(collisions, collisionArea, intrusions, intrusionArea, hidden.count { it >= OCCLUDED_SHARE }, hidden.maxOrNull() ?: 0f)
+    }
+
+    private fun hiddenShares(big: List<EnlargedBubble>, copies: List<Area>, width: Int, height: Int): List<Float> =
+        big.indices.map { i ->
+            val over = Area()
+            for (j in i + 1 until big.size) if (overlaps(big[i].target, big[j].target)) over.add(copies[j])
+            if (over.isEmpty) return@map 0f
+            val buried = Area(copies[i]).apply { intersect(over) }
+            rasterArea(buried, width, height) / rasterArea(copies[i], width, height).coerceAtLeast(1).toFloat()
+        }
+
+    private fun overlaps(a: Rect, b: Rect) = a.intersect(b).let { it.width > 0f && it.height > 0f }
 
     private fun silhouettes(scores: List<SilhouetteScore>) = scores.joinToString(", ") {
         "{\"iou\": ${it.iou?.let(::f)}, \"boxFallback\": ${it.boxFallback}}"
@@ -185,6 +241,20 @@ class SpeechBubbleVisualizer {
         var sample = 1
         while (sourceWidth / (sample * 2) >= targetWidth) sample *= 2
         return sample
+    }
+
+    private fun atAnalysisSize(image: BufferedImage): BufferedImage {
+        val scale = ANALYSIS_SIDE / minOf(image.width, image.height).toFloat()
+        if (scale >= 1f) return image
+        val width = (image.width * scale).roundToInt()
+        val height = (image.height * scale).roundToInt()
+        val target = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+        target.createGraphics().apply {
+            setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+            drawImage(image, 0, 0, width, height, null)
+            dispose()
+        }
+        return target
     }
 
     private fun mlBoxes(file: File): Map<String, List<Rect>> {

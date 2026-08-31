@@ -10,3 +10,4 @@ captures/
 .claude/
 /tools/training/work/
 /tools/training/venv/
+__pycache__/

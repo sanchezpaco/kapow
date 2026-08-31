@@ -5,6 +5,29 @@ All notable user-facing changes to Kapow. The format follows
 `versionName` in `app/build.gradle.kts` and the `v*` git tags. The Play
 "What's new" text lives in `fastlane/metadata/android/*/changelogs/`.
 
+## [Unreleased]
+
+### Fixed
+- Tinted caption boxes (parchment-yellow narration in LOK: Soul Reaver,
+  Fallen Brothers) no longer cut their last lines when enlarged: the per-box
+  paper tone now tolerates the texture of strongly tinted paper.
+- Enlarged bubbles no longer bury each other's text. Two balloons the
+  artist drew overlapping used to grow into each other unchecked — on the
+  worst pages a balloon ended up almost entirely hidden and unreadable
+  (Venomverse, Shangri-La, Spiderman 2099, LOK: Soul Reaver). A pair may now
+  keep only the overlap the artist drew, and any growth beyond it is
+  resolved by moving or shrinking the pair; collision resolution also picks
+  positions by how deep bubbles intrude instead of how many collide. Across
+  a 156-page test corpus the worst hidden share dropped from 88 % to 25 %,
+  at the cost of slightly smaller bubbles on crowded pages.
+
+### Changed
+- Better speech-bubble detection (student v5): trained on eleven more series
+  including painted, cartoon, European-album and PDF comics; fewer boxes
+  drawn over sound effects, logos and screen graphics, and better caption
+  coverage in dense European pages. Saved detections are recomputed on next
+  read (detections version bump).
+
 ## [1.0.1] — 2026-08-30
 
 First round of tester feedback.
