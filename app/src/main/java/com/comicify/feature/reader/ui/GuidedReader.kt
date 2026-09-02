@@ -104,13 +104,13 @@ fun GuidedReader(
     var panels by remember { mutableStateOf(listOf(FullPagePanel)) }
     var arts by remember { mutableStateOf(emptyMap<Int, PageArt>()) }
 
-    LaunchedEffect(page) {
+    LaunchedEffect(page, direction) {
         onPageChanged(page)
         val spreadStart = spreadStart(page, coverAlone)
         arts = arts.filterKeys { it in spreadStart..spreadStart + 1 }
         val loaded = runCatching { loader.load(page) }.getOrNull()
         loaded?.let { arts = arts + (page to it); onAmbient(it.ambient) }
-        val detected = runCatching { loader.panels(page) }.getOrDefault(listOf(FullPagePanel))
+        val detected = runCatching { loader.stops(page, direction) }.getOrDefault(listOf(FullPagePanel))
         panels = detected
         panelIndex = if (panelIndex == LAST_PANEL) detected.lastIndex else panelIndex.coerceIn(0, detected.lastIndex)
         loader.preload(page, (page - 1)..(page + 2), bubbleScale = null, panels = true)

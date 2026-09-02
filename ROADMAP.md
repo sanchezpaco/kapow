@@ -93,6 +93,29 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
 - [x] Heuristic detection frozen (2026-08-23): remaining failures (Venomverse
       p21/p24/p26/p27 gutters crossed by art, manga/painted bubbles) are not
       separable by pixel rules — see the ML spike below. No more threshold work.
+- [x] Bubble-aware guided tour (2026-09-01, `feature/guided-splash-tour`): panel boxes alone fail on splash / full-art / painted
+      pages and drop dialogue where the panel model missed a region. New pure
+      `GuidedTour` composes the stop list from panels + bubbles + reading
+      direction — orphan bubbles still get a stop, a large panel (≥0.45) with
+      several bubble clusters is split into per-cluster reading windows over the
+      art, windows clamp to the page, a redundancy pass drops near-duplicate
+      consecutive stops, and order is reading-direction-aware (manga RTL).
+      Bubbles fetched only when panels cover < 80 % of the page. Verified on the
+      Fold: Ruinas splash, Black Cat, and Titan RTL tour cleanly, one distinct
+      stop per tap. 11 unit tests. See `docs/guided-view.md`.
+- [x] Guided View evaluation harness (2026-09-02): offline/headless pipeline
+      (`tools/eval` + `GuidedTourVisualizer`) that runs the production
+      algorithm over a comic, draws the numbered ordered camera stops on each
+      page (+ per-stop phone/tablet crops), applies deterministic objective
+      gates and an LLM judge with an explicit policy rubric (order / framing /
+      harmony) to produce a scorecard and a worst-offenders gallery. Single-
+      comic trial on Ben Reilly #01 drove six composition fixes in
+      `GuidedTour` (order 22/22, no bad page left); judge self-consistency
+      measured. See `docs/guided-view-eval.md`.
+- [ ] Guided View eval, next: human calibration set (~10 pages), stratified
+      multi-comic sample (splash, painted multi-column, manga RTL, dense
+      dialogue), then the full-corpus sweep as the regression gate; only then
+      revisit the reading-order model question.
 
 ## Phase 5 — Polish
 

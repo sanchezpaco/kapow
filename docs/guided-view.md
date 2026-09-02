@@ -25,9 +25,73 @@ neutral (F1 0.931 → 0.934, recall +2 points, precision −1); the gain shows o
 open-panel pages the ground truth barely contains. Everything after the boxes
 is pure Kotlin in `feature/reader/domain` and unit-tested on synthetic pages.
 
+## Bubble-aware stops
+
+Panel boxes alone fail on the two hardest page kinds: a full-art splash (the
+model returns one page-sized box, or nothing) and a painted page whose panels
+the model only partly finds, leaving whole regions of dialogue uncovered. On
+both, a single panel stop shows the reader everything at once with the text too
+small, or skips speech entirely. `GuidedTour` (pure, `feature/reader/domain`)
+turns the panel boxes plus the speech-bubble boxes into the final stop list:
+
+- A panel that **contains** other panels (a bleed host with insets, or a
+  detector box glued around a whole row) never becomes a stop itself: only the
+  largest strip its children leave free (above, below, left or right of them)
+  does, and only when that strip is at least 8 % of the page and not already
+  covered by another panel. So a bottom region with its own balloons under a
+  row of insets is toured once, after the insets, instead of as a giant stop
+  that repeats them.
+- Each bubble is assigned to the **innermost** panel holding its centre (or the
+  one it overlaps most); a bubble inside no panel is an **orphan** and still
+  becomes a stop, so dialogue on a region the panel model missed — a whole
+  balloon the detector skipped — is never lost.
+- A box smaller than 4 % of the page sitting inside another panel (a credits
+  strip, a logo box) is absorbed into its host instead of becoming a dead stop.
+- Only a **large** panel (≥ 45 % of the page: a splash or full-art page) that
+  holds two or more bubble clusters is split into one **reading window per
+  cluster**. A true splash — the page's only panel with at most three balloons
+  — keeps the whole page as an **establishing stop** before its windows, so the
+  reveal is seen whole; a dialogue-dense splash goes straight to its windows
+  (a whole-page stop with unreadable text is a dead tap). Ordinary panels, however many balloons they hold, stay a single stop, so a
+  manga page is toured panel by panel and is never chopped into overlapping
+  fragments. Balloons within 7 % of the page cluster into one window, and two
+  windows that overlap by half or more merge into one, so a row of balloons is
+  read as one band instead of two nudged views.
+- A window is centred on its cluster, sized to at least 0.42 × 0.30 of the page
+  (plus a small margin so surrounding art shows), and clamped to the panel
+  **grown to include its cluster** — so it never drifts into the neighbouring
+  panel, yet still covers a balloon the panel box cut off. Orphan windows clamp
+  to the page. A window edge **never crosses a balloon**: when the minimum size
+  reaches into a neighbouring cluster the window shrinks past that balloon
+  (as long as its own cluster still fits), otherwise it grows to include it —
+  so no caption is ever shown cut mid-word.
+- After ordering, a **redundancy pass** drops any stop of similar size (at
+  least half of its neighbour's area) that is ≥ 85 % contained in it, so no two
+  consecutive stops show almost the same view — the cause of taps that appeared
+  to "skip" several panels at once. A zoom from a panel into its first window
+  is not redundant.
+- Clean grids are left untouched: a page whose panels are many, small and cover
+  ≥ 80 % of the art (`GuidedTour.needsBubbles` is false) never runs the slower
+  bubble model at all.
+- The final stops are ordered by a recursive **guillotine cut**: the page is
+  split at the topmost horizontal line that crosses no stop (top part first),
+  else at the leftmost vertical line that crosses none (left part first, or
+  right first for `ReadingDirection.RightToLeft`), and each part is cut again.
+  A tall panel spanning two rows of a right-hand column is therefore followed
+  by that column top-to-bottom, where a row-based sort read the column's top
+  panel last. Overlapping stops that admit no cut fall back to the
+  mutual-centre row test; a stop containing others is inserted right before the
+  first one it contains (an establishing stop precedes its windows).
+
+`PageLoader.stops(index, direction)` runs the panel model, and only when
+`needsBubbles` is true also the bubble model (both cached in memory and
+persisted in Room), then builds the tour. `GuidedReader` consumes `stops`
+instead of raw panels.
+
 `GuidedReader` asks `PageLoader.preload(…, panels = true)` for the pages
 around the current one, so their panels are detected (or read from Room)
-before the reader gets there; one detection runs at a time behind the shared
+before the reader gets there — and their bubbles too when the page needs them;
+one detection runs at a time behind the shared
 semaphore, with a per-page mutex so the current page is never detected twice.
 On the Fold, entering Guided View on a fresh comic detects the current page
 and the next two within ≈ 600 ms, and each step then finds the next page's
@@ -165,8 +229,9 @@ Annotated PNGs land in `<dir>/out`. Iterate there, then trust the unit tests.
 - Left 20 % / right 20 % tap zones go to the previous / next panel; the centre
   toggles the chrome. The stops of a page are exactly its detected panels:
   moving forward into a page lands on its first panel, moving back lands on the
-  previous page's last panel. Splashes and full-page fallbacks are a single stop
-  showing the whole page.
+  previous page's last panel. A splash or full-page fallback with two or more
+  speech bubbles is toured bubble by bubble over the art (see **Bubble-aware
+  stops**); one with fewer is a single stop showing the whole page.
 - A HUD stops indicator (always visible in Guided View) shows the current
   position as a row of dots, with a chevron that lights up on the last stop to
   signal that the next tap turns the page.

@@ -9,7 +9,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.domain.BubbleLayout
+import com.comicify.feature.reader.domain.GuidedTour
 import com.comicify.feature.reader.domain.SpeechBubble
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -92,6 +94,13 @@ class PageLoader(
         }
     }
 
+    suspend fun stops(index: Int, direction: ReadingDirection): List<Rect> {
+        val panels = panels(index)
+        val gate = GuidedTour.needsBubbles(panels)
+        val bubbles = if (gate) bubbles(index).map { it.box } else emptyList()
+        return GuidedTour.stops(panels, bubbles, direction)
+    }
+
     private suspend fun detectPanels(index: Int): List<Rect> {
         val art = load(index)
         return detectionSlots.withPermit {
@@ -146,7 +155,7 @@ class PageLoader(
                 scope.launch {
                     runCatching {
                         if (bubbleScale != null) overlay(index, bubbleScale) else load(index)
-                        if (panels) panels(index)
+                        if (panels) panels(index).let { if (GuidedTour.needsBubbles(it)) bubbles(index) }
                     }
                 }
             }

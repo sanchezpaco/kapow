@@ -11,3 +11,5 @@ captures/
 /tools/training/work/
 /tools/training/venv/
 __pycache__/
+/eval/
+/tools/eval/venv/
