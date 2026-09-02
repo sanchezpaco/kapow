@@ -187,6 +187,9 @@ tools/eval/venv/bin/python tools/eval/scorecard.py eval/<comic> <label>  # score
 
 Between rounds only re-judge the pages whose `stops/NNN.json` changed and copy
 the previous verdicts for the rest — the tour is identical, so is the verdict.
+Judge agents run at most 20 at a time; a 100-page round is ~5 waves of a
+minute each and roughly 55k tokens per page, and a session limit (Fable, then
+Opus) was hit twice in one day — plan rounds around it.
 
 ## Artifacts
 
@@ -278,6 +281,58 @@ harmony a single run has ~20 % one-step noise, so: treat only a good↔bad flip
 or a change in the offending stops as a regression from one run, and use the
 majority of three runs on the calibration set when a threshold decision
 matters. The human calibration set is still pending.
+
+## Stratified sample (2026-09-02, round 0 — not yet fixed)
+
+Five more comics, ~20 story pages each, prepared with `tools/eval/prepare.py`
+(extracts the archive, splits wide spreads into `NNNa`/`NNNb` halves the way
+the app does, writes `manifest.json`), judged by Opus with the policy rubric.
+`tools/eval/summary.py eval` prints the cross-comic table. Venomverse stopped
+at 7 pages and one Blacksad page is missing: the Opus session limit was hit.
+
+| comic | stratum | judged | gates | order g/m/b | framing g/m/b | harmony g/m/b | all good | pages with a bad |
+|---|---|---|---|---|---|---|---|---|
+| ben-reilly-01 | clean Marvel grid (tuned on) | 22 | 24/24 | 22/0/0 | 9/13/0 | 18/4/0 | 9 | – |
+| ruinas | painted splash / collage | 20 | 19/20 | 16/2/2 | 5/15/0 | 11/7/2 | 3 | 015 018 028 |
+| arkham | painted multi-column, hand lettering | 21 | 18/21 | 16/1/4 | 6/13/2 | 10/6/5 | 6 | 022 027 031a 031b 033 035 036 037 |
+| titanes | manga RTL | 20 | 13/20 | 17/0/3 | 4/11/5 | 14/5/1 | 4 | 034 035 036 037 038 043 044 |
+| blacksad-1 | European, dense captions | 19 | 18/20 | 18/1/0 | 4/11/4 | 15/2/2 | 4 | 013 015 017 029 |
+| venomverse-001 | bleed-heavy modern Marvel | 7 | 24/24 | 7/0/0 | 3/4/0 | 5/1/1 | 2 | 004 |
+
+The 23 pages with a `bad` fall into five families. The first three are
+composition and are the next fixes; the last two are detection.
+
+1. **Balloon straddling a gutter, sliced by both neighbouring panel stops**
+   (titanes 035/036/038/044, blacksad 013/015, arkham 037). Manga and
+   European letterers routinely hang balloons over the gutter; the ML panel
+   box stops at the border. Fix: an ordinary panel's stop grows to include the
+   balloons assigned to it (the heuristic detector's old "enclosed whites grow
+   the frame" behaviour, lost with the ML boxes). The neighbour then still
+   clips the balloon's border, which the policy scores `minor`.
+2. **Dialogue covered by no stop** (ruinas 015, arkham 031a/036, blacksad
+   017/029). Three causes: a caption barely touching a panel is assigned to it
+   by the "any overlap" fallback in `hostOf` and never windowed (ruinas 015,
+   arkham 036) → require the centre inside or ≥ 50 % of the balloon
+   overlapping, else orphan; when every window of a splash merges into one,
+   `frameStops` returns the bare frame instead of the merged window (arkham
+   031a) → return the window; a panel the detector missed whose caption
+   lands in a neighbour by overlap (blacksad 029) → same threshold fix.
+3. **Order broken by a window crossing a gutter** (arkham 022/035, titanes
+   037): an orphan window sized to the 0.42 × 0.30 minimum straddles the
+   horizontal gutter, so no guillotine cut exists and the row fallback
+   scrambles. Fix: run the guillotine on the *anchors* (panels and bubble
+   cluster boxes), then expand to windows. Ruinas 018/028 and titanes 043 are
+   different: a conversation on a painting whose order is semantic, a twin
+   wordless panel, and duplicate detector boxes.
+4. **Dead stops from spurious boxes** (arkham 027, titanes 034, ruinas 028):
+   detector false positives (a pavement strip, a corner "bubble").
+5. **Panels the detector never found** (venomverse 004's Carnage reveal,
+   blacksad 014/029, arkham 025/036/037) and **hand-lettered text the bubble
+   model does not see** (arkham 027/031b/033). Only a detector change helps.
+
+The same `minor` bucket as Ben Reilly dominates everywhere: full-width tiers
+whose text is small on the cover screen (a phone-only split), and detector
+boxes that overshoot.
 
 ## After the scorecard: the model question (deferred)
 

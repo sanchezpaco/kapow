@@ -112,10 +112,12 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       comic trial on Ben Reilly #01 drove six composition fixes in
       `GuidedTour` (order 22/22, no bad page left); judge self-consistency
       measured. See `docs/guided-view-eval.md`.
-- [ ] Guided View eval, next: human calibration set (~10 pages), stratified
-      multi-comic sample (splash, painted multi-column, manga RTL, dense
-      dialogue), then the full-corpus sweep as the regression gate; only then
-      revisit the reading-order model question.
+- [ ] Guided View eval, next: stratified sample judged (Ruinas, Arkham,
+      Titanes RTL, Blacksad, Venomverse; round 0 in `docs/guided-view-eval.md`)
+      → apply the three composition fixes it exposed (grow panel stops over
+      their overhanging balloons, assignment threshold, order on anchors),
+      re-judge, human calibration set (~10 pages), then the full-corpus sweep
+      as the regression gate; only then revisit the reading-order model.
 
 ## Phase 5 — Polish
 
