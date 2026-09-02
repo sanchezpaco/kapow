@@ -236,7 +236,11 @@ Annotated PNGs land in `<dir>/out`. Iterate there, then trust the unit tests.
   position as a row of dots, with a chevron that lights up on the last stop to
   signal that the next tap turns the page.
 - `GuidedFocus.frame` pads the panel rect by 2 % of the page and clamps it to
-  the page. `GuidedPage` animates an `Animatable<Rect>` (520 ms, FastOutSlowIn)
+  the page. The focus animation is keyed on the page, the stop index **and the
+  target rect**: a page turn first composes with the previous page's stops
+  (the new page's list arrives asynchronously), so keying on the rect is what
+  makes the view move on to the new page's first stop instead of staying on
+  the old page's framing until the next tap. `GuidedPage` animates an `Animatable<Rect>` (520 ms, FastOutSlowIn)
   and draws the focused panel bright over the rest of the page dimmed — a
   **spotlight** with soft, feathered edges, so the surrounding art stays visible
   for context instead of a hard letterbox.

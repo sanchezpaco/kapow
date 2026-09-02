@@ -152,7 +152,7 @@ fun GuidedReader(
     val currentStop = panels.getOrElse(panelIndex) { FullPagePanel }
     val autoPan = AUTO_PAN_ENABLED && isLargeStop(currentStop)
     val panelView = GuidedFocus.frame(currentStop, PANEL_PADDING)
-    val resetKey = page to panelIndex
+    val resetKey = Triple(page, panelIndex, panelView)
 
     if (!spread) {
         GuidedPanel(arts[page], panelView, autoPan, resetKey, direction, ::goPrevious, ::goNext, onTap, Modifier.fillMaxSize())
