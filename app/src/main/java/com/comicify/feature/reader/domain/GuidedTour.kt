@@ -13,7 +13,6 @@ private const val WINDOW_MERGE_OVERLAP = 0.5f
 private const val REDUNDANT_FRACTION = 0.85f
 private const val REDUNDANT_SIZE_RATIO = 0.5f
 private const val SPLIT_MIN_CLUSTERS = 2
-private const val ESTABLISHING_MAX_BUBBLES = 3
 private const val MIN_INSET_AREA = 0.04f
 private const val CONTAINMENT = 0.8f
 private const val MIN_REMAINDER_AREA = 0.08f
@@ -38,7 +37,7 @@ object GuidedTour {
         val base = withoutTinyInsets(panels.ifEmpty { listOf(wholePage) })
         val frames = base.mapNotNull { panel -> frameOf(panel, base) }
         val assignment = assign(bubbles, frames)
-        val splash = frames.size == 1 && bubbles.size <= ESTABLISHING_MAX_BUBBLES
+        val splash = frames.size == 1
         val stops = frames.flatMap { frame -> frameStops(frame, assignment.owned[frame].orEmpty(), splash, bubbles) } +
             mergeOverlapping(cluster(assignment.orphans).map { window(it, wholePage, bubbles) })
         return dropRedundant(readingOrder(stops, direction))

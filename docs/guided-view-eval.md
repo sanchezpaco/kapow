@@ -215,7 +215,8 @@ tour changed were re-judged each round. Scorecard (good / minor / bad):
 | 0 (as handed over) | 19 / 0 / 2 | 7 / 11 / 3 | 11 / 4 / 6 | 5 | 6 |
 | 1 | 22 / 0 / 0 | 5 / 14 / 3 | 13 / 9 / 0 | 5 | 3 |
 | 2 | 22 / 0 / 0 | 7 / 14 / 1 | 15 / 7 / 0 | 6 | 1 |
-| 3 (final, policy rubric) | 22 / 0 / 0 | 8 / 14 / 0 | 17 / 5 / 0 | 7 | 0 |
+| 3 (policy rubric) | 22 / 0 / 0 | 8 / 14 / 0 | 17 / 5 / 0 | 7 | 0 |
+| 4 (final, splash opener) | 22 / 0 / 0 | 9 / 13 / 0 | 18 / 4 / 0 | 9 | 0 |
 
 Objective gates passed 24/24 in every round. Round 0 found four real
 composition defects, all fixed in `GuidedTour` (see `docs/guided-view.md`):
@@ -237,7 +238,13 @@ composition defects, all fixed in `GuidedTour` (see `docs/guided-view.md`):
   → a window edge never crosses a bubble (round 3, judged with the policy
   rubric).
 
-Round 3 added the last composition rule — a window edge never crosses a
+Round 4 is the first **human calibration** decision: the maintainer looked at
+the p007 splash toured as three text windows and could not tell from the tour
+what Spider-Man was doing while saying it. The judge had scored that `good`
+(it measures legibility; the maintainer measures comprehension), so the
+splash opener now applies to every single-panel page whatever its balloon
+count, and the rubric policy was rewritten to match. Round 3 added the last
+geometric composition rule — a window edge never crosses a
 bubble: the window shrinks past a foreign balloon when its own cluster still
 fits, otherwise grows to include it — which cleared the last `bad` (p005, a
 painted page with 13 captions). Everything the judge still flags is

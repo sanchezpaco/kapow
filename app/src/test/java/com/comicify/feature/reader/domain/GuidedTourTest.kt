@@ -65,15 +65,15 @@ class GuidedTourTest {
     }
 
     @Test
-    fun denseSplashToursOnlyItsWindows() {
+    fun denseSplashIsShownWholeBeforeItsWindows() {
         val splash = Rect(0f, 0f, 1f, 1f)
         val bubbles = listOf(
             Rect(0.05f, 0.05f, 0.20f, 0.12f), Rect(0.70f, 0.05f, 0.90f, 0.12f),
             Rect(0.05f, 0.60f, 0.20f, 0.68f), Rect(0.70f, 0.85f, 0.90f, 0.95f),
         )
         val stops = GuidedTour.stops(listOf(splash), bubbles, ltr)
-        assertFalse(stops.toString(), stops.contains(splash))
-        assertEquals(4, stops.size)
+        assertEquals(listOf(splash), stops.take(1))
+        assertEquals(5, stops.size)
     }
 
     @Test

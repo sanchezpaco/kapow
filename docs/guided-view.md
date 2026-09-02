@@ -49,10 +49,12 @@ turns the panel boxes plus the speech-bubble boxes into the final stop list:
   strip, a logo box) is absorbed into its host instead of becoming a dead stop.
 - Only a **large** panel (≥ 45 % of the page: a splash or full-art page) that
   holds two or more bubble clusters is split into one **reading window per
-  cluster**. A true splash — the page's only panel with at most three balloons
-  — keeps the whole page as an **establishing stop** before its windows, so the
-  reveal is seen whole; a dialogue-dense splash goes straight to its windows
-  (a whole-page stop with unreadable text is a dead tap). Ordinary panels, however many balloons they hold, stay a single stop, so a
+  cluster**. A true splash — the page's only panel — keeps the whole page as an
+  **establishing stop** before its windows, however many balloons it holds, so
+  the reader sees what the character is doing before reading what they say (the
+  maintainer's call over the judge's, which preferred to skip the opener on
+  dense splashes). A large panel among other panels goes straight to its
+  windows. Ordinary panels, however many balloons they hold, stay a single stop, so a
   manga page is toured panel by panel and is never chopped into overlapping
   fragments. Balloons within 7 % of the page cluster into one window, and two
   windows that overlap by half or more merge into one, so a row of balloons is

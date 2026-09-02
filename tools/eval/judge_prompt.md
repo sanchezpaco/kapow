@@ -55,21 +55,23 @@ Score each criterion `good`, `minor` or `bad`:
 The app follows a fixed composition policy. Judge the tour against it; if you disagree
 with the policy itself, say so in `notes` but score according to the policy.
 
-- **Whole-page stop.** A page that is a single image (one panel, or no panel at all) with
-  at most three balloons/captions is shown whole FIRST (an establishing stop), then its
-  balloons. That opener is `good` framing even though its text is small — it is not a
-  reading stop. Any other whole-page or whole-splash stop (a dense splash, a big panel on
-  a page with other panels) is a dead tap: score it `framing: minor` if the text is still
-  readable on the tablet crop, `bad` if not.
+- **Whole-page stop.** A page that is a single image (one panel, or no panel at all) is
+  shown whole FIRST as an establishing stop, then its balloons window by window. That
+  opener is `framing: good` however small its text is — it is not a reading stop, it is
+  what lets the reader connect the words to the art. A whole-page or whole-panel stop
+  anywhere else (a big panel on a page with other panels) is a dead tap: `framing: minor`
+  if the text is still readable on the tablet crop, `bad` if not.
 - **Reading windows.** On a large panel with several balloon groups, one window per group is
   correct; a window need not contain art beyond the balloons, but it must not cut a balloon
   or caption: any balloon sliced by a window edge so that words are cut is `framing: bad`
   for that stop (a clipped border with all words visible is `minor`). Windows that share
   most of their area, so a tap barely moves the view, are `harmony: minor`; if they show
   the same text a third time, `bad`.
-- **Establishing/closing views of the art.** Do not ask for extra stops that only show art
-  with no text (a final "reveal" stop, a character never framed whole) — the reader can
-  pan freely. Missing art is never a `bad`; at most `notes`.
+- **Art that the dialogue depends on.** On a single-image page the opener covers this. On
+  any other page do not ask for extra art-only stops (a final "reveal", a character framed
+  whole) — the reader can pan freely; missing art there is at most `notes`. But when a
+  page's windows show only text and the reader could not tell from the tour what the
+  speaker is doing, score `harmony: minor`.
 - **Wide full-width tiers** whose text is small on the phone crop but readable on the
   tablet crop are `framing: minor`, never `bad`. The tour is the same on both screens.
 - **Detector errors** (a panel box overshooting into a neighbour, a caption overhanging the
