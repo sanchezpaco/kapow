@@ -150,11 +150,13 @@ Everything lives under `eval/<comic>/` (git-ignored: the corpus is private) and
 mkdir -p eval/<comic>/pages && unar -o /tmp/x "comics/<file>.cbr"   # then copy the
 # page JPEGs into eval/<comic>/pages as 000.jpg, 001.jpg, … in the app's page order
 tools/eval/venv/bin/python tools/eval/detect.py eval/<comic>          # boxes.json
-KAPOW_GUIDED_EVAL_DIR=$PWD/eval/<comic> KAPOW_GUIDED_EVAL_DIRECTION=ltr \
-  ./gradlew :app:testDebugUnitTest --tests '*GuidedTourVisualizer*' --rerun -i
-tools/eval/venv/bin/python tools/eval/gates.py eval/<comic>           # gates.json
-# judge: one Fable agent per page with tools/eval/judge_prompt.md → verdicts/NNN.json
+tools/eval/render.sh <comic>…                                        # stops + annotated + crops
+tools/eval/venv/bin/python tools/eval/gates.py eval/<comic>          # gates.json
+tools/eval/venv/bin/python tools/eval/restore.py eval <comic>…       # verdicts back from rounds/
+tools/eval/venv/bin/python tools/eval/pending.py eval <comic>… --skip <comic>:<page>…
+# judge: one Opus agent per pending page with tools/eval/judge_prompt.md → verdicts/NNN.json
 tools/eval/venv/bin/python tools/eval/scorecard.py eval/<comic> <label>  # scorecard + worst/
+tools/eval/venv/bin/python tools/eval/summary.py eval                # the corpus table
 ```
 
 - `tools/eval/detect.py` runs the **bundled** `panels.ort` / `bubbles.ort`
@@ -174,16 +176,41 @@ tools/eval/venv/bin/python tools/eval/scorecard.py eval/<comic> <label>  # score
   parity gap left is ONNX inference running in Python instead of ORT-Android.
 - `tools/eval/gates.py` — the objective gates (bubble-centre coverage against
   the raw ML bubbles, no near-duplicate consecutive stops using the same
-  size-aware rule as `GuidedTour`, in-bounds, 1–12 stops).
+  size-aware rule as `GuidedTour`, in-bounds, and a sane stop count —
+  `1 … max(12, panels + 2)`, loose enough for a fourteen-panel European page).
 - `tools/eval/judge_prompt.md` — the judge rubric and JSON schema. One agent per
   page; it reads the annotated page and every crop and writes
   `verdicts/NNN.json` with `order` / `framing` / `harmony` ∈ good/minor/bad,
   a one-line reason, the offending stops and an `ideal_tour` sentence (the
   most actionable field).
+- `tools/eval/render.sh <comic>…` — runs the visualizer over any list of comics,
+  reading each one's direction from its `manifest.json` and forcing the JBR JDK.
+  Use it instead of hand-writing the Gradle invocation. **Never render while
+  judges are running**: it rewrites every comic's `stops/annotated/crops` under
+  them.
+- `tools/eval/restore.py eval <comic>…` — for every page whose current stops
+  match an archived round's, copies that round's verdict back. Run it before
+  `pending.py` so a change that reverts a page costs no judging.
+- `tools/eval/pending.py eval <comic>… --skip <comic>:<page>…` — lists the pages
+  whose current stops have no verdict, deletes the stale ones and snapshots the
+  stops under `judged/`. `--skip` is for covers and the pages held out to stay
+  comparable with earlier rounds. Everything it lists, and nothing else, needs a
+  judge.
 - `tools/eval/scorecard.py` — aggregates gates + verdicts into
   `scorecard.json` and a `worst/` gallery (`index.md` + the annotated pages of
-  the lowest-scoring pages). Archive a round with
-  `cp -r verdicts annotated stops scorecard.json gates.json worst rounds/<label>/`.
+  the lowest-scoring pages). Archive a round **before** changing `GuidedTour`
+  with `cp -r verdicts annotated stops scorecard.json gates.json worst
+  rounds/<label>/`, so `restore.py` can undo a rejected rule for free.
+- `tools/eval/summary.py eval` — the corpus table, and the only number to steer
+  by: **cost per page**, `good` 0 + `minor` 1 + `bad` 3 summed over the three
+  criteria of every judged page. "Pages with a `bad`" is a max over three
+  criteria and moves on a single flip; keep it as a worklist, not a score.
+- `tools/eval/consistency.py eval/_variance` — pairwise agreement across repeat
+  judgings of the same pages. Judge one ~12-page sample spanning the verdict
+  spectrum three times into `eval/_variance/run{1,2,3}/<comic>-<page>.json` and
+  read the error bar off it. **Do this before tuning `GuidedTour` again**: in the
+  fourth round two pages were caught changing verdict on byte-identical stop
+  lists, so a one-or-two-page delta says nothing.
 
 Between rounds only re-judge the pages whose `stops/NNN.json` changed and copy
 the previous verdicts for the rest — the tour is identical, so is the verdict.
