@@ -231,6 +231,14 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
 
 Goal: the details that make it feel premium.
 
+- [x] Continuous vertical scroll ("infinite strip", 2026-09-04): a third
+      top-level per-comic mode that stacks whole pages fit to width in a
+      `LazyColumn` instead of paginating, with no detector anywhere in its
+      path. It does not stop at the end of an issue — the next issue of the
+      series is appended to the same list across a named boundary band, and
+      progress, the counter and the scrubber follow whichever issue is under
+      the viewport. 0.33 % janky frames and zero slow bitmap uploads over a
+      long fast scroll across two boundaries. See `docs/reading-modes.md`
 - [x] More formats: format is detected by content (magic bytes), not extension.
       ZIP (CBZ, and `.cbr` files that are really ZIP), RAR4/RAR5 (via
       7-Zip-JBinding) and PDF (`PdfRenderer`, verified 2026-08-28: scan,

@@ -30,7 +30,7 @@ granularity.
 
 ## Scheduled for 1.1
 
-### Continuous vertical scroll ("infinite strip")
+### ~~Continuous vertical scroll ("infinite strip")~~ — **Shipped 2026-09-04** (`a635510`, `1df066c`; see `docs/reading-modes.md`). It went further than the spec below: the strip does not stop at the end of an issue, it chains into the next one in the series across a named boundary band.
 
 Stack the **whole pages** vertically in one continuous scroll, fit to width,
 with no page-turn animation — scroll instead of paginate. Proposed 2026-09-04.
@@ -142,10 +142,10 @@ direction and split-wide-pages, zoom locked, disabled in landscape spread.
 5 + 6 + 7 first (no ML dependency, visible on the first screen), then 1
 (improves the flagship feature without touching detection).
 
-**Updated 2026-09-04 (evening):** 5, 6 and 7 shipped earlier, and **1's
-transitions shipped too**, leaving only its auto-play half. The next item is
-**continuous vertical scroll** (see "Scheduled for 1.1" above), chosen because it
-is the last big 1.1 item with no detector in its path.
+**Updated 2026-09-04 (evening):** 5, 6 and 7 shipped earlier, **1's
+transitions shipped too** (leaving only its auto-play half), and **continuous
+vertical scroll shipped** the same day, chained across issues. That closes the
+1.1 list above.
 Idea 4 (bubble OCR) still deserves a second look: the hand-lettering family was
 scoped on 2026-09-04 as needing *text* detection rather than balloon detection,
 which is exactly what idea 4 proposes, and it would replace the `textIn`
