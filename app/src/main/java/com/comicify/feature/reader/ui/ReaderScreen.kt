@@ -64,7 +64,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Switch
@@ -108,6 +107,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.comicify.R
+import com.comicify.core.ui.KapowSnackbarHost
 import com.comicify.core.input.PageTurnDirection
 import com.comicify.core.input.RegisterVolumeKeyPageTurns
 import com.comicify.core.window.ReadingPosture
@@ -338,7 +338,7 @@ private fun SplitSuggestionSnackbar(
         val result = host.showSnackbar(message, actionLabel = action, duration = SnackbarDuration.Long)
         if (result == SnackbarResult.ActionPerformed) onAccept() else onDismiss()
     }
-    SnackbarHost(host, modifier = modifier)
+    KapowSnackbarHost(host, modifier = modifier)
 }
 
 private const val END_OVERSCROLL_TRIGGER = 160f

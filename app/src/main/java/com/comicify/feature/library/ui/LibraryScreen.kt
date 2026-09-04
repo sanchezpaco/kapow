@@ -44,7 +44,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SnackbarDuration
@@ -116,6 +115,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.comicify.R
+import com.comicify.core.ui.KapowSnackbarHost
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.domain.LibraryEntry
@@ -185,7 +185,7 @@ fun LibraryScreen(
     }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        snackbarHost = { SnackbarHost(snackbarHost) },
+        snackbarHost = { KapowSnackbarHost(snackbarHost) },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             LibraryContent(
