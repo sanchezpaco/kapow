@@ -55,7 +55,7 @@ fun ThumbnailScrubber(
     val listState = rememberLazyListState()
     val itemWidthPx = with(LocalDensity.current) { (ThumbWidth + ThumbSpacing).roundToPx() }
 
-    LaunchedEffect(visible) {
+    LaunchedEffect(visible, currentPage) {
         if (!visible) return@LaunchedEffect
         val viewport = snapshotFlow { listState.layoutInfo.viewportSize.width }.first { it > 0 }
         listState.scrollToItem(

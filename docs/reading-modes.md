@@ -342,6 +342,14 @@ is unit-tested directly (`PageOrderTest`).
   circle, shown while the panel is closed and the eye is off Pages or has
   bubbles on, or the gear has night tint, right-to-left or the split active.
 - Center tap toggles a minimal overlay: progress, page number, quick settings.
+  Both bars carry a scrim so their white content stays legible over light pages:
+  the top bar fades black `0.6` → transparent downwards, the bottom chrome
+  transparent → black `0.75` downwards. The bottom scrim spans the whole bottom
+  chrome (it starts above the scrubber and reaches the screen edge, so the
+  thumbnails, the page counter, the Guided View stops and the progress bar all
+  sit on it) and it slides and fades away with the chrome, so a hidden chrome
+  darkens nothing. All three view modes draw the same `BottomChrome`, so the
+  strip and Guided View get the scrim with the pager.
   The chrome stays composed while hidden: `SlidingChrome` fades it with
   `ModulateAlpha` and slides it fully off-screen (so it receives no touches)
   instead of `AnimatedVisibility`, which recomposed and re-recorded ~40 nodes on
@@ -358,9 +366,18 @@ is unit-tested directly (`PageOrderTest`).
 - **Thumbnail scrubber:** the bottom chrome carries a horizontally scrollable
   filmstrip of low-resolution page thumbnails. Tapping a thumbnail jumps the
   reader to that page; the strip is draggable to scan the whole comic. The
-  current page's thumbnail is highlighted and the strip centres on it when the
-  chrome opens. See `thumbnail-scrubber` below. Hidden with the chrome, and
-  suppressed in Guided View (which navigates panel by panel).
+  current page's thumbnail is highlighted and the strip centres on it. See
+  `thumbnail-scrubber` below. Hidden with the chrome, and suppressed in Guided
+  View (which navigates panel by panel).
+- Reaching the end of a comic raises `EndOfComicOverlay`. It is the last child of
+  the reader `Box`, so its scrim covers the chrome — including the progress bar,
+  which never hides — and the chrome is hidden for as long as the overlay is up,
+  so nothing behind it stays bright. That hiding is a gate on the rendered
+  visibility, not a write to `chromeVisible`, so it leaves the strip's
+  hide-on-scroll rule alone: dismissing the overlay returns the chrome to
+  whatever the mode had it at. The card offers **Next issue** (filled, only when
+  the library knows a next issue), **Back to library** (tonal) and **Close**
+  (text), and a tap outside dismisses it.
 
 ## Thumbnail scrubber
 
@@ -369,6 +386,10 @@ is unit-tested directly (`PageOrderTest`).
   full-page cache so scrubbing never evicts reading-quality bitmaps.
 - Decoding is lazy: the strip is a `LazyRow`, so only visible cells request their
   thumbnail as they scroll into view — pages are never decoded eagerly.
+- The strip re-centres on the current page every time that page changes while the
+  chrome is visible, not only when the chrome opens, so a jump made from
+  elsewhere (the end-of-comic overlay, a page turn) always leaves the highlighted
+  thumbnail on screen. While the chrome is hidden it re-centres nothing.
 - Jumping is unidirectional: a tap raises a `pendingJump` on `ReaderUiState`; the
   active surface's pager consumes it (`scrollToPage`) and clears it, so the jump
   lands on the same page state the pager and `onPageChanged` already drive. In the
