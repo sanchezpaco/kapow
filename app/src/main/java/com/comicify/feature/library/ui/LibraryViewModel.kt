@@ -65,7 +65,8 @@ class LibraryViewModel @Inject constructor(
                 comics = filtered,
                 allComics = comics,
                 entries = LibraryCatalog.grouped(filtered),
-                continueReading = if (selectedFilter == LibraryFilter.ALL && searchQuery.isBlank()) LibraryCatalog.continueReading(comics) else emptyList(),
+                continueReading = LibraryCatalog.continueReading(comics),
+                continueReadingVisible = selectedFilter == LibraryFilter.ALL && searchQuery.isBlank(),
                 totalCount = comics.size,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState())

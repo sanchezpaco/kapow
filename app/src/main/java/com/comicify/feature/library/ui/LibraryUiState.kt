@@ -20,5 +20,6 @@ data class LibraryUiState(
     val allComics: List<LibraryComic> = emptyList(),
     val entries: List<LibraryEntry> = emptyList(),
     val continueReading: List<LibraryComic> = emptyList(),
+    val continueReadingVisible: Boolean = false,
     val totalCount: Int = 0,
 )

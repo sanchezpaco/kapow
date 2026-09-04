@@ -167,10 +167,22 @@ re-shelves it, so a comic reappears as soon as it is read again.
   finished comics, an amber star on favorites and the title (which already
   carries the series). Series stacks put the issue count bottom-left, away from
   the cover's logo.
-- A **filter bar** (All / Unread / Read / Favorites) narrows the grid, followed
-  by a **Recent** toggle that orders the grid by last read (`LibrarySort`). Both
-  live in the ViewModel and reset on relaunch. "Continue reading" only shows
-  under the "All" filter and while no search is active.
+- The shelf title row ("Shelf / All comics") and the **filter bar**
+  (All / Unread / Read / Favorites) travel together in a **sticky header**: they
+  pin to the top of the grid once it scrolls past them, painted with the screen
+  background so covers slide underneath, so a filter is always one tap away
+  without scrolling back up. The row still scrolls horizontally if a translation
+  makes the chips wider than the screen.
+- The **Recent** sort toggle (`LibrarySort`) is not a fifth chip — a clock icon
+  at the trailing end of the shelf title row, accent-tinted while on. It sat in
+  the chip row before and clipped off the edge of a folded 360 dp screen, which
+  also read as if "Recent" were a filter.
+- "Continue reading" only shows under the "All" filter and while no search is
+  active (`continueReadingVisible`; the list itself is always computed, so it
+  survives the animation). Instead of vanishing, it **collapses** — fade plus
+  `shrinkVertically` — and it shares a single grid item with the header, so
+  switching filters slides the shelf header down rather than yanking the chip
+  row ~185 dp up from under the user's finger.
 - **Search**: the magnifier in the toolbar reveals a field that filters by title
   or series, case-insensitive (`LibraryCatalog.search`).
 - **Long-pressing a cover** opens a menu headed by the comic's title: reading
@@ -189,7 +201,10 @@ re-shelves it, so a comic reappears as soon as it is read again.
   otherwise keep the old first item anchored and hide a reinserted one).
 - Toolbar: search, group-by-series toggle and open-a-file are visible; choose
   folder and refresh live behind "⋮". The empty state keeps the large
-  "Choose folder" button.
+  "Choose folder" button. The group toggle keeps the same `Layers` glyph the
+  series count badge uses in both states and signals grouping only with the
+  accent colour, like the search button does while open — a folder icon would
+  collide with "choose folder" in Settings and onboarding.
 - The opened series is ViewModel state (`openedSeries`), so returning from the
   settings screen lands back inside the series.
 - Entries are naturally sorted by series, then issue number, then title.

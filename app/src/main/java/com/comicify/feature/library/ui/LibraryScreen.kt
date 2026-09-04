@@ -5,6 +5,11 @@ import com.comicify.BuildConfig
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -68,13 +73,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.outlined.CreateNewFolder
-import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.outlined.StarBorder
@@ -129,9 +133,9 @@ private val GridMinCell = 158.dp
 private val GridMinCellCompact = 112.dp
 private val UnshelveButtonSize = 40.dp
 private val CardShape = RoundedCornerShape(14.dp)
+private val SectionGap = 22.dp
 private val SearchFieldMaxWidth = 480.dp
 private val MenuHeaderMaxWidth = 260.dp
-private val FilterDividerHeight = 22.dp
 private val ProgressRingSize = 26.dp
 
 private val CoverGradients = listOf(
@@ -208,6 +212,7 @@ fun LibraryScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LibraryContent(
     state: LibraryUiState,
@@ -272,33 +277,44 @@ private fun LibraryContent(
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = gridMinCell()),
         modifier = Modifier.fillMaxSize().statusBarsPadding(),
-        contentPadding = PaddingValues(20.dp),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp),
+        verticalArrangement = Arrangement.spacedBy(SectionGap),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
-            LibraryHeader(
-                comicCount = state.totalCount,
-                scanning = state.scanning,
-                scanError = state.scanError,
-                grouped = state.grouped,
-                query = state.query,
-                onOpenAppSettings = onOpenAppSettings,
-                onOpenFile = openFile,
-                onToggleGrouped = onToggleGrouped,
-                onQueryChanged = onQueryChanged,
-            )
-        }
-        if (state.continueReading.isNotEmpty()) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                ContinueReadingShelf(comics = state.continueReading, onOpenComic = onOpenComic, onUnshelve = onUnshelve)
+            Column(modifier = Modifier.padding(top = 20.dp)) {
+                LibraryHeader(
+                    comicCount = state.totalCount,
+                    scanning = state.scanning,
+                    scanError = state.scanError,
+                    grouped = state.grouped,
+                    query = state.query,
+                    onOpenAppSettings = onOpenAppSettings,
+                    onOpenFile = openFile,
+                    onToggleGrouped = onToggleGrouped,
+                    onQueryChanged = onQueryChanged,
+                )
+                AnimatedVisibility(
+                    visible = state.continueReadingVisible && state.continueReading.isNotEmpty(),
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically(),
+                ) {
+                    ContinueReadingShelf(
+                        comics = state.continueReading,
+                        onOpenComic = onOpenComic,
+                        onUnshelve = onUnshelve,
+                        modifier = Modifier.padding(top = SectionGap),
+                    )
+                }
             }
         }
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            SectionHeader(eyebrow = stringResource(R.string.library_shelf_eyebrow), title = stringResource(R.string.library_all_comics))
-        }
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            FilterBar(selected = state.filter, sort = state.sort, onFilterSelected = onFilterSelected, onSortSelected = onSortSelected)
+        stickyHeader {
+            ShelfHeader(
+                filter = state.filter,
+                sort = state.sort,
+                onFilterSelected = onFilterSelected,
+                onSortSelected = onSortSelected,
+            )
         }
         if (state.comics.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
@@ -364,7 +380,7 @@ private fun SeriesScreen(
         modifier = Modifier.fillMaxSize().statusBarsPadding(),
         contentPadding = PaddingValues(20.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp),
+        verticalArrangement = Arrangement.spacedBy(SectionGap),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             SeriesHeader(
@@ -500,7 +516,7 @@ private fun LibraryHeader(
                 active = searching,
             )
             GhostAction(
-                icon = if (grouped) Icons.Filled.GridView else Icons.Outlined.Folder,
+                icon = Icons.Filled.Layers,
                 contentDescription = stringResource(if (grouped) R.string.library_ungroup else R.string.library_group),
                 onClick = onToggleGrouped,
                 active = grouped,
@@ -611,10 +627,15 @@ internal fun GhostAction(
 }
 
 @Composable
-private fun ContinueReadingShelf(comics: List<LibraryComic>, onOpenComic: (LibraryComic) -> Unit, onUnshelve: (LibraryComic) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+private fun ContinueReadingShelf(
+    comics: List<LibraryComic>,
+    onOpenComic: (LibraryComic) -> Unit,
+    onUnshelve: (LibraryComic) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
         SectionHeader(eyebrow = stringResource(R.string.library_resume_eyebrow), title = stringResource(R.string.library_continue_reading))
-        val hero = comics.first()
+        val hero = comics.firstOrNull() ?: return@Column
         key(hero.id) {
             SwipeToUnshelve(comic = hero, onUnshelve = onUnshelve) {
                 LibraryHero(comic = hero, onOpenComic = onOpenComic, onUnshelve = onUnshelve)
@@ -839,7 +860,7 @@ internal fun ResumePill() {
 }
 
 @Composable
-internal fun SectionHeader(eyebrow: String, title: String) {
+internal fun SectionHeader(eyebrow: String, title: String, trailing: @Composable () -> Unit = {}) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = eyebrow.uppercase(),
@@ -855,6 +876,7 @@ internal fun SectionHeader(eyebrow: String, title: String) {
             color = MaterialTheme.colorScheme.onBackground,
         )
         Box(modifier = Modifier.weight(1f).height(1.dp).background(CardLine))
+        trailing()
     }
 }
 
@@ -1199,12 +1221,42 @@ private fun CountBadge(count: Int, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun FilterBar(
-    selected: LibraryFilter,
+private fun ShelfHeader(
+    filter: LibraryFilter,
     sort: LibrarySort,
     onFilterSelected: (LibraryFilter) -> Unit,
     onSortSelected: (LibrarySort) -> Unit,
 ) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        SectionHeader(
+            eyebrow = stringResource(R.string.library_shelf_eyebrow),
+            title = stringResource(R.string.library_all_comics),
+        ) {
+            RecentSortToggle(sort = sort, onSortSelected = onSortSelected)
+        }
+        FilterBar(selected = filter, onFilterSelected = onFilterSelected)
+    }
+}
+
+@Composable
+private fun RecentSortToggle(sort: LibrarySort, onSortSelected: (LibrarySort) -> Unit) {
+    val recent = sort == LibrarySort.RECENT
+    GhostAction(
+        icon = Icons.Filled.History,
+        contentDescription = stringResource(R.string.library_sort_recent),
+        onClick = { onSortSelected(if (recent) LibrarySort.TITLE else LibrarySort.RECENT) },
+        active = recent,
+    )
+}
+
+@Composable
+private fun FilterBar(selected: LibraryFilter, onFilterSelected: (LibraryFilter) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1215,9 +1267,6 @@ private fun FilterBar(
         FilterPill(R.string.library_filter_unread, selected == LibraryFilter.UNREAD) { onFilterSelected(LibraryFilter.UNREAD) }
         FilterPill(R.string.library_filter_read, selected == LibraryFilter.READ) { onFilterSelected(LibraryFilter.READ) }
         FilterPill(R.string.library_filter_favorites, selected == LibraryFilter.FAVORITES) { onFilterSelected(LibraryFilter.FAVORITES) }
-        Box(modifier = Modifier.width(1.dp).height(FilterDividerHeight).align(Alignment.CenterVertically).background(CardLine))
-        val recent = sort == LibrarySort.RECENT
-        FilterPill(R.string.library_sort_recent, recent) { onSortSelected(if (recent) LibrarySort.TITLE else LibrarySort.RECENT) }
     }
 }
 
