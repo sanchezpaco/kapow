@@ -282,18 +282,24 @@ private fun LibraryContent(
         verticalArrangement = Arrangement.spacedBy(SectionGap),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
-            Column(modifier = Modifier.padding(top = 20.dp)) {
-                LibraryHeader(
-                    comicCount = state.totalCount,
-                    scanning = state.scanning,
-                    scanError = state.scanError,
-                    grouped = state.grouped,
-                    query = state.query,
-                    onOpenAppSettings = onOpenAppSettings,
-                    onOpenFile = openFile,
-                    onToggleGrouped = onToggleGrouped,
-                    onQueryChanged = onQueryChanged,
-                )
+            LibraryHeader(
+                comicCount = state.totalCount,
+                scanning = state.scanning,
+                scanError = state.scanError,
+                grouped = state.grouped,
+                query = state.query,
+                onOpenAppSettings = onOpenAppSettings,
+                onOpenFile = openFile,
+                onToggleGrouped = onToggleGrouped,
+                onQueryChanged = onQueryChanged,
+                modifier = Modifier.padding(top = 20.dp),
+            )
+        }
+        stickyHeader {
+            FilterHeader(filter = state.filter, onFilterSelected = onFilterSelected)
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Column {
                 AnimatedVisibility(
                     visible = state.continueReadingVisible && state.continueReading.isNotEmpty(),
                     enter = fadeIn() + expandVertically(),
@@ -303,18 +309,11 @@ private fun LibraryContent(
                         comics = state.continueReading,
                         onOpenComic = onOpenComic,
                         onUnshelve = onUnshelve,
-                        modifier = Modifier.padding(top = SectionGap),
+                        modifier = Modifier.padding(bottom = SectionGap),
                     )
                 }
+                ShelfTitle(sort = state.sort, onSortSelected = onSortSelected)
             }
-        }
-        stickyHeader {
-            ShelfHeader(
-                filter = state.filter,
-                sort = state.sort,
-                onFilterSelected = onFilterSelected,
-                onSortSelected = onSortSelected,
-            )
         }
         if (state.comics.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
@@ -489,9 +488,10 @@ private fun LibraryHeader(
     onOpenFile: () -> Unit,
     onToggleGrouped: () -> Unit,
     onQueryChanged: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var searching by remember { mutableStateOf(query.isNotEmpty()) }
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 text = stringResource(R.string.library_title),
@@ -1221,26 +1221,24 @@ private fun CountBadge(count: Int, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ShelfHeader(
-    filter: LibraryFilter,
-    sort: LibrarySort,
-    onFilterSelected: (LibraryFilter) -> Unit,
-    onSortSelected: (LibrarySort) -> Unit,
-) {
-    Column(
+private fun FilterHeader(filter: LibraryFilter, onFilterSelected: (LibraryFilter) -> Unit) {
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
             .padding(vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        SectionHeader(
-            eyebrow = stringResource(R.string.library_shelf_eyebrow),
-            title = stringResource(R.string.library_all_comics),
-        ) {
-            RecentSortToggle(sort = sort, onSortSelected = onSortSelected)
-        }
         FilterBar(selected = filter, onFilterSelected = onFilterSelected)
+    }
+}
+
+@Composable
+private fun ShelfTitle(sort: LibrarySort, onSortSelected: (LibrarySort) -> Unit) {
+    SectionHeader(
+        eyebrow = stringResource(R.string.library_shelf_eyebrow),
+        title = stringResource(R.string.library_all_comics),
+    ) {
+        RecentSortToggle(sort = sort, onSortSelected = onSortSelected)
     }
 }
 
