@@ -72,8 +72,7 @@ private const val PANEL_PADDING = 0.02f
 private const val DOUBLE_TAP_ZOOM = 2f
 private const val MAX_ZOOM = 4f
 private const val RETURN_ANIMATION_MILLIS = 520
-private const val COVER_TURN_MILLIS = 140
-private const val COVER_LIFT_MILLIS = 220
+private const val COVER_LIFT_MILLIS = 180
 private const val ZOOM_ANIMATION_MILLIS = 260
 private const val PANEL_EXIT_EPSILON = 0.001f
 private const val OVERSCROLL_RESISTANCE = 0.32f
@@ -262,23 +261,20 @@ private fun GuidedPanel(
         dragView = null
         view.updateBounds(null, null)
         overscroll.snapTo(Offset.Zero)
-        if (!settled) {
-            cover.animateTo(1f, tween(COVER_TURN_MILLIS, easing = FastOutSlowInEasing))
-            return@LaunchedEffect
-        }
+        if (!settled) return@LaunchedEffect
         if (currentAutoPan) {
             shownPage = page
-            launch { cover.animateTo(0f, tween(COVER_LIFT_MILLIS, easing = FastOutSlowInEasing)) }
             view.animateTo(panCrop(currentPanelView, atTop = true), tween(RETURN_ANIMATION_MILLIS, easing = FastOutSlowInEasing))
             view.animateTo(panCrop(currentPanelView, atTop = false), tween(AUTO_PAN_MILLIS, easing = FastOutSlowInEasing))
             return@LaunchedEffect
         }
         val cut = DirectorCut.between(view.value, currentPanelView, page != shownPage, currentAdvancing)
+        if (cut.jump || cut.fromBlack) cover.snapTo(1f)
+        if (cut.jump) view.snapTo(currentPanelView)
         shownPage = page
-        if (cut.fromBlack) cover.snapTo(1f)
         val lift = if (cut.fromBlack) cut.durationMillis else COVER_LIFT_MILLIS
         launch { cover.animateTo(0f, tween(lift, easing = FastOutSlowInEasing)) }
-        moveCamera(view, currentPanelView, cut)
+        if (!cut.jump) animateCamera(view, currentPanelView, cut)
     }
 
     Box(
@@ -428,17 +424,14 @@ private fun GuidedPanel(
             val displayOverscroll = if (dragView != null) dragOverscroll else overscroll.value
             GuidedPage(image, displayView, displayOverscroll)
         }
-        if (cover.value > 0f) {
-            Canvas(modifier = Modifier.fillMaxSize()) { drawRect(color = Color.Black, alpha = cover.value) }
+        val veil = if (page != shownPage) 1f else cover.value
+        if (veil > 0f) {
+            Canvas(modifier = Modifier.fillMaxSize()) { drawRect(color = Color.Black, alpha = veil) }
         }
     }
 }
 
-private suspend fun moveCamera(view: Animatable<Rect, *>, target: Rect, cut: Cut) {
-    if (cut.jump) {
-        view.snapTo(target)
-        return
-    }
+private suspend fun animateCamera(view: Animatable<Rect, *>, target: Rect, cut: Cut) {
     if (!cut.arcing) {
         view.animateTo(target, tween(cut.durationMillis, easing = cut.easing))
         return

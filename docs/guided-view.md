@@ -379,16 +379,22 @@ Annotated PNGs land in `<dir>/out`. Iterate there, then trust the unit tests.
 - **The veil** is what makes a page turn a cut instead of a flash. A turn fires
   the focus animation **twice**: once the moment the page changes, still carrying
   the *previous* page's stop list, and again when the new page's stops arrive.
-  Without a cover the first one framed the new art on an old, usually much larger
-  rectangle — measured on the Fold as a jump in mean screen brightness from 46 to
-  70 and back over ~100 ms, a visible flash. `GuidedReader` therefore tracks
-  which page the on-screen stops belong to (`stopsPage`), and while a turn is
-  unsettled the camera **does not move at all** and an opaque black layer fades in
-  over 140 ms; when the stops land, the camera jumps and the veil lifts over
-  220 ms. Its cost scales with the wait: with detections cached the veil only
-  reaches part way before it is on its way out, so a fast turn blinks rather than
-  dips. The veil doubles as the Reveal, which is why the spotlight dim is a
-  constant again — dimming only darkens the *surround* of the focus rect, so on a
+  Without a cover the first one framed the new art on an old rectangle, so a
+  frame of the *wrong* part of the new page went up — with the previous stop
+  usually near the bottom, that is the new page's **last** panel, flashed for one
+  frame before its first. `GuidedReader` therefore tracks which page the
+  on-screen stops belong to (`stopsPage`), and while a turn is unsettled the
+  camera **does not move at all**; when the stops land, the camera jumps and the
+  veil lifts over 180 ms.
+  The veil's opacity is **decided in composition** (`page != shownPage`), not
+  animated in. That distinction is the whole fix: an earlier version faded the
+  veil in over 140 ms and still showed the wrong panel, because the new bitmap is
+  usually already preloaded and lands ~30 ms in, while the veil was at 20 %. A
+  cover that has to animate up cannot win a race against a cache hit. Measured on
+  the Fold at 60 fps, a turn is now two fully black frames — the second already
+  carrying the new page number — and then the correct stop lifting into view.
+  The veil doubles as the Reveal, which is why the spotlight dim is a constant
+  again: dimming only darkens the *surround* of the focus rect, so on a
   whole-page stop, where there is no surround, it did nothing at all.
 - **Auto-pan** (implemented but currently **disabled** — `AUTO_PAN_ENABLED`
   in `GuidedReader`, no HUD toggle): a large stop (a splash or big panel,
