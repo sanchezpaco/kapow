@@ -61,6 +61,7 @@ fun ReaderSurface(
     nextInSeries: (StripComic) -> StripComic?,
     openIssue: suspend (StripComic) -> PageLoader?,
     onStripActiveChanged: (StripComic?, PageLoader, Int, Int) -> Unit,
+    onStripScrolled: () -> Unit,
     bubbleScale: Float?,
     direction: ReadingDirection,
     coverAlone: Boolean,
@@ -87,6 +88,7 @@ fun ReaderSurface(
                 nextInSeries = nextInSeries,
                 openIssue = openIssue,
                 onTap = { onTap(TapZone.Center) },
+                onScrolled = onStripScrolled,
                 onAmbient = onAmbient,
             )
         }

@@ -142,8 +142,9 @@ class PageLoader(
     private suspend fun planOverlay(index: Int, scale: Float): List<PaintedBubble> {
         val bubbles = bubbles(index)
         val art = load(index)
-        val enlarged = BubbleLayout.enlarge(bubbles, scale)
-        return timed("bubble plan", index) { withContext(Dispatchers.Default) { BubblePlan.of(art.analysis, enlarged) } }
+        return timed("bubble plan", index) {
+            withContext(Dispatchers.Default) { BubblePlan.of(art.analysis, BubbleLayout.enlarge(bubbles, scale)) }
+        }
     }
 
     private suspend fun detectBubbles(index: Int): List<SpeechBubble> {
@@ -163,7 +164,7 @@ class PageLoader(
         indices.filter { it in 0 until source.pageCount }
             .sortedBy { abs(it - around) }
             .forEach { index ->
-                scope.launch {
+                scope.launch(Dispatchers.Default) {
                     runCatching {
                         if (bubbleScale != null) overlay(index, bubbleScale) else load(index)
                         if (panels) {

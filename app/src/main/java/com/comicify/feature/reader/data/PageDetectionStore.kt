@@ -5,6 +5,8 @@ import com.comicify.core.storage.PageDetectionDao
 import com.comicify.core.storage.PageDetectionEntity
 import com.comicify.feature.reader.domain.PageDetectionCodec
 import com.comicify.feature.reader.domain.SpeechBubble
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private const val SPLIT_PAGES_SUFFIX = "+split"
 
@@ -16,9 +18,13 @@ class PageDetectionStore(
 
     private val version = if (splitWidePages) DETECTIONS_VERSION + SPLIT_PAGES_SUFFIX else DETECTIONS_VERSION
 
-    suspend fun panels(pageIndex: Int): List<Rect>? = find(pageIndex)?.panels?.let(PageDetectionCodec::decodePanels)
+    suspend fun panels(pageIndex: Int): List<Rect>? = find(pageIndex)?.panels?.let { stored ->
+        withContext(Dispatchers.Default) { PageDetectionCodec.decodePanels(stored) }
+    }
 
-    suspend fun bubbles(pageIndex: Int): List<SpeechBubble>? = find(pageIndex)?.bubbles?.let(PageDetectionCodec::decodeBubbles)
+    suspend fun bubbles(pageIndex: Int): List<SpeechBubble>? = find(pageIndex)?.bubbles?.let { stored ->
+        withContext(Dispatchers.Default) { PageDetectionCodec.decodeBubbles(stored) }
+    }
 
     suspend fun savePanels(pageIndex: Int, panels: List<Rect>) {
         dao.upsert(row(pageIndex).copy(panels = PageDetectionCodec.encodePanels(panels)))

@@ -32,6 +32,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,6 +81,7 @@ fun VerticalStripReader(
     nextInSeries: (StripComic) -> StripComic?,
     openIssue: suspend (StripComic) -> PageLoader?,
     onTap: () -> Unit,
+    onScrolled: () -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
     val chain = remember(loader) { mutableStateListOf<ChainLink>() }
@@ -133,6 +135,10 @@ fun VerticalStripReader(
         val index = StripChain.indexOfPage(items, activeLink, target)
         if (index >= 0) listState.scrollToItem(index)
         onJumpApplied()
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }.collect { scrolling -> if (scrolling) onScrolled() }
     }
 
     LaunchedEffect(listState) {

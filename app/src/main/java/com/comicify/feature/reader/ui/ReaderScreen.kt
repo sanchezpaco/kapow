@@ -208,6 +208,7 @@ fun ReaderScreen(
                             activePageCount = pageCount
                             viewModel.onPageChanged(pageIndex)
                         },
+                        onStripScrolled = viewModel::hideChrome,
                         bubbleScale = state.bubbleScale.takeIf { state.bubblesEnlarged },
                         direction = state.direction,
                         coverAlone = state.coverAlone,

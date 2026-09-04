@@ -183,6 +183,10 @@ class ReaderViewModel(
         _state.update { it.copy(position = it.position.copy(pageIndex = pageIndex)) }
     }
 
+    fun hideChrome() {
+        _state.update { if (it.chromeVisible) it.copy(chromeVisible = false) else it }
+    }
+
     fun toggleChrome() {
         _state.update { it.copy(chromeVisible = !it.chromeVisible) }
     }
