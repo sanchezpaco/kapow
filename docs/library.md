@@ -93,7 +93,9 @@ ComicSettings(
 - `ReadingState` powers "continue reading" and cross-session position restore
   (see `foldable.md` for the in-memory `ReadingPosition` this maps to). The
   reader seeds its initial page from it and, on each page turn, saves the index
-  and marks `completed` at the last page.
+  and marks `completed` at the last page. `completed` is sticky: once set it stays
+  true on later saves even if the reader pages back into the comic, until the
+  comic is explicitly marked unread.
 - `completed` is also settable by hand from the library: marking a comic read
   writes a `ReadingState` at the last page; marking it unread deletes the row
   (clearing its resume position). `favorite` lives on the comic itself and is
