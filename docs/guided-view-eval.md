@@ -195,7 +195,15 @@ tools/eval/venv/bin/python tools/eval/summary.py eval                # the corpu
   whose current stops have no verdict, deletes the stale ones and snapshots the
   stops under `judged/`. `--skip` is for covers and the pages held out to stay
   comparable with earlier rounds. Everything it lists, and nothing else, needs a
-  judge.
+  judge. The held-out set, unchanged since the second sample, is:
+
+  ```
+  --skip spiderman-2099-01:001 ben-reilly-01:000 defensores-1:034 defensores-1:035 \
+         sonic-malos:025 vader-down-01:006b lok-tdsr:015a … lok-tdsr:024b
+  ```
+
+  (covers and title pages, plus the second half of LOK, kept out so the corpus
+  stays comparable with the earlier rounds).
 - `tools/eval/scorecard.py` — aggregates gates + verdicts into
   `scorecard.json` and a `worst/` gallery (`index.md` + the annotated pages of
   the lowest-scoring pages). Archive a round **before** changing `GuidedTour`
