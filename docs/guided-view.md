@@ -368,17 +368,28 @@ Annotated PNGs land in `<dir>/out`. Iterate there, then trust the unit tests.
   - **Pull back** — target over 1.7× the current frame. 340 ms; an opening reads
     better fast.
   - **Reveal** — arriving *forward* on a stop covering 86 % of the page (a splash,
-    or the establishing stop of a painted page). The spotlight dim starts at
-    black and lifts to 0.72 over 700 ms. Skipped backwards: a reveal you have
-    already seen is a delay.
-  - **Page turn** — the camera **jumps**. It used to travel from the old page's
-    framing to the new one while the bitmap had already swapped, describing a
-    journey that never happened. Onto a whole-page stop the jump lands under the
-    reveal. Dipping through the page's ambient colour was designed but **not
-    built**: the swap is not ours to time (art and stops arrive asynchronously, so
-    a turn fires two resets), and it is not worth risking page-turn latency for.
+    or the establishing stop of a painted page). The veil below starts opaque and
+    lifts over 700 ms. Skipped backwards: a reveal you have already seen is a
+    delay.
+  - **Page turn** — the camera **jumps**, under the veil. It used to travel from
+    the old page's framing to the new one while the bitmap had already swapped,
+    describing a journey that never happened.
   Returning to the panel fit after a double-tap zoom or a drag keeps the old
   uniform 520 ms (`RETURN_ANIMATION_MILLIS`) — that is a correction, not a cut.
+- **The veil** is what makes a page turn a cut instead of a flash. A turn fires
+  the focus animation **twice**: once the moment the page changes, still carrying
+  the *previous* page's stop list, and again when the new page's stops arrive.
+  Without a cover the first one framed the new art on an old, usually much larger
+  rectangle — measured on the Fold as a jump in mean screen brightness from 46 to
+  70 and back over ~100 ms, a visible flash. `GuidedReader` therefore tracks
+  which page the on-screen stops belong to (`stopsPage`), and while a turn is
+  unsettled the camera **does not move at all** and an opaque black layer fades in
+  over 140 ms; when the stops land, the camera jumps and the veil lifts over
+  220 ms. Its cost scales with the wait: with detections cached the veil only
+  reaches part way before it is on its way out, so a fast turn blinks rather than
+  dips. The veil doubles as the Reveal, which is why the spotlight dim is a
+  constant again — dimming only darkens the *surround* of the focus rect, so on a
+  whole-page stop, where there is no surround, it did nothing at all.
 - **Auto-pan** (implemented but currently **disabled** — `AUTO_PAN_ENABLED`
   in `GuidedReader`, no HUD toggle): a large stop (a splash or big panel,
   ≥ 40 % of the page) gently zooms in (~1.2×) and makes a single slow

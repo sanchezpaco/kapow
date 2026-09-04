@@ -72,7 +72,8 @@ private const val PANEL_PADDING = 0.02f
 private const val DOUBLE_TAP_ZOOM = 2f
 private const val MAX_ZOOM = 4f
 private const val RETURN_ANIMATION_MILLIS = 520
-private const val FULL_DIM = 1f
+private const val COVER_TURN_MILLIS = 140
+private const val COVER_LIFT_MILLIS = 220
 private const val ZOOM_ANIMATION_MILLIS = 260
 private const val PANEL_EXIT_EPSILON = 0.001f
 private const val OVERSCROLL_RESISTANCE = 0.32f
@@ -105,6 +106,7 @@ fun GuidedReader(
     var page by remember { mutableIntStateOf(initialPage.coerceIn(0, (loader.pageCount - 1).coerceAtLeast(0))) }
     var panelIndex by remember { mutableIntStateOf(0) }
     var panels by remember { mutableStateOf(listOf(FullPagePanel)) }
+    var stopsPage by remember { mutableIntStateOf(initialPage) }
     var arts by remember { mutableStateOf(emptyMap<Int, PageArt>()) }
 
     LaunchedEffect(page, direction) {
@@ -115,6 +117,7 @@ fun GuidedReader(
         loaded?.let { arts = arts + (page to it); onAmbient(it.ambient) }
         val detected = runCatching { loader.stops(page, direction) }.getOrDefault(listOf(FullPagePanel))
         panels = detected
+        stopsPage = page
         panelIndex = if (panelIndex == LAST_PANEL) detected.lastIndex else panelIndex.coerceIn(0, detected.lastIndex)
         loader.preload(page, (page - 1)..(page + 2), bubbleScale = null, panels = true)
         if (spread) {
@@ -159,10 +162,11 @@ fun GuidedReader(
     val currentStop = panels.getOrElse(panelIndex) { FullPagePanel }
     val autoPan = AUTO_PAN_ENABLED && isLargeStop(currentStop)
     val panelView = GuidedFocus.frame(currentStop, PANEL_PADDING)
-    val resetKey = Triple(page, panelIndex, panelView)
+    val settled = stopsPage == page
+    val resetKey = listOf(page, panelIndex, panelView, settled)
 
     if (!spread) {
-        GuidedPanel(arts[page], page, advancing, panelView, autoPan, resetKey, direction, ::goPrevious, ::goNext, onTap, Modifier.fillMaxSize())
+        GuidedPanel(arts[page], page, advancing, settled, panelView, autoPan, resetKey, direction, ::goPrevious, ::goNext, onTap, Modifier.fillMaxSize())
         return
     }
     val firstPage = spreadStart(page, coverAlone)
@@ -170,8 +174,8 @@ fun GuidedReader(
     val screenLeftPage = PageOrder.leftPage(direction, firstPage, secondPage)
     val screenRightPage = PageOrder.rightPage(direction, firstPage, secondPage)
     Row(modifier = Modifier.fillMaxSize()) {
-        SpreadHalf(screenLeftPage, page, advancing, arts[screenLeftPage], panelView, autoPan, resetKey, direction, ::goPrevious, ::goNext, onTap)
-        SpreadHalf(screenRightPage, page, advancing, arts[screenRightPage], panelView, autoPan, resetKey, direction, ::goPrevious, ::goNext, onTap)
+        SpreadHalf(screenLeftPage, page, advancing, settled, arts[screenLeftPage], panelView, autoPan, resetKey, direction, ::goPrevious, ::goNext, onTap)
+        SpreadHalf(screenRightPage, page, advancing, settled, arts[screenRightPage], panelView, autoPan, resetKey, direction, ::goPrevious, ::goNext, onTap)
     }
 }
 
@@ -194,6 +198,7 @@ private fun RowScope.SpreadHalf(
     index: Int,
     activePage: Int,
     advancing: Boolean,
+    settled: Boolean,
     art: PageArt?,
     panelView: Rect,
     autoPan: Boolean,
@@ -205,7 +210,7 @@ private fun RowScope.SpreadHalf(
 ) {
     val modifier = Modifier.weight(1f).fillMaxSize()
     if (index == activePage) {
-        GuidedPanel(art, activePage, advancing, panelView, autoPan, resetKey, direction, onPrevious, onNext, onTap, modifier)
+        GuidedPanel(art, activePage, advancing, settled, panelView, autoPan, resetKey, direction, onPrevious, onNext, onTap, modifier)
         return
     }
     val image = art?.image
@@ -215,7 +220,7 @@ private fun RowScope.SpreadHalf(
         },
         contentAlignment = Alignment.Center,
     ) {
-        if (image != null) GuidedPage(image, FullPagePanel, Offset.Zero, SPOTLIGHT_DIM)
+        if (image != null) GuidedPage(image, FullPagePanel, Offset.Zero)
     }
 }
 
@@ -224,6 +229,7 @@ private fun GuidedPanel(
     art: PageArt?,
     page: Int,
     advancing: Boolean,
+    settled: Boolean,
     panelView: Rect,
     autoPan: Boolean,
     resetKey: Any,
@@ -247,7 +253,7 @@ private fun GuidedPanel(
     val currentDirection by rememberUpdatedState(direction)
     val currentAutoPan by rememberUpdatedState(autoPan)
     val currentAdvancing by rememberUpdatedState(advancing)
-    val dim = remember { Animatable(SPOTLIGHT_DIM) }
+    val cover = remember { Animatable(0f) }
     var shownPage by remember { mutableIntStateOf(page) }
 
     LaunchedEffect(resetKey) {
@@ -256,16 +262,22 @@ private fun GuidedPanel(
         dragView = null
         view.updateBounds(null, null)
         overscroll.snapTo(Offset.Zero)
+        if (!settled) {
+            cover.animateTo(1f, tween(COVER_TURN_MILLIS, easing = FastOutSlowInEasing))
+            return@LaunchedEffect
+        }
         if (currentAutoPan) {
             shownPage = page
+            launch { cover.animateTo(0f, tween(COVER_LIFT_MILLIS, easing = FastOutSlowInEasing)) }
             view.animateTo(panCrop(currentPanelView, atTop = true), tween(RETURN_ANIMATION_MILLIS, easing = FastOutSlowInEasing))
             view.animateTo(panCrop(currentPanelView, atTop = false), tween(AUTO_PAN_MILLIS, easing = FastOutSlowInEasing))
             return@LaunchedEffect
         }
         val cut = DirectorCut.between(view.value, currentPanelView, page != shownPage, currentAdvancing)
         shownPage = page
-        dim.snapTo(if (cut.fromBlack) FULL_DIM else SPOTLIGHT_DIM)
-        launch { dim.animateTo(SPOTLIGHT_DIM, tween(cut.durationMillis, easing = cut.easing)) }
+        if (cut.fromBlack) cover.snapTo(1f)
+        val lift = if (cut.fromBlack) cut.durationMillis else COVER_LIFT_MILLIS
+        launch { cover.animateTo(0f, tween(lift, easing = FastOutSlowInEasing)) }
         moveCamera(view, currentPanelView, cut)
     }
 
@@ -414,7 +426,10 @@ private fun GuidedPanel(
         } else {
             val displayView = dragView ?: view.value
             val displayOverscroll = if (dragView != null) dragOverscroll else overscroll.value
-            GuidedPage(image, displayView, displayOverscroll, dim.value)
+            GuidedPage(image, displayView, displayOverscroll)
+        }
+        if (cover.value > 0f) {
+            Canvas(modifier = Modifier.fillMaxSize()) { drawRect(color = Color.Black, alpha = cover.value) }
         }
     }
 }
@@ -477,7 +492,7 @@ private fun ImageBitmap.size() = Size(width.toFloat(), height.toFloat())
 private fun IntSize.toSize() = Size(width.toFloat(), height.toFloat())
 
 @Composable
-private fun GuidedPage(image: ImageBitmap, view: Rect, overscroll: Offset, dim: Float) {
+private fun GuidedPage(image: ImageBitmap, view: Rect, overscroll: Offset) {
     Canvas(modifier = Modifier.fillMaxSize()) {
         val source = view
         val drawn = GuidedFocus.fit(source, image.size(), size).translate(overscroll.x, overscroll.y)
@@ -493,7 +508,7 @@ private fun GuidedPage(image: ImageBitmap, view: Rect, overscroll: Offset, dim: 
             dstSize = IntSize((image.width * scale).roundToInt(), (image.height * scale).roundToInt()),
             filterQuality = FilterQuality.Low,
         )
-        drawRect(color = Color.Black, alpha = dim)
+        drawRect(color = Color.Black, alpha = SPOTLIGHT_DIM)
         drawImage(
             image = image,
             srcOffset = IntOffset((source.left * image.width).roundToInt(), (source.top * image.height).roundToInt()),
@@ -502,14 +517,14 @@ private fun GuidedPage(image: ImageBitmap, view: Rect, overscroll: Offset, dim: 
             dstSize = IntSize(drawn.width.roundToInt(), drawn.height.roundToInt()),
             filterQuality = FilterQuality.High,
         )
-        featherFocus(drawn, dim)
+        featherFocus(drawn)
     }
 }
 
-private fun DrawScope.featherFocus(focus: Rect, dim: Float) {
+private fun DrawScope.featherFocus(focus: Rect) {
     val feather = minOf(focus.width, focus.height) * SPOTLIGHT_FEATHER_FRACTION
     if (feather <= 0f) return
-    val edge = Color.Black.copy(alpha = dim)
+    val edge = Color.Black.copy(alpha = SPOTLIGHT_DIM)
     drawRect(
         Brush.verticalGradient(listOf(edge, Color.Transparent), startY = focus.top, endY = focus.top + feather),
         topLeft = Offset(focus.left, focus.top), size = Size(focus.width, feather),

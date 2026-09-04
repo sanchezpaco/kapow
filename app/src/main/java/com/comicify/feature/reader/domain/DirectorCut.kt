@@ -39,15 +39,8 @@ object DirectorCut {
     val ArcIn: Easing = CubicBezierEasing(0f, 0f, 0.2f, 1f)
 
     fun between(from: Rect, to: Rect, pageChanged: Boolean, forward: Boolean): Cut {
-        val revealing = forward && to.area >= WHOLE_PAGE_AREA
-        if (pageChanged) return Cut(
-            durationMillis = if (revealing) REVEAL_MILLIS else 0,
-            easing = Travelling,
-            lift = 0f,
-            jump = true,
-            fromBlack = revealing,
-        )
-        if (revealing) return Cut(REVEAL_MILLIS, Travelling, 0f, jump = false, fromBlack = true)
+        if (pageChanged) return Cut(0, Travelling, 0f, jump = true, fromBlack = false)
+        if (forward && to.area >= WHOLE_PAGE_AREA) return Cut(REVEAL_MILLIS, Travelling, 0f, jump = false, fromBlack = true)
         val ratio = to.area / from.area
         if (ratio < PUSH_IN_AREA_RATIO) return Cut(PUSH_IN_MILLIS, Settling, 0f, jump = false, fromBlack = false)
         if (ratio > PULL_BACK_AREA_RATIO) return Cut(PULL_BACK_MILLIS, Opening, 0f, jump = false, fromBlack = false)
