@@ -129,7 +129,7 @@ class LibraryRepositoryImpl @Inject constructor(
 
     override suspend fun saveProgress(comicId: Long, pageIndex: Int, pageCount: Int): Boolean {
         val wasCompleted = readingStateDao.find(comicId)?.completed == true
-        val completed = LibraryCatalog.isCompleted(pageIndex, pageCount)
+        val completed = LibraryCatalog.completedAfter(wasCompleted, pageIndex, pageCount)
         readingStateDao.upsert(
             ReadingStateEntity(
                 comicId = comicId,

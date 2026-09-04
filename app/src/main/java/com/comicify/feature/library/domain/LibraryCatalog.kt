@@ -11,6 +11,9 @@ object LibraryCatalog {
     fun isCompleted(pageIndex: Int, pageCount: Int): Boolean =
         pageCount > 0 && pageIndex >= pageCount - 1
 
+    fun completedAfter(wasCompleted: Boolean, pageIndex: Int, pageCount: Int): Boolean =
+        wasCompleted || isCompleted(pageIndex, pageCount)
+
     fun progress(pageIndex: Int, pageCount: Int): Float =
         if (pageCount <= 0) 0f else ((pageIndex + 1).toFloat() / pageCount).coerceIn(0f, 1f)
 

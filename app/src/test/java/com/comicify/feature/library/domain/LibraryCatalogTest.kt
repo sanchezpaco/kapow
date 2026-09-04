@@ -41,6 +41,13 @@ class LibraryCatalogTest {
     }
 
     @Test
+    fun completedStaysTrueOnceReached() {
+        assertTrue(LibraryCatalog.completedAfter(wasCompleted = true, pageIndex = 5, pageCount = 20))
+        assertTrue(LibraryCatalog.completedAfter(wasCompleted = false, pageIndex = 19, pageCount = 20))
+        assertFalse(LibraryCatalog.completedAfter(wasCompleted = false, pageIndex = 5, pageCount = 20))
+    }
+
+    @Test
     fun progressFraction() {
         assertEquals(0.5f, LibraryCatalog.progress(pageIndex = 9, pageCount = 20), 0.0001f)
         assertEquals(1f, LibraryCatalog.progress(pageIndex = 19, pageCount = 20), 0.0001f)
