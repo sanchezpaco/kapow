@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.ViewCarousel
+import androidx.compose.material.icons.filled.ViewDay
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material3.Icon
@@ -51,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.comicify.R
 import com.comicify.core.ui.folderDisplayName
+import com.comicify.core.ui.theme.KapowPalette
 import com.comicify.core.ui.theme.KapowTheme
 import com.comicify.feature.library.ui.PrimaryAction
 import kotlinx.coroutines.launch
@@ -174,6 +176,7 @@ private fun GesturesStep() {
 
 @Composable
 private fun ModesStep() {
+    Illustration(ModesDrawing())
     StepText(title = stringResource(R.string.onboarding_modes_title), body = stringResource(R.string.onboarding_modes_body))
     ModeRow(
         icon = Icons.Filled.ViewCarousel,
@@ -181,6 +184,7 @@ private fun ModesStep() {
         body = stringResource(R.string.onboarding_guided_body),
         note = stringResource(R.string.onboarding_guided_note),
     )
+    ModeRow(icon = Icons.Filled.ViewDay, title = stringResource(R.string.reader_mode_strip), body = stringResource(R.string.onboarding_strip_body))
     ModeRow(icon = Icons.Filled.ChatBubbleOutline, title = stringResource(R.string.reader_action_enlarge_bubbles), body = stringResource(R.string.onboarding_bubbles_body))
     Footnote(stringResource(R.string.onboarding_modes_note))
 }
@@ -301,6 +305,58 @@ private fun DrawScope.drawChevron(at: Offset, pointingRight: Boolean, color: Col
     val stroke = size.width * 0.012f
     drawLine(color, Offset(tip.x - arm * direction, at.y - arm), tip, stroke)
     drawLine(color, Offset(tip.x - arm * direction, at.y + arm), tip, stroke)
+}
+
+@Composable
+private fun ModesDrawing(): DrawScope.() -> Unit {
+    val palette = KapowTheme.palette
+    return {
+        val margin = size.width * 0.1f
+        val gap = size.width * 0.08f
+        val glyphWidth = (size.width - 2 * margin - 2 * gap) / 3f
+        val glyphHeight = glyphWidth * PageAspectRatio
+        val top = (size.height - glyphHeight) / 2f
+        drawGuidedGlyph(Offset(margin, top), glyphWidth, glyphHeight, palette)
+        drawStripGlyph(Offset(margin + glyphWidth + gap, top), glyphWidth, glyphHeight, palette)
+        drawBubbleGlyph(Offset(margin + 2 * (glyphWidth + gap), top), glyphWidth, glyphHeight, palette)
+    }
+}
+
+private fun DrawScope.drawGuidedGlyph(topLeft: Offset, width: Float, height: Float, palette: KapowPalette) {
+    val outline = Stroke(width = size.width * 0.01f)
+    drawRoundRect(palette.track, topLeft, Size(width, height), CornerRadius(width * 0.14f), outline)
+    val panelMargin = width * 0.16f
+    drawRoundRect(
+        color = palette.accent,
+        topLeft = Offset(topLeft.x + panelMargin, topLeft.y + height * 0.34f),
+        size = Size(width - 2 * panelMargin, height * 0.32f),
+        cornerRadius = CornerRadius(width * 0.1f),
+    )
+}
+
+private fun DrawScope.drawStripGlyph(topLeft: Offset, width: Float, height: Float, palette: KapowPalette) {
+    val gap = height * 0.06f
+    val itemHeight = (height - 2 * gap) / 3f
+    val colors = listOf(palette.track, palette.accentPale, palette.track)
+    colors.forEachIndexed { index, color ->
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(topLeft.x, topLeft.y + index * (itemHeight + gap)),
+            size = Size(width, itemHeight),
+            cornerRadius = CornerRadius(width * 0.14f),
+        )
+    }
+}
+
+private fun DrawScope.drawBubbleGlyph(topLeft: Offset, width: Float, height: Float, palette: KapowPalette) {
+    val outline = Stroke(width = size.width * 0.01f)
+    drawRoundRect(palette.track, topLeft, Size(width, height), CornerRadius(width * 0.14f), outline)
+    drawCircle(
+        color = palette.accent,
+        radius = width * 0.32f,
+        center = Offset(topLeft.x + width / 2f, topLeft.y + height * 0.36f),
+        style = outline,
+    )
 }
 
 @Composable

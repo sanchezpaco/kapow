@@ -22,8 +22,11 @@ image assets):
 2. **Gestures** — a page with the two tap-zone bands (20 % each side, the
    values from `TapZones`), chevrons, and the centre tap; the copy also covers
    pinch / double-tap zoom and swipe.
-3. **Modes** — Guided View and enlarged bubbles, with the same icons as the
-   reader HUD toggles, and the "Start reading" button. Guided View carries a
+3. **Modes** — an illustration (three small glyphs: a page with a highlighted
+   panel, a stack of pages, a page with a speech-bubble outline) keeps the
+   title at the same vertical position as the other two steps, then Guided
+   View, the vertical strip and enlarged bubbles, each with the same icon as
+   its reader HUD toggle, and the "Start reading" button. Guided View carries a
    small note (`onboarding_guided_note`: works best on clearly drawn panel
    borders) and a footnote says these features are still improving and that
    "Report a visual glitch" in the reader controls sends the page to us

@@ -7,6 +7,12 @@ All notable user-facing changes to Kapow. The format follows
 
 ## [Unreleased]
 
+### Changed
+- Onboarding's third page now covers all three reading modes — Guided View,
+  the continuous vertical strip and enlarged speech bubbles — under the title
+  "Three ways to read", with a new illustration so its title lines up with
+  the other two pages.
+
 ## [1.0.2] - 2026-08-31
 
 ### Fixed
