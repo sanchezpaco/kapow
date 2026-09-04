@@ -41,7 +41,7 @@ class DirectorCutTest {
 
     @Test
     fun aMuchSmallerTargetPushesInAndAMuchLargerOnePullsBack() {
-        assertEquals(560, cut(topLeftPanel, closeUp).durationMillis)
+        assertEquals(480, cut(topLeftPanel, closeUp).durationMillis)
         assertEquals(340, cut(closeUp, topLeftPanel).durationMillis)
     }
 
@@ -56,5 +56,14 @@ class DirectorCutTest {
         val turn = cut(topRightPanel, topLeftPanel, pageChanged = true)
         assertTrue(turn.jump)
         assertFalse(turn.arcing)
+        assertFalse(turn.fromBlack)
+    }
+
+    @Test
+    fun turningForwardOntoAWholePageStopRevealsIt() {
+        val onto = cut(topRightPanel, wholePage, pageChanged = true)
+        assertTrue(onto.jump)
+        assertTrue(onto.fromBlack)
+        assertEquals(700, onto.durationMillis)
     }
 }

@@ -9,10 +9,10 @@ import kotlin.math.hypot
 private const val PAN_BASE_MILLIS = 240
 private const val PAN_MILLIS_PER_TRAVEL = 420
 private const val PAN_MAX_MILLIS = 520
-private const val ARC_TRAVEL_THRESHOLD = 0.22f
+private const val ARC_TRAVEL_THRESHOLD = 0.45f
 private const val ARC_MAX_LIFT = 0.3f
 private const val ARC_LIFT_GAIN = 4f
-private const val PUSH_IN_MILLIS = 560
+private const val PUSH_IN_MILLIS = 480
 private const val PUSH_IN_AREA_RATIO = 0.6f
 private const val PULL_BACK_MILLIS = 340
 private const val PULL_BACK_AREA_RATIO = 1.7f
@@ -39,8 +39,15 @@ object DirectorCut {
     val ArcIn: Easing = CubicBezierEasing(0f, 0f, 0.2f, 1f)
 
     fun between(from: Rect, to: Rect, pageChanged: Boolean, forward: Boolean): Cut {
-        if (pageChanged) return Cut(0, Travelling, 0f, jump = true, fromBlack = false)
-        if (forward && to.area >= WHOLE_PAGE_AREA) return Cut(REVEAL_MILLIS, Travelling, 0f, jump = false, fromBlack = true)
+        val revealing = forward && to.area >= WHOLE_PAGE_AREA
+        if (pageChanged) return Cut(
+            durationMillis = if (revealing) REVEAL_MILLIS else 0,
+            easing = Travelling,
+            lift = 0f,
+            jump = true,
+            fromBlack = revealing,
+        )
+        if (revealing) return Cut(REVEAL_MILLIS, Travelling, 0f, jump = false, fromBlack = true)
         val ratio = to.area / from.area
         if (ratio < PUSH_IN_AREA_RATIO) return Cut(PUSH_IN_MILLIS, Settling, 0f, jump = false, fromBlack = false)
         if (ratio > PULL_BACK_AREA_RATIO) return Cut(PULL_BACK_MILLIS, Opening, 0f, jump = false, fromBlack = false)

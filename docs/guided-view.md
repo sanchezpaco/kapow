@@ -358,24 +358,33 @@ Annotated PNGs land in `<dir>/out`. Iterate there, then trust the unit tests.
   turn. The move is now chosen from the geometry of the two rects:
   - **Pan** — similar area. Duration grows with how far the camera travels
     (240 ms + 420 ms per page-width, capped at 520), so a short step stops
-    costing as much as a jump across the page. Past a quarter of the page the
+    costing as much as a jump across the page. Past 0.45 of the page the
     move **arcs**: it runs through an apex up to 30 % wider than the two ends, so
     the reader sees the art it crosses instead of teleporting. The arc is two
     chained `animateTo` calls, which carry the animatable's velocity across the
     apex; a `keyframes` spec would visibly stop the camera there.
-  - **Push in** — target under 60 % of the current frame. 560 ms with a long
+  - **Push in** — target under 60 % of the current frame. 480 ms with a long
     deceleration; the braking is what makes a close-up read as deliberate.
   - **Pull back** — target over 1.7× the current frame. 340 ms; an opening reads
     better fast.
   - **Reveal** — arriving *forward* on a stop covering 86 % of the page (a splash,
-    or the establishing stop of a painted page). The veil below starts opaque and
-    lifts over 700 ms. Skipped backwards: a reveal you have already seen is a
-    delay.
+    or the establishing stop of a painted page): the veil lifts over 700 ms
+    instead of 180. In practice this only ever happens **on a page turn**, since a
+    whole-page stop is always its page's first — reached forward from the previous
+    page, never from within. Skipped backwards: a reveal you have already seen is
+    a delay. It lands on 11 % of the corpus's pages.
   - **Page turn** — the camera **jumps**, under the veil. It used to travel from
     the old page's framing to the new one while the bitmap had already swapped,
     describing a journey that never happened.
   Returning to the panel fit after a double-tap zoom or a drag keeps the old
   uniform 520 ms (`RETURN_ANIMATION_MILLIS`) — that is a correction, not a cut.
+  The thresholds were set against the **815 stop-to-stop moves of the 193
+  ground-truth pages** rather than by eye. Travel between consecutive stops has a
+  median of 0.35 of the page, so the original 0.45 arc threshold started at
+  0.22 and arced **half of all moves** — the arc is for the exceptional jump, and
+  at 0.45 it fires on 20 % of them. Push in was 560 ms, which made a fifth of all
+  moves *slower* than the flat 520 ms it replaced; at 480 no move is slower than
+  before, 97 % are faster, and the mean move is 401 ms.
 - **The veil** is what makes a page turn a cut instead of a flash. A turn fires
   the focus animation **twice**: once the moment the page changes, still carrying
   the *previous* page's stop list, and again when the new page's stops arrive.
