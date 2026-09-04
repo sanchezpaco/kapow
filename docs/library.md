@@ -209,8 +209,9 @@ tweaked individually from inside the series screen.
   widths; the "Default" chip spells out the global value it falls back to
   ("Default (Left to right)", "Default (Off)"). The selected chip uses the
   translucent accent, keeping solid red for destructive actions. Turning
-  bubbles on reveals a scale slider with its bounds labelled (same range and
-  steps as the reader's HUD slider) stored as the comic's `bubbleScale`; a
+  bubbles on reveals a scale slider with its bounds labelled (same
+  `BUBBLE_SCALE_RANGE` and steps as the reader's HUD stepper) stored as the
+  comic's `bubbleScale`; a
   series-wide change writes it to every issue. Saved in `comic_settings`
   through `LibraryRepository.saveSettings`; a row equal to
   `ComicSettings.Default` is deleted rather than stored. `docs/reading-modes.md`
