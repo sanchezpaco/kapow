@@ -28,6 +28,52 @@ get clipped at strip edges (layout would have to be per strip), no merging of
 over-segmented tiny panels, and Flow ↔ page position mapping only at page
 granularity.
 
+## Scheduled for 1.1
+
+### Continuous vertical scroll ("infinite strip")
+
+Stack the **whole pages** vertically in one continuous scroll, fit to width,
+with no page-turn animation — scroll instead of paginate. Proposed 2026-09-04.
+
+**This is not Cinematic Flow, and the rejection above does not apply to it.**
+Flow changed *what you see*: it cropped the page into per-panel strips and
+magnified them, so it depended entirely on the panel detector and threw the page
+composition away. This changes only *how you move*: same pages, same pixels, no
+crop, no magnification. **Nothing in its path can misdetect anything**, which is
+its main argument — Guided View's remaining failures are all detector-shaped, and
+this mode has no detector.
+
+Why it is worth building: continuous vertical scroll is the native reading mode
+for manga and webtoons, and the library already holds One Piece, Attack on Titan,
+Shangri-La and Kingdom Hearts. Every serious reader (Mihon, Perfect Viewer,
+Panels) has it; it is one of the few absences a manga reader would notice. It is
+also cheap next to everything else here — no ML, no ground truth, no new labels —
+and the deleted Flow PoC already proved the skeleton (a `LazyColumn` of pages)
+works; this is that skeleton without the strip cropping. It pairs naturally with
+**Split wide pages**, which is already shipped.
+
+Three risks, all engineering rather than design:
+
+1. **HWUI texture budget.** This bit the app once already: software 24 MB pages
+   thrashing a 72 MB texture cache, 78 % janky frames, fixed with hardware
+   bitmaps. A continuous strip keeps **more pages resident at once** than the
+   pager does. It needs a tighter recycling window, and the gate before shipping
+   is the `gfxinfo` recipe over a long fast scroll on the Fold, watching **Slow
+   bitmap uploads** specifically — the number that caught the original jank.
+2. **Zoom versus scroll.** Vertical drag is the scroll, so one-finger pan while
+   zoomed conflicts with it. For v1, **lock to fit-width** and drop vertical pan,
+   which is what most webtoon readers do; it sidesteps the whole gesture
+   arbitration problem and costs little.
+3. **Mode precedence and state.** Guided View and the two-page spread are
+   page-based and cannot coexist with a strip, so this is a third top-level mode
+   that turns them off (same precedence `flow` had in `ReaderSurface`). Two things
+   the Flow PoC left half-done must be finished properly here: **reading position**
+   (stored per page today; needs a fraction, or at least first-visible-page) and
+   the **thumbnail scrubber**, which Flow simply hid.
+
+Scope for v1: whole pages, fit to width, a per-comic setting alongside reading
+direction and split-wide-pages, zoom locked, disabled in landscape spread.
+
 ## Reading (build on the ML and the Fold)
 
 1. **Guided View "director" transitions.** Use the panel geometry: slide

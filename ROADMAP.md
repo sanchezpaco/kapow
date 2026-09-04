@@ -571,7 +571,10 @@ JSON, or an own upload endpoint for the full package) — the report is mail fro
 the user's own account and that is accepted; a `mailto:` intent selector does
 not resolve on every device, so the plain chooser stays (decided 2026-08-29).
 
-Deferred to 1.1: tip jar under Settings → About as a one-off Play Billing
+Deferred to 1.1: **continuous vertical scroll** (whole pages stacked, fit to
+width, no page-turn effect — not Cinematic Flow, which cropped to panels and was
+rejected; this one has no detector in its path, see `docs/product-ideas.md`),
+tip jar under Settings → About as a one-off Play Billing
 product (an external Ko-fi / Buy Me a Coffee link risks a Play payments-policy
 rejection; decided 2026-08-29), reading stats / recently read, home-screen widget, automatic
 day/night theme, ComicVine metadata, panel-level posture transition,
