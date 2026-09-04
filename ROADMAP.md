@@ -189,10 +189,15 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       in production reads it today, so this is only worth fixing if a feature
       starts needing text — but the ground truth and `BubbleTextDump` now measure
       it directly
-- [ ] Guided View detector, hand lettering: painted/hand-lettered captions the
-      bubble model never returns are the single largest family of remaining bads
-      (Arkham 027/031b/033/037). The corpus, ground-truth and retrain pipeline
-      that produced student v4/v5 is what this needs — not another composition rule
+- [ ] Guided View detector, hand lettering — **scoped 2026-09-04, a retrain will
+      not fix it**: on `arkham:027` the model returns zero bubbles because there is
+      no bubble, only red hand-lettering floating on painted black; `031b` and
+      `037` detect only the half of the page that holds balloons. The ground truth
+      cannot measure the family either — three of Arkham's seven GT pages are
+      labelled 0 bubbles and 0 panels, so bubble recall 0.96 is measured only where
+      balloons exist. Needs a new label class for free-floating lettering, or
+      text-region detection over the art — not the v4/v5 retrain pipeline. Ceiling
+      is 15 cost points over three pages. See `docs/speech-bubbles.md`
 - [ ] Measure on the Fold what always-on bubble detection costs per page
       (logcat recipe in `docs/guided-view.md`; needs a hand on the device)
 - [ ] Guided View eval, tighten the `framing` rubric: at 0.67 pairwise agreement

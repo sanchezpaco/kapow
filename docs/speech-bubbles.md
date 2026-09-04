@@ -937,3 +937,33 @@ The text-free stops Guided View builds are therefore a **composition** question 
 orphan detection with no text earning its own tap), not a detector gate — and at one
 page they sit far below the judge's error bar, so they are not worth a rule. See
 `docs/guided-view-eval.md`.
+
+## Hand lettering is a text problem, not a bubble problem (2026-09-04)
+
+The remaining Guided View bads on Arkham Asylum were filed as "hand lettering the
+bubble model never returns", with a retrain queued as the fix. Looked at directly,
+a retrain cannot help: **there is no bubble to detect.**
+
+On `arkham:027` the model returns **zero** bubbles. The page is a McKean painted
+splash and its only dialogue is red hand-lettering floating on the black strip down
+the right edge — no white shape, no outline, no enclosing form of any kind. The tour
+therefore has one stop, the whole page, and the judge's complaint is exactly that:
+the dialogue never gets a reading window. `arkham:031b` returns five detections all
+in the left half while the two real captions sit on the right; `arkham:037` returns
+four, all in the top strip, missing the Joker's long red caption below.
+
+The ground truth cannot measure this family, because it does not contain it. Three of
+Arkham's seven ground-truth pages (138, 163, 188) are labelled **0 bubbles and 0
+panels** — recorded as empty rather than as lettering. Bubble recall on Arkham scores
+0.96, but only over the four pages that happen to hold conventional balloons.
+
+So the work this needs is not the v4/v5 retrain pipeline pointed at more pages. It is
+either a new label class for free-floating lettering, added to the ground truth on the
+painted books first, or a different mechanism altogether — text-region detection over
+the art, used to place reading windows where no bubble exists. Both are larger than a
+retrain and neither can start until the labels exist.
+
+Worth knowing before committing to it: the family is three pages of 372
+(`arkham:027`, `031b`, `037`), worth at most 15 cost points if detection became
+perfect. That is a bigger prize than the whole fourth round moved, but it buys a new
+detector class and a new labelling pass.
