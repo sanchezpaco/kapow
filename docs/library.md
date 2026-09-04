@@ -167,12 +167,15 @@ re-shelves it, so a comic reappears as soon as it is read again.
   finished comics, an amber star on favorites and the title (which already
   carries the series). Series stacks put the issue count bottom-left, away from
   the cover's logo.
-- The shelf title row ("Shelf / All comics") and the **filter bar**
-  (All / Unread / Read / Favorites) travel together in a **sticky header**: they
-  pin to the top of the grid once it scrolls past them, painted with the screen
-  background so covers slide underneath, so a filter is always one tap away
-  without scrolling back up. The row still scrolls horizontally if a translation
-  makes the chips wider than the screen.
+- The **filter bar** (All / Unread / Read / Favorites) sits directly under the
+  toolbar, **above** "Continue reading", in a **sticky header**: it pins to the
+  top of the grid once it scrolls past, painted with the screen background so
+  covers slide underneath. Putting it above the hero is what keeps it still —
+  when a filter hides "Continue reading" the section collapses *below* the
+  chips, so the row never moves under the finger (it used to jump ~185 dp). The
+  shelf title row ("Shelf / All comics") comes after the hero, right above the
+  grid. The chip row still scrolls horizontally if a translation makes it wider
+  than the screen.
 - The **Recent** sort toggle (`LibrarySort`) is not a fifth chip — a clock icon
   at the trailing end of the shelf title row, accent-tinted while on. It sat in
   the chip row before and clipped off the edge of a folded 360 dp screen, which
