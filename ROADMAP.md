@@ -453,6 +453,19 @@ Goal: the details that make it feel premium.
       and `MaterialTheme.colorScheme`; the reader keeps page, ambient and
       chrome, only the accent follows. Cover-alone stays per-comic (the
       column is not tri-state). See `docs/settings.md`
+- [x] Guided View director transitions (2026-09-04, `71c1791`…`e3028b2`).
+      Every stop-to-stop move used to be the same `tween(520 ms,
+      FastOutSlowIn)`; `DirectorCut` (pure, unit-tested) now picks it from the
+      two rects — pan whose duration grows with the travel and arcs past 0.45
+      of the page, push in with a long brake, pull back fast, reveal from
+      black, jump on a page turn. Thresholds were set against the 815
+      stop-to-stop moves of the 193 ground-truth pages, not by eye: mean move
+      401 ms, no move slower than the flat 520 ms it replaced. A page turn now
+      cuts under an opaque veil whose opacity is decided **in composition** —
+      a turn fires the focus animation twice, the first time with the previous
+      page's stops, and a veil that animates up cannot win the race against a
+      preloaded bitmap. Verified on the Fold's cover screen, 4.3 % janky
+      frames, 0 slow bitmap uploads. See `docs/guided-view.md`
 - [ ] Reading stats / recently read
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails

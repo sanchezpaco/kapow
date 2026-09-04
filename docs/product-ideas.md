@@ -76,12 +76,15 @@ direction and split-wide-pages, zoom locked, disabled in landscape spread.
 
 ## Reading (build on the ML and the Fold)
 
-1. **Guided View "director" transitions.** Use the panel geometry: slide
-   sideways when the next panel is to the right, zoom-in with ease-out when
-   it is smaller, reveal from black on splashes, crossfade over the ambient
-   colour on page change. Plus **auto-play** whose pace is estimated from the
-   amount of text ink inside the page's bubbles — hands-free reading in
-   tabletop posture.
+1. ~~**Guided View "director" transitions.**~~ **Shipped 2026-09-04**
+   (`71c1791`…`e3028b2`, see ROADMAP Phase 5 and `docs/guided-view.md`). The
+   crossfade over the ambient colour on a page change was replaced by an opaque
+   black veil — the ambient dip needs to time a swap the reader does not
+   control, while the veil only has to be opaque in the same frame the page
+   changes. **Auto-play is still open** and was deliberately split off: it is a
+   new top-level mode (state, HUD, pause on touch) and its pace estimate leans
+   on `textIn`, which the 2026-09-04 session found unreliable on scans, so the
+   pacing would need another source.
 2. **Tabletop with two real surfaces.** Top half: the current panel in
    Guided View. Bottom half: the whole page as a map with the current panel
    highlighted; tapping any panel jumps to it. The bottom half stops being a
@@ -139,11 +142,12 @@ direction and split-wide-pages, zoom locked, disabled in landscape spread.
 5 + 6 + 7 first (no ML dependency, visible on the first screen), then 1
 (improves the flagship feature without touching detection).
 
-**Updated 2026-09-04:** 5, 6 and 7 all shipped (library hero, series detail,
-shared-element transition), so **1 is next** — and it has gained weight, because
-Guided View's composition has since plateaued and every remaining failure is
-detector-shaped, leaving motion and pacing as the headroom that is left.
-Idea 4 (bubble OCR) also deserves a second look: the hand-lettering family was
+**Updated 2026-09-04 (evening):** 5, 6 and 7 shipped earlier, and **1's
+transitions shipped too**, leaving only its auto-play half. The next item is
+**continuous vertical scroll** (see "Scheduled for 1.1" above), chosen because it
+is the last big 1.1 item with no detector in its path.
+Idea 4 (bubble OCR) still deserves a second look: the hand-lettering family was
 scoped on 2026-09-04 as needing *text* detection rather than balloon detection,
 which is exactly what idea 4 proposes, and it would replace the `textIn`
-extractor that the same session found unreliable on scans.
+extractor that the same session found unreliable on scans — and would also give
+auto-play a pace estimate it can trust.
