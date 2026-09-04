@@ -198,8 +198,25 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       balloons exist. Needs a new label class for free-floating lettering, or
       text-region detection over the art — not the v4/v5 retrain pipeline. Ceiling
       is 15 cost points over three pages. See `docs/speech-bubbles.md`
-- [ ] Measure on the Fold what always-on bubble detection costs per page
-      (logcat recipe in `docs/guided-view.md`; needs a hand on the device)
+- [x] Measured on the Fold what always-on bubble detection costs (2026-09-04):
+      turning bubbles on costs ~0.5 pt of janky frames (1.6–2.0 % → 2.2–2.7 %)
+      and moves p99 from ~12 to ~20 ms, with zero slow bitmap uploads — it does
+      not drop frames, folded or unfolded, at 1.3× or 1.4×, however fast pages
+      are turned. The large number is the cold per-page path: decode 89–152 ms
+      + bubbles 131–242 ms + plan 0–106 ms ≈ 250–350 ms before bubbles appear
+      (59–67 ms warm from Room). See `docs/performance.md`
+- [ ] Reader lag reported by the user with bubbles on — **on hold, not
+      reproduced** (2026-09-04): Doctor Muerte and Un Mundo Bajo Muerte both
+      measured clean folded and unfolded. Next time it happens, capture the
+      comic, the page, the posture and whether the symptom is a stuttering page
+      turn (frame work) or bubbles appearing late (the 250–350 ms cold path) —
+      they are different problems. Note the bubble toggle and scale are **per
+      comic**
+- [ ] **Deferred until reader performance is fixed** (2026-09-04): Guided View is
+      closed at cost/page 1.03, 351 of 372 pages with no `bad`, and the cumulative
+      improvement (−89 points over 340 common pages against a ±27 noise floor) is
+      demonstrated. The two items below wait for the bubble-latency work, and when
+      we come back the order is the rubric first, the lettering after it.
 - [ ] Guided View eval, tighten the `framing` rubric: at 0.67 pairwise agreement
       it is the one criterion whose noise swamps the deltas, and every
       disagreement is a policy boundary we own (whole-panel stop, sliced balloon,

@@ -189,3 +189,49 @@ when no overlay is drawn, so its fade no longer needs a per-page
 `saveLayer`; verified folded afterwards (Doom #9 turns 3.2 % janky, p50 5 /
 GPU p90 5 ms, the fade intact mid-turn). Everything sits under the 16.7 ms
 budget; at 120 Hz the spread would not.
+
+## Always-on bubble detection, measured (2026-09-04)
+
+The ROADMAP had carried "measure on the Fold what always-on bubble detection
+costs per page" for days. Measured on the user's Z Fold against the installed
+release (`com.sanchezpaco.kapow` 1.0.0), folded on the cover screen at
+1248×1972, `dumpsys gfxinfo` around twelve page turns:
+
+| comic | bubbles | frames | janky | p50 | p99 | slow uploads |
+|---|---|---|---|---|---|---|
+| Doctor Muerte | off | 366 | 1.64 % | 5 ms | 11 ms | 0 |
+| Doctor Muerte | on 1.3× | 362 | 2.21 % | 5 ms | 20 ms | 0 |
+| Un Mundo Bajo Muerte #1 | off | 350 | 2.00 % | 5 ms | 13 ms | 0 |
+| Un Mundo Bajo Muerte #1 | on 1.3× | 407 | 2.70 % | 5 ms | 21 ms | 0 |
+| Un Mundo Bajo Muerte #2 (cold) | off | 495 | 2.02 % | 5 ms | 14 ms | 0 |
+| Un Mundo Bajo Muerte #2 (cold) | on 1.4× | 494 | 2.63 % | 5 ms | 14 ms | 0 |
+| Un Mundo Bajo Muerte #2 | on 1.4×, unfolded portrait | 405 | 2.96 % | 5 ms | 15 ms | 0 |
+
+**Turning bubbles on costs roughly half a point of janky frames and moves p99
+from ~12 to ~20 ms. It does not drop frames.** Rapid turning (0.35 s apart) does
+not change that, and neither does 1.4× over 1.3×.
+
+The per-page work is a different number, and the one that is actually large.
+`PageLoader` logs it (`adb logcat | grep PageLoader`); on cold pages:
+
+- decode 89–152 ms
+- bubbles (ML + outlining) 131–242 ms
+- bubble plan (`BubbleLayout.enlarge`) 0–106 ms
+
+so ~250–350 ms between the page appearing and its bubbles appearing. Warm pages
+(detections already in Room) drop to 59–67 ms with a 0–5 ms plan.
+
+**These are two different symptoms and they need separating before chasing
+either**: "the page turn stutters" is frame work and currently measures clean;
+"the bubbles take a moment to appear" is the 250–350 ms cold path and is real.
+
+Two things worth knowing before the next attempt:
+
+- **The bubble toggle and its scale are per comic.** Opening a different issue
+  starts with bubbles off even if the previous one had them on — a scripted
+  measurement that forgets this measures nothing.
+- Measure in release. Debug runs `BubbleLayout.enlarge` 10–30× slower (JIT).
+
+Status: a user-reported "big lag / FPS drop" could not be reproduced in this
+session across Doctor Muerte and Un Mundo Bajo Muerte, folded and unfolded, at
+both scales. Parked until it recurs with a comic and page to reproduce from.
