@@ -202,11 +202,16 @@ to re-rasterise every frame instead of letting Compose move already-rasterised
 items: measured, that alone took p99 from 29 ms to **700 ms** and janky frames
 from 0.3 % to 6.8 %. At scale 1 the modifier is not in the chain at all.
 
-A tap anywhere toggles the chrome; the
+A tap anywhere toggles the chrome, and **the chrome hides again as soon as the
+strip starts scrolling** — in the paged reader the next tap dismisses it, but in
+a strip you never tap, so the bubble-size slider would otherwise sit over the
+artwork for as long as you kept reading. The
 thumbnail scrubber and volume keys still work, jumping and stepping by item.
 **Enlarged bubbles work here too** — they are a render overlay on a page, with
 nothing page-turn-specific about them, so the strip draws the same
-`BubbleLayer` the paged surfaces do.
+`BubbleLayer` the paged surfaces do. The strip is what exposed that the bubble
+layout pass and the detection decoding both ran on the main thread; see
+`performance.md`, "When gfxinfo says the reader is fine and it is not".
 Reading position stays the first visible page, so it maps to the same
 `ReadingPosition.pageIndex` every other surface uses and survives a mode switch.
 

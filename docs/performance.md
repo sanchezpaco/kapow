@@ -235,3 +235,42 @@ Two things worth knowing before the next attempt:
 Status: a user-reported "big lag / FPS drop" could not be reproduced in this
 session across Doctor Muerte and Un Mundo Bajo Muerte, folded and unfolded, at
 both scales. Parked until it recurs with a comic and page to reproduce from.
+
+## When gfxinfo says the reader is fine and it is not (2026-09-04)
+
+Scrolling the continuous vertical strip with enlarged bubbles on froze for over
+a second at a time and then jumped forward. Every number `gfxinfo` reports said
+the reader was healthy: 752 frames over the scroll, 3.2 % janky against the
+Fold's 120 Hz deadline, **zero missed vsync, zero slow bitmap uploads**, p99
+12 ms. All of that was true. The app was rendering — it was rendering the same
+frame.
+
+`gfxinfo` measures how long frames take, not whether they show anything new, so
+it cannot see this class of bug at all. What found it was a `screenrecord` of
+the scroll turned into a 5 fps contact sheet (`ffmpeg -vf "fps=5,tile=8x5"`):
+seven identical tiles in a row is a frozen second, and it is obvious at a
+glance. **Reach for the recording, not the counter, whenever the complaint is
+"it stutters" but the frame stats are clean.**
+
+The cause was two pieces of per-page work running on whatever thread called
+them, which was the main thread: `BubbleLayout.enlarge` (the collision and
+silhouette pass) and decoding the detections Room hands back
+(`PageDetectionCodec`). Neither had a `withContext` of its own — they inherited
+the caller's, and the caller was `produceState`, which runs on the composition's
+main dispatcher. `PageLoader.preload` launched on the caller's dispatcher for
+the same reason.
+
+The paged reader pays that cost for one or two pages and it disappears into the
+page turn. A strip pays it for every page that scrolls in, so it turned into a
+stutter roughly once per page. Fixed by pushing all three onto
+`Dispatchers.Default`.
+
+Two smaller gotchas from the same session:
+
+- **`dumpsys gfxinfo <pkg> reset` is unreliable on the Fold at 120 Hz** — it
+  returned 1 frame and 102 frames for identical scrolls. Read the cumulative
+  totals before and after instead and subtract.
+- **`adb shell input` goes to the default display.** On the Fold that is
+  whichever screen is active, so a swipe can silently go nowhere. Confirm with
+  a screenshot hash before and after rather than trusting that input landed.
+
