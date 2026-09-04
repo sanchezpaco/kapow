@@ -60,7 +60,7 @@ object GuidedFocus {
     fun toPageDelta(view: Rect, drawn: Rect, delta: Offset): Offset =
         Offset(-delta.x / drawn.width * view.width, -delta.y / drawn.height * view.height)
 
-    private fun clamp(rect: Rect): Rect {
+    fun clamp(rect: Rect): Rect {
         val width = rect.width.coerceIn(MIN_VIEW_SIDE, 1f)
         val height = rect.height.coerceIn(MIN_VIEW_SIDE, 1f)
         val left = rect.left.coerceIn(0f, 1f - width)

@@ -348,10 +348,37 @@ Annotated PNGs land in `<dir>/out`. Iterate there, then trust the unit tests.
   target rect**: a page turn first composes with the previous page's stops
   (the new page's list arrives asynchronously), so keying on the rect is what
   makes the view move on to the new page's first stop instead of staying on
-  the old page's framing until the next tap. `GuidedPage` animates an `Animatable<Rect>` (520 ms, FastOutSlowIn)
-  and draws the focused panel bright over the rest of the page dimmed — a
-  **spotlight** with soft, feathered edges, so the surrounding art stays visible
-  for context instead of a hard letterbox.
+  the old page's framing until the next tap. `GuidedPage` animates an
+  `Animatable<Rect>` and draws the focused panel bright over the rest of the page
+  dimmed — a **spotlight** with soft, feathered edges, so the surrounding art
+  stays visible for context instead of a hard letterbox.
+- **Director cuts** (`DirectorCut`, pure, `feature/reader/domain`). Every move
+  used to be the same `tween(520 ms, FastOutSlowIn)` whether it was a step to the
+  panel alongside, a close-up on a balloon, an opening onto a splash or a page
+  turn. The move is now chosen from the geometry of the two rects:
+  - **Pan** — similar area. Duration grows with how far the camera travels
+    (240 ms + 420 ms per page-width, capped at 520), so a short step stops
+    costing as much as a jump across the page. Past a quarter of the page the
+    move **arcs**: it runs through an apex up to 30 % wider than the two ends, so
+    the reader sees the art it crosses instead of teleporting. The arc is two
+    chained `animateTo` calls, which carry the animatable's velocity across the
+    apex; a `keyframes` spec would visibly stop the camera there.
+  - **Push in** — target under 60 % of the current frame. 560 ms with a long
+    deceleration; the braking is what makes a close-up read as deliberate.
+  - **Pull back** — target over 1.7× the current frame. 340 ms; an opening reads
+    better fast.
+  - **Reveal** — arriving *forward* on a stop covering 86 % of the page (a splash,
+    or the establishing stop of a painted page). The spotlight dim starts at
+    black and lifts to 0.72 over 700 ms. Skipped backwards: a reveal you have
+    already seen is a delay.
+  - **Page turn** — the camera **jumps**. It used to travel from the old page's
+    framing to the new one while the bitmap had already swapped, describing a
+    journey that never happened. Onto a whole-page stop the jump lands under the
+    reveal. Dipping through the page's ambient colour was designed but **not
+    built**: the swap is not ours to time (art and stops arrive asynchronously, so
+    a turn fires two resets), and it is not worth risking page-turn latency for.
+  Returning to the panel fit after a double-tap zoom or a drag keeps the old
+  uniform 520 ms (`RETURN_ANIMATION_MILLIS`) — that is a correction, not a cut.
 - **Auto-pan** (implemented but currently **disabled** — `AUTO_PAN_ENABLED`
   in `GuidedReader`, no HUD toggle): a large stop (a splash or big panel,
   ≥ 40 % of the page) gently zooms in (~1.2×) and makes a single slow

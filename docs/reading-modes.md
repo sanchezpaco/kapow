@@ -90,7 +90,10 @@ Active in `Tabletop` posture (half-folded, horizontal hinge).
 Available on `CompactSingle`, and on demand elsewhere. Full detail in
 `guided-view.md`.
 
-- Auto-focuses one detected panel at a time with an animated pan/zoom.
+- Auto-focuses one detected panel at a time with an animated pan/zoom whose
+  duration and shape come from the geometry of the move (`DirectorCut`: pan with
+  an arc on long travel, push in, pull back, reveal, jump on a page turn). See
+  `guided-view.md`.
 - Tap advances to the next panel in reading order; at the last panel, advances
   to the next page's first panel.
 - Double-tap zooms around the tapped point and one finger pans (with an inertial
