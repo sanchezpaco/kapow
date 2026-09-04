@@ -8,10 +8,33 @@ All notable user-facing changes to Kapow. The format follows
 ## [Unreleased]
 
 ### Changed
+- Reader controls: the eye and the gear now open one labelled panel each
+  instead of floating pills and unlabelled icons. Pages / Guided view /
+  Vertical scroll are a single choice with a check mark, "Enlarged bubbles"
+  is a switch with a −/+ size stepper under it, the gear rows carry their
+  state, opening one panel closes the other, and a small dot on the button
+  marks a non-default setting.
+- Reader: the bottom chrome (thumbnails, page counter) sits on a dark gradient
+  like the top bar, so it stays readable over light pages; the end-of-comic
+  card hides the chrome, leads with "Next issue" when there is one and closes
+  with "Close".
+- Library: the filter chips sit above "Continue reading" and never move when a
+  filter hides it; "Recent" is a sort toggle on the shelf title instead of a
+  fifth chip; the group-by-series button uses the stack icon.
+- Settings: both settings screens are grouped surfaces with switches for
+  on/off options, chips only for real choices, a single "Mode on open" choice
+  per comic (Pages / Guided view / Vertical scroll), background preview tiles,
+  a centred column (two on wide screens) and a kept scroll position when
+  coming back from the licences.
+- Snackbars use the app palette instead of the Material defaults.
 - Onboarding's third page now covers all three reading modes — Guided View,
   the continuous vertical strip and enlarged speech bubbles — under the title
   "Three ways to read", with a new illustration so its title lines up with
   the other two pages.
+
+### Fixed
+- A finished comic stays "Completed" when you page back into it; only "Mark as
+  unread" clears it.
 
 ## [1.0.2] - 2026-08-31
 

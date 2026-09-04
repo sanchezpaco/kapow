@@ -637,6 +637,44 @@ Fold, and closed as version 1.0.1 (`versionCode 2`, tag `v1.0.1`).
 
 ---
 
+## Design review — 1.0.x
+
+Senior-designer UX pass over every screen on the emulator (2026-09-04), then
+every finding applied the same day on `design/*` branches and verified on the
+emulator at unfolded, spread and folded widths.
+
+- [x] Reader bottom chrome without a scrim: thumbnails and page counter vanished
+      over light pages. Symmetric dark gradient under the bottom chrome
+- [x] Eye menu: four identical pills for an exclusive choice plus a toggle, art
+      showing through them, menu staying open. One solid panel: modes with a
+      check mark, hairline, "Enlarged bubbles" switch with a −/+ stepper
+- [x] Gear menu: unlabelled 12 %-white circles, both menus open at once. Same
+      panel with labelled rows and trailing state; opening one closes the other
+- [x] Bubble-size slider always expanded and invisible over saturated art:
+      folded into the panel as a stepper
+- [x] Library filter chips jumped ~185 dp when a filter hid "Continue reading":
+      chips pinned above the shelf, section collapses below them
+- [x] Paging back into a finished comic un-completed it: `completed` is sticky
+- [x] End-of-comic overlay left the chrome bright above the scrim: chrome hides,
+      "Next issue" first, "Close" instead of "Keep reading"
+- [x] Snackbars in Material default colours: palette-themed host
+- [x] Settings: On/Off chip pairs → switches; per-comic strip + guided toggles
+      → one "Mode on open" choice; grouped raised surfaces; centred column, two
+      columns from 840 dp; background preview tiles; About rows with chevrons
+- [x] Paper theme: selected chip gets an accent border and fill
+- [x] Bubble-size row in Settings read as three values: value pill + captions
+- [x] Group-by-series used a folder icon (means "choose folder" elsewhere):
+      layers icon
+- [x] Folded width clipped "Recent": sort toggle on the shelf title row
+- [x] Onboarding said "Two ways to read" and had no illustration on page 3:
+      three cards and a glyph illustration at the same height as pages 1–2
+- [x] Same red meant "open" on the gear and "something active" on the eye: red
+      only while open, a dot for non-default state
+- [x] Returning from Licences reset the settings scroll; scrubber did not
+      re-centre after a jump to the last page
+
+---
+
 ## Non-goals
 
 - No online store, DRM, or downloading of copyrighted content. Kapow reads
