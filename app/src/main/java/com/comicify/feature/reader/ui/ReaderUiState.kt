@@ -22,5 +22,6 @@ data class ReaderUiState(
     val direction: ReadingDirection = ReadingDirection.LeftToRight,
     val coverAlone: Boolean = false,
     val splitWidePages: Boolean = false,
+    val verticalScroll: Boolean = false,
     val splitSuggested: Boolean = false,
 )

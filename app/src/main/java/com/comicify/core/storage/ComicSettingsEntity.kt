@@ -13,4 +13,5 @@ data class ComicSettingsEntity(
     val bubbleScale: Float? = null,
     val splitWidePages: Boolean = false,
     val splitSuggested: Boolean = false,
+    val verticalScroll: Boolean = false,
 )

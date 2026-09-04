@@ -67,6 +67,7 @@
     <string name="detail_setting_direction">Sentido de lectura</string>
     <string name="detail_setting_cover_alone">Portada sola (empareja 2-3, 4-5…)</string>
     <string name="detail_setting_split_wide_pages">Dividir páginas dobles (dos páginas en una)</string>
+    <string name="detail_setting_vertical_scroll">Scroll vertical continuo</string>
     <string name="detail_setting_bubbles">Bocadillos ampliados al abrir</string>
     <string name="detail_setting_guided">Vista guiada al abrir</string>
     <string name="detail_option_ltr">Izquierda a derecha</string>
@@ -138,6 +139,7 @@
     <string name="reader_split_suggestion">Parece que este cómic tiene dos páginas por imagen</string>
     <string name="reader_split_suggestion_action">Dividir</string>
     <string name="reader_action_split_wide_pages">Dividir páginas dobles</string>
+    <string name="reader_action_vertical_scroll">Scroll vertical continuo</string>
     <string name="reader_action_direction_ltr">Sentido de lectura: izquierda a derecha</string>
     <string name="reader_action_direction_rtl">Sentido de lectura: derecha a izquierda</string>
     <string name="reader_action_report_glitch">Informar de un fallo visual</string>

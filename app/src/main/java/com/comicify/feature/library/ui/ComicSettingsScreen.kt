@@ -100,6 +100,9 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
         SettingRow(label = stringResource(R.string.detail_setting_split_wide_pages)) {
             OnOffChips(selected = settings.splitWidePages, onSelect = { viewModel.onSettingsChanged(settings.copy(splitWidePages = it)) })
         }
+        SettingRow(label = stringResource(R.string.detail_setting_vertical_scroll)) {
+            OnOffChips(selected = settings.verticalScroll, onSelect = { viewModel.onSettingsChanged(settings.copy(verticalScroll = it)) })
+        }
         SettingRow(label = stringResource(R.string.detail_setting_bubbles)) {
             TriStateChips(
                 selected = settings.bubblesEnlarged,

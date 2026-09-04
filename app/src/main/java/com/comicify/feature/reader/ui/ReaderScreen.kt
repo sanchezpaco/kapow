@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.VerticalSplit
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material3.AlertDialog
@@ -162,6 +163,7 @@ fun ReaderScreen(
     val endOverscroll = rememberEndOverscroll(
         enabled = atLastPage && !state.guided,
         forwardSign = forwardSign,
+        vertical = state.verticalScroll,
     ) { atEnd = true }
 
     ImmersiveReadingMode(keepScreenOn = state.keepScreenOn)
@@ -185,6 +187,7 @@ fun ReaderScreen(
                         hinge = windowState.hinge,
                         guided = state.guided,
                         guidedFullScreen = state.guidedFullScreen,
+                        verticalScroll = state.verticalScroll,
                         bubbleScale = state.bubbleScale.takeIf { state.bubblesEnlarged },
                         direction = state.direction,
                         coverAlone = state.coverAlone,
@@ -221,6 +224,7 @@ fun ReaderScreen(
             nightTintEnabled = state.nightTintEnabled,
             direction = state.direction,
             splitWidePages = state.splitWidePages,
+            verticalScroll = state.verticalScroll,
             onToggleGuided = viewModel::toggleGuided,
             onToggleBubblesEnlarged = viewModel::toggleBubblesEnlarged,
             onBubbleScale = viewModel::setBubbleScale,
@@ -228,6 +232,7 @@ fun ReaderScreen(
             onToggleNightTint = viewModel::toggleNightTint,
             onToggleDirection = viewModel::toggleReadingDirection,
             onToggleSplitWidePages = viewModel::toggleSplitWidePages,
+            onToggleVerticalScroll = viewModel::toggleVerticalScroll,
             onReportGlitch = { glitchDialogOpen = true },
             onClose = onClose,
             modifier = Modifier.align(Alignment.TopCenter),
@@ -286,10 +291,11 @@ private const val END_OVERSCROLL_TRIGGER = 160f
 private fun rememberEndOverscroll(
     enabled: Boolean,
     forwardSign: Float,
+    vertical: Boolean,
     onReachedEnd: () -> Unit,
 ): NestedScrollConnection {
     val currentOnReachedEnd = rememberUpdatedState(onReachedEnd)
-    return remember(enabled, forwardSign) {
+    return remember(enabled, forwardSign, vertical) {
         object : NestedScrollConnection {
             private var pulled = 0f
 
@@ -298,7 +304,7 @@ private fun rememberEndOverscroll(
                     pulled = 0f
                     return Offset.Zero
                 }
-                val forward = available.x * forwardSign
+                val forward = if (vertical) -available.y else available.x * forwardSign
                 if (forward <= 0f) return Offset.Zero
                 pulled += forward
                 if (pulled >= END_OVERSCROLL_TRIGGER) {
@@ -376,6 +382,7 @@ private fun TopChrome(
     nightTintEnabled: Boolean,
     direction: ReadingDirection,
     splitWidePages: Boolean,
+    verticalScroll: Boolean,
     onToggleGuided: () -> Unit,
     onToggleBubblesEnlarged: () -> Unit,
     onBubbleScale: (Float) -> Unit,
@@ -383,6 +390,7 @@ private fun TopChrome(
     onToggleNightTint: () -> Unit,
     onToggleDirection: () -> Unit,
     onToggleSplitWidePages: () -> Unit,
+    onToggleVerticalScroll: () -> Unit,
     onReportGlitch: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
@@ -409,22 +417,26 @@ private fun TopChrome(
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.Top) {
-                    if (!guided) {
+                    if (!guided && !verticalScroll) {
                         BubbleToggle(enlarged = bubblesEnlarged, onToggle = onToggleBubblesEnlarged)
                         Spacer(modifier = Modifier.width(10.dp))
                     }
-                    GuidedToggle(guided = guided, onToggle = onToggleGuided)
-                    Spacer(modifier = Modifier.width(10.dp))
+                    if (!verticalScroll) {
+                        GuidedToggle(guided = guided, onToggle = onToggleGuided)
+                        Spacer(modifier = Modifier.width(10.dp))
+                    }
                     ReaderSettingsMenu(
                         showGuidedLayout = guided && posture == ReadingPosture.UnfoldedSpread,
                         guidedFullScreen = guidedFullScreen,
                         nightTintEnabled = nightTintEnabled,
                         direction = direction,
                         splitWidePages = splitWidePages,
+                        verticalScroll = verticalScroll,
                         onToggleGuidedFullScreen = onToggleGuidedFullScreen,
                         onToggleNightTint = onToggleNightTint,
                         onToggleDirection = onToggleDirection,
                         onToggleSplitWidePages = onToggleSplitWidePages,
+                        onToggleVerticalScroll = onToggleVerticalScroll,
                         onReportGlitch = onReportGlitch,
                     )
                 }
@@ -491,10 +503,12 @@ private fun ReaderSettingsMenu(
     nightTintEnabled: Boolean,
     direction: ReadingDirection,
     splitWidePages: Boolean,
+    verticalScroll: Boolean,
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
     onToggleDirection: () -> Unit,
     onToggleSplitWidePages: () -> Unit,
+    onToggleVerticalScroll: () -> Unit,
     onReportGlitch: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -540,6 +554,12 @@ private fun ReaderSettingsMenu(
                     active = splitWidePages,
                     contentDescription = stringResource(R.string.reader_action_split_wide_pages),
                     onClick = onToggleSplitWidePages,
+                )
+                CircleControl(
+                    icon = Icons.Filled.SwapVert,
+                    active = verticalScroll,
+                    contentDescription = stringResource(R.string.reader_action_vertical_scroll),
+                    onClick = onToggleVerticalScroll,
                 )
                 CircleControl(
                     icon = Icons.Filled.BugReport,

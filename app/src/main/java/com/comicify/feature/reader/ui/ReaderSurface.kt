@@ -56,6 +56,7 @@ fun ReaderSurface(
     hinge: HingeOcclusion?,
     guided: Boolean,
     guidedFullScreen: Boolean,
+    verticalScroll: Boolean,
     bubbleScale: Float?,
     direction: ReadingDirection,
     coverAlone: Boolean,
@@ -68,6 +69,12 @@ fun ReaderSurface(
     onTap: (TapZone) -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
+    if (verticalScroll) {
+        key(loader) {
+            VerticalStripReader(loader, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, { onTap(TapZone.Center) }, onAmbient)
+        }
+        return
+    }
     if (guided) {
         val spread = posture == ReadingPosture.UnfoldedSpread && !guidedFullScreen
         key(loader, spread) {

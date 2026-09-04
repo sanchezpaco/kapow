@@ -161,6 +161,36 @@ RAR files the probe waits for the archive extraction, so the snackbar can
 appear a few seconds after the first page.
 
 
+## Continuous vertical scroll
+
+A third top-level mode, chosen per comic (`ComicSettings.verticalScroll`, HUD
+toggle in the settings menu). It takes precedence over Guided View and the
+two-page spread and hides their toggles, because both are page-based and cannot
+coexist with a strip. Whole pages are stacked in one `LazyColumn`, fit to width,
+with no page-turn animation: scroll instead of paginate. Nothing in its path
+detects anything, so unlike Guided View it cannot misread a page.
+
+The strip asks `PageLoader.aspects()` for **every page's aspect ratio before
+composing anything** (`ComicSource.pageAspect` reads image headers only, the
+same probe the split suggestion already runs at open). Each item is then a
+`fillMaxWidth().aspectRatio(aspect)` box, so the list has its full scroll extent
+from the first frame and a page decoding never changes the height of anything
+above it. Margin cropping can make the decoded page slightly narrower than the
+file, which `ContentScale.Fit` letterboxes against the black background rather
+than resizing the item.
+
+Zoom and vertical pan are dropped in this mode: the vertical drag is the scroll,
+so there is no gesture left to pan with. A tap anywhere toggles the chrome; the
+thumbnail scrubber and volume keys still work, jumping and stepping by item.
+Reading position stays the first visible page, so it maps to the same
+`ReadingPosition.pageIndex` every other surface uses and survives a mode switch.
+
+Measured on the emulator over a long fast scroll in both directions
+(330 frames): 0.91 % janky, p99 32 ms, **0 slow bitmap uploads**, 0 missed
+vsync. Slow bitmap uploads is the number that matters — a strip keeps more pages
+resident than the pager, and it was thrashing the HWUI texture cache that caused
+the original 78 %-jank bug (`performance.md`).
+
 ## Per-comic settings
 
 `ReaderViewModel` reads the comic's `comic_settings` row (`ComicSettingsDao`)
@@ -169,8 +199,8 @@ initial off state; `rightToLeft`, when not null, overrides the global reading
 direction, and the reader's direction toggle then writes the override instead
 of the global preference; `bubbleScale` works the same way for the HUD slider
 (override wins, and dragging the slider updates the override when one exists);
-`coverAlone` feeds the spread pairing above and `splitWidePages` the split
-described above.
+`coverAlone` feeds the spread pairing above, `splitWidePages` the split
+described above and `verticalScroll` the continuous strip.
 Everything else stays global in `ReaderPreferencesRepository`.
 
 ## Reading direction

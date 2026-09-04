@@ -49,8 +49,14 @@ class PageLoader(
     private val panelLocks = HashMap<Int, Mutex>()
     private val bubbleLocks = HashMap<Int, Mutex>()
     private val overlayLocks = HashMap<Int, Mutex>()
+    private val aspectsMutex = Mutex()
+    @Volatile private var aspects: List<Float>? = null
 
     val pageCount: Int get() = source.pageCount
+
+    suspend fun aspects(): List<Float> = aspectsMutex.withLock {
+        aspects ?: (0 until source.pageCount).map { source.pageAspect(it) }.also { aspects = it }
+    }
 
     suspend fun load(index: Int): PageArt {
         cache[index]?.let { return it }

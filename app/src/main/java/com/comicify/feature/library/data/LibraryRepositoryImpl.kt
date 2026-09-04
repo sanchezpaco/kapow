@@ -203,6 +203,7 @@ class LibraryRepositoryImpl @Inject constructor(
                 guided = settings.guided,
                 bubbleScale = settings.bubbleScale,
                 splitWidePages = settings.splitWidePages,
+                verticalScroll = settings.verticalScroll,
             ),
         )
     }
@@ -219,6 +220,7 @@ class LibraryRepositoryImpl @Inject constructor(
             guided = guided,
             bubbleScale = bubbleScale,
             splitWidePages = splitWidePages,
+            verticalScroll = verticalScroll,
         )
 
     private fun deleteLocalFile(uri: Uri): Boolean {

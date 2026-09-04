@@ -9,6 +9,7 @@ data class ComicSettings(
     val guided: Boolean? = null,
     val bubbleScale: Float? = null,
     val splitWidePages: Boolean = false,
+    val verticalScroll: Boolean = false,
 ) {
     companion object {
         val Default = ComicSettings()

@@ -67,6 +67,7 @@
     <string name="detail_setting_direction">Reading direction</string>
     <string name="detail_setting_cover_alone">Cover on its own page (pairs 2-3, 4-5…)</string>
     <string name="detail_setting_split_wide_pages">Split wide pages (two comic pages in one)</string>
+    <string name="detail_setting_vertical_scroll">Continuous vertical scroll</string>
     <string name="detail_setting_bubbles">Enlarged bubbles on open</string>
     <string name="detail_setting_guided">Guided view on open</string>
     <string name="detail_option_ltr">Left to right</string>
@@ -138,6 +139,7 @@
     <string name="reader_split_suggestion">This comic looks like it has two pages per image</string>
     <string name="reader_split_suggestion_action">Split</string>
     <string name="reader_action_split_wide_pages">Split wide pages</string>
+    <string name="reader_action_vertical_scroll">Continuous vertical scroll</string>
     <string name="reader_action_direction_ltr">Reading direction: left to right</string>
     <string name="reader_action_direction_rtl">Reading direction: right to left</string>
     <string name="reader_action_report_glitch">Report a visual glitch</string>
