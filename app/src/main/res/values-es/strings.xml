@@ -140,6 +140,8 @@
     <string name="reader_split_suggestion_action">Dividir</string>
     <string name="reader_action_split_wide_pages">Dividir páginas dobles</string>
     <string name="reader_action_vertical_scroll">Scroll vertical continuo</string>
+    <string name="reader_strip_finished">Terminado · %1$s</string>
+    <string name="reader_strip_next">Siguiente · %1$s</string>
     <string name="reader_action_direction_ltr">Sentido de lectura: izquierda a derecha</string>
     <string name="reader_action_direction_rtl">Sentido de lectura: derecha a izquierda</string>
     <string name="reader_action_report_glitch">Informar de un fallo visual</string>

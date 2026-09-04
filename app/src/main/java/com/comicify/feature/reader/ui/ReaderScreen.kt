@@ -115,8 +115,10 @@ fun ReaderScreen(
     uri: Uri,
     onClose: () -> Unit,
     initialPage: Int = 0,
-    onPageChanged: (pageIndex: Int, pageCount: Int) -> Unit = { _, _ -> },
-    onOpenNext: (() -> Unit)? = null,
+    comic: StripComic? = null,
+    nextInSeries: (StripComic) -> StripComic? = { null },
+    onPageChanged: (comicId: Long?, pageIndex: Int, pageCount: Int) -> Unit = { _, _, _ -> },
+    onOpenIssue: (StripComic) -> Unit = {},
     initialAmbient: Color? = null,
 ) {
     val context = LocalContext.current
@@ -131,8 +133,13 @@ fun ReaderScreen(
         pageTurnRequests.tryEmit(direction)
     }
 
-    LaunchedEffect(state.position.pageIndex, state.pageCount) {
-        if (state.pageCount > 0) onPageChanged(state.position.pageIndex, state.pageCount)
+    var activeComic by remember { mutableStateOf(comic) }
+    var activeLoader by remember { mutableStateOf<PageLoader?>(null) }
+    var activePageCount by remember { mutableIntStateOf(0) }
+    val readingPageCount = if (state.verticalScroll && activePageCount > 0) activePageCount else state.pageCount
+
+    LaunchedEffect(state.position.pageIndex, readingPageCount, activeComic) {
+        if (readingPageCount > 0) onPageChanged(activeComic?.id, state.position.pageIndex, readingPageCount)
     }
 
     LaunchedEffect(viewModel) { viewModel.shareRequests.collect(context::startActivity) }
@@ -153,7 +160,8 @@ fun ReaderScreen(
         label = "ambient",
     )
 
-    val atLastPage = state.pageCount > 0 && state.position.pageIndex >= state.pageCount - 1
+    val atLastPage = readingPageCount > 0 && state.position.pageIndex >= readingPageCount - 1
+    val nextIssue = activeComic?.let(nextInSeries)
     var atEnd by remember { mutableStateOf(false) }
     LaunchedEffect(atLastPage) { if (!atLastPage) atEnd = false }
 
@@ -161,7 +169,7 @@ fun ReaderScreen(
 
     val forwardSign = if (state.direction == ReadingDirection.LeftToRight) -1f else 1f
     val endOverscroll = rememberEndOverscroll(
-        enabled = atLastPage && !state.guided,
+        enabled = atLastPage && !state.guided && !(state.verticalScroll && nextIssue != null),
         forwardSign = forwardSign,
         vertical = state.verticalScroll,
     ) { atEnd = true }
@@ -188,6 +196,15 @@ fun ReaderScreen(
                         guided = state.guided,
                         guidedFullScreen = state.guidedFullScreen,
                         verticalScroll = state.verticalScroll,
+                        comic = comic,
+                        nextInSeries = nextInSeries,
+                        openIssue = { viewModel.openChainIssue(it.uri) },
+                        onStripActiveChanged = { issue, issueLoader, pageIndex, pageCount ->
+                            activeComic = issue
+                            activeLoader = issueLoader
+                            activePageCount = pageCount
+                            viewModel.onPageChanged(pageIndex)
+                        },
                         bubbleScale = state.bubbleScale.takeIf { state.bubblesEnlarged },
                         direction = state.direction,
                         coverAlone = state.coverAlone,
@@ -241,8 +258,8 @@ fun ReaderScreen(
         BottomChrome(
             visible = state.chromeVisible,
             currentPage = state.position.pageIndex,
-            pageCount = state.pageCount,
-            scrubberLoader = if (state.guided) null else viewModel.pageLoader,
+            pageCount = readingPageCount,
+            scrubberLoader = if (state.guided) null else activeLoader ?: viewModel.pageLoader,
             onJumpToPage = viewModel::requestJump,
             guided = state.guided,
             guidedStop = guidedIndex,
@@ -252,8 +269,8 @@ fun ReaderScreen(
 
         EndOfComicOverlay(
             visible = atEnd,
-            hasNext = onOpenNext != null,
-            onNext = { atEnd = false; onOpenNext?.invoke() },
+            hasNext = nextIssue != null,
+            onNext = { atEnd = false; nextIssue?.let(onOpenIssue) },
             onLibrary = onClose,
             onResume = { atEnd = false },
         )

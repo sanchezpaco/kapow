@@ -41,6 +41,7 @@ import com.comicify.feature.library.ui.LocalSharedTransitionScope
 import com.comicify.feature.onboarding.ui.OnboardingScreen
 import com.comicify.feature.onboarding.ui.OnboardingViewModel
 import com.comicify.feature.reader.ui.ReaderScreen
+import com.comicify.feature.reader.ui.StripComic
 import com.comicify.feature.review.ui.InAppReviewPrompt
 import com.comicify.feature.review.ui.ReviewPromptViewModel
 import com.comicify.feature.settings.ui.AppSettingsScreen
@@ -143,13 +144,19 @@ fun KapowRoot(initialUri: Uri? = null) {
                             ReaderScreen(
                                 uri = target.request.uri,
                                 initialPage = target.request.initialPage,
-                                onPageChanged = { pageIndex, pageCount ->
-                                    target.request.comicId?.let { viewModel.saveProgress(it, pageIndex, pageCount) }
+                                comic = target.request.comicId
+                                    ?.let { id -> state.allComics.firstOrNull { it.id == id } }
+                                    ?.toStripComic(),
+                                nextInSeries = { current ->
+                                    LibraryCatalog.nextInSeries(state.allComics, current.id)?.toStripComic()
+                                },
+                                onPageChanged = { comicId, pageIndex, pageCount ->
+                                    comicId?.let { viewModel.saveProgress(it, pageIndex, pageCount) }
                                 },
                                 onClose = { open = null; review.onReaderClosed() },
-                                onOpenNext = target.request.comicId
-                                    ?.let { LibraryCatalog.nextInSeries(state.allComics, it) }
-                                    ?.let { next -> { open = next.toOpenRequest() } },
+                                onOpenIssue = { issue ->
+                                    open = state.allComics.firstOrNull { it.id == issue.id }?.toOpenRequest()
+                                },
                                 initialAmbient = target.request.ambient,
                             )
                         }
@@ -179,6 +186,9 @@ private fun ReaderSession(request: OpenRequest, content: @Composable () -> Unit)
     DisposableEffect(owner) { onDispose { owner.viewModelStore.clear() } }
     CompositionLocalProvider(LocalViewModelStoreOwner provides owner, content = content)
 }
+
+private fun LibraryComic.toStripComic(): StripComic =
+    StripComic(id = id, uri = documentUri.toUri(), title = LibraryCatalog.title(series, issueNumber))
 
 private fun LibraryComic.toOpenRequest(): OpenRequest =
     OpenRequest(uri = documentUri.toUri(), comicId = id, initialPage = pageIndex, ambient = coverAmbient?.let { Color(it) })

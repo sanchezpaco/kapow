@@ -59,6 +59,7 @@ class ReaderViewModel(
     private val comicSettingsDao: ComicSettingsDao =
         EntryPointAccessors.fromApplication(application, DatabaseEntryPoint::class.java).comicSettingsDao()
     private var source: ComicSource? = null
+    private val chainSources = mutableListOf<ComicSource>()
     private var sourceMode: SourceMode? = null
     var pageLoader: PageLoader? = null
         private set
@@ -154,6 +155,27 @@ class ReaderViewModel(
     private fun detectionStore(mode: SourceMode): PageDetectionStore {
         val dao = EntryPointAccessors.fromApplication(getApplication(), DatabaseEntryPoint::class.java).pageDetectionDao()
         return PageDetectionStore(dao, uri.toString(), mode.splitWidePages)
+    }
+
+    suspend fun openChainIssue(issueUri: Uri): PageLoader? {
+        val settings = comicSettingsDao.find(issueUri.toString())
+        val split = settings?.splitWidePages ?: false
+        val opened = runCatching {
+            val source = ComicSourceFactory.open(getApplication(), issueUri, 0)
+            if (split) SplitPagesComicSource.of(source, state.value.direction) else source
+        }.getOrElse {
+            Log.w(READER_TAG, "Could not open the next issue for the strip", it)
+            return null
+        }
+        chainSources += opened
+        comicSettingsDao.upsert((settings ?: emptySettings(issueUri.toString())).copy(verticalScroll = true))
+        val dao = EntryPointAccessors.fromApplication(getApplication(), DatabaseEntryPoint::class.java).pageDetectionDao()
+        return PageLoader(
+            opened,
+            viewModelScope,
+            PanelDetector.forContext(getApplication()),
+            PageDetectionStore(dao, issueUri.toString(), split),
+        )
     }
 
     fun onPageChanged(pageIndex: Int) {
@@ -271,8 +293,8 @@ class ReaderViewModel(
         }
     }
 
-    private fun emptySettings() = ComicSettingsEntity(
-        documentUri = uri.toString(),
+    private fun emptySettings(documentUri: String = uri.toString()) = ComicSettingsEntity(
+        documentUri = documentUri,
         rightToLeft = null,
         coverAlone = false,
         bubblesEnlarged = null,
@@ -328,6 +350,7 @@ class ReaderViewModel(
 
     override fun onCleared() {
         source?.close()
+        chainSources.forEach { it.close() }
     }
 
     companion object {

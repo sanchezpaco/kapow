@@ -140,6 +140,8 @@
     <string name="reader_split_suggestion_action">Split</string>
     <string name="reader_action_split_wide_pages">Split wide pages</string>
     <string name="reader_action_vertical_scroll">Continuous vertical scroll</string>
+    <string name="reader_strip_finished">Finished · %1$s</string>
+    <string name="reader_strip_next">Next · %1$s</string>
     <string name="reader_action_direction_ltr">Reading direction: left to right</string>
     <string name="reader_action_direction_rtl">Reading direction: right to left</string>
     <string name="reader_action_report_glitch">Report a visual glitch</string>

@@ -185,11 +185,46 @@ thumbnail scrubber and volume keys still work, jumping and stepping by item.
 Reading position stays the first visible page, so it maps to the same
 `ReadingPosition.pageIndex` every other surface uses and survives a mode switch.
 
+### The strip does not stop at the end of an issue
+
+When the comic belongs to a series, the strip keeps going into the next issue.
+The item list **grows** rather than being replaced (`StripChain.items`, pure and
+unit-tested): pages of issue *n*, a boundary band, pages of issue *n+1*, and so
+on. Appending only at the end means no index ever shifts under the reader, so
+crossing into a new issue costs no scroll correction and no jump.
+
+The next issue opens when the reader comes within three pages of the end of the
+last one, so by the time the boundary is on screen its pages are already
+decodable. The boundary is deliberately **visible** — a black band naming the
+issue just finished and the one starting — because a seamless join loses the
+reader's place and makes the next issue's cover and credits appear without
+context.
+
+Everything that reads as "the current comic" follows the issue under the top of
+the viewport: reading progress (so an issue is marked completed the moment the
+reader scrolls past it), the page counter, the thumbnail scrubber and the
+next-issue action in the end-of-comic overlay. Each `PageLoader` behind the
+reader has its caches dropped (`PageLoader.release`) once the reader is past its
+issue, which is what keeps a long chain from multiplying the page cache; the
+sources stay open so scrolling back only costs a re-decode.
+
+Two details that are easy to get wrong and are covered here:
+
+- **The last page is not always the last item index.** A page wider than it is
+  tall is shorter than the viewport, so `firstVisibleItemIndex` never reaches the
+  final page and the issue would never be marked read. The strip reports the last
+  item whenever the list can no longer scroll forward.
+- **The setting follows the series, not the file.** Chaining into an issue writes
+  `verticalScroll` onto it, so resuming that issue later from the library still
+  opens the strip instead of dropping back to the pager.
+
 Measured on the emulator over a long fast scroll in both directions
 (330 frames): 0.91 % janky, p99 32 ms, **0 slow bitmap uploads**, 0 missed
-vsync. Slow bitmap uploads is the number that matters — a strip keeps more pages
-resident than the pager, and it was thrashing the HWUI texture cache that caused
-the original 78 %-jank bug (`performance.md`).
+vsync, and 601 frames scrolling across two issue boundaries hold 0.33 % janky,
+p99 29 ms, again with zero slow bitmap uploads. Slow bitmap uploads is the number
+that matters — a strip keeps more pages resident than the pager, and it was
+thrashing the HWUI texture cache that caused the original 78 %-jank bug
+(`performance.md`).
 
 ## Per-comic settings
 

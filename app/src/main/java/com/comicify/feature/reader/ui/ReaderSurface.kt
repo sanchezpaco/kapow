@@ -57,6 +57,10 @@ fun ReaderSurface(
     guided: Boolean,
     guidedFullScreen: Boolean,
     verticalScroll: Boolean,
+    comic: StripComic?,
+    nextInSeries: (StripComic) -> StripComic?,
+    openIssue: suspend (StripComic) -> PageLoader?,
+    onStripActiveChanged: (StripComic?, PageLoader, Int, Int) -> Unit,
     bubbleScale: Float?,
     direction: ReadingDirection,
     coverAlone: Boolean,
@@ -71,7 +75,19 @@ fun ReaderSurface(
 ) {
     if (verticalScroll) {
         key(loader) {
-            VerticalStripReader(loader, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, { onTap(TapZone.Center) }, onAmbient)
+            VerticalStripReader(
+                loader = loader,
+                comic = comic,
+                initialPage = initialPage,
+                pageTurnRequests = pageTurnRequests,
+                pendingJump = pendingJump,
+                onJumpApplied = onJumpApplied,
+                onActiveChanged = onStripActiveChanged,
+                nextInSeries = nextInSeries,
+                openIssue = openIssue,
+                onTap = { onTap(TapZone.Center) },
+                onAmbient = onAmbient,
+            )
         }
         return
     }

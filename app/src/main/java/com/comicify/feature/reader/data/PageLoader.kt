@@ -58,6 +58,12 @@ class PageLoader(
         aspects ?: (0 until source.pageCount).map { source.pageAspect(it) }.also { aspects = it }
     }
 
+    fun release() {
+        cache.evictAll()
+        thumbCache.evictAll()
+        overlayCache.evictAll()
+    }
+
     suspend fun load(index: Int): PageArt {
         cache[index]?.let { return it }
         val mutex = synchronized(locks) { locks.getOrPut(index) { Mutex() } }
