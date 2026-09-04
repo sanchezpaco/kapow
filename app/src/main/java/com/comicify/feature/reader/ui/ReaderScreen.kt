@@ -118,10 +118,12 @@ import com.comicify.feature.reader.domain.ComicOpenError
 import com.comicify.feature.reader.domain.ReaderViewMode
 import com.comicify.feature.reader.domain.TapZone
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlin.math.roundToInt
 
 private const val CHROME_SLIDE_MS = 200
 private const val BACKDROP_DOWNSCALE = 4f
 private const val TabularFigures = "tnum"
+private const val BUBBLE_SCALE_DECIMALS = 10f
 private val InitialAmbient = Color(0xFF0B0B0F)
 private val NightTintColor = Color(0xFFFF8F00).copy(alpha = 0.16f)
 private val PanelColor = Color(0xF0141416)
@@ -511,6 +513,8 @@ private enum class HudPanelKind { ViewMode, Settings }
 
 private fun HudPanelKind?.toggled(kind: HudPanelKind): HudPanelKind? = if (this == kind) null else kind
 
+private fun Float.steppedBy(delta: Float): Float = ((this + delta) * BUBBLE_SCALE_DECIMALS).roundToInt() / BUBBLE_SCALE_DECIMALS
+
 @Composable
 private fun RevealedPanel(visible: Boolean, content: @Composable () -> Unit) {
     AnimatedVisibility(
@@ -647,7 +651,7 @@ private fun BubbleScaleStepper(scale: Float, onScale: (Float) -> Unit) {
             icon = Icons.Filled.Remove,
             contentDescription = stringResource(R.string.reader_bubble_scale_smaller),
             enabled = scale > BUBBLE_SCALE_RANGE.start,
-            onClick = { onScale(scale - BUBBLE_SCALE_STEP) },
+            onClick = { onScale(scale.steppedBy(-BUBBLE_SCALE_STEP)) },
         )
         Text(
             text = "%.1f×".format(scale),
@@ -660,7 +664,7 @@ private fun BubbleScaleStepper(scale: Float, onScale: (Float) -> Unit) {
             icon = Icons.Filled.Add,
             contentDescription = stringResource(R.string.reader_bubble_scale_bigger),
             enabled = scale < BUBBLE_SCALE_RANGE.endInclusive,
-            onClick = { onScale(scale + BUBBLE_SCALE_STEP) },
+            onClick = { onScale(scale.steppedBy(BUBBLE_SCALE_STEP)) },
         )
     }
 }
