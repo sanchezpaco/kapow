@@ -5,24 +5,63 @@ The gear in the library header opens `AppSettingsScreen`
 per-comic settings (`docs/library.md`). It is the only home of the global
 preferences; the reader HUD still toggles some of them in place.
 
+## Shape of the page
+
+Every section is a **grouped surface**: the accent eyebrow + title + hairline
+(`core/ui/SectionHeader.kt`) sits above a raised card (`palette.raised`, 20 dp
+radius, no shadow) whose rows are separated by hairlines. The row vocabulary
+lives in `core/ui/SettingsControls.kt` and is shared with the per-comic screen:
+
+- `SettingsRow` / `SettingsStackedRow` — 56 dp minimum height, 16 dp horizontal
+  padding, label (`bodyLarge`) with optional muted supporting text
+  (`bodySmall`); the control sits in the trailing slot, or under the label when
+  it is a cluster of buttons or tiles.
+- `SettingsSwitchRow` — every boolean. The whole row is `toggleable`; the
+  `Switch` is decorative (`onCheckedChange = null`) with the accent as the
+  checked track. On/Off chip pairs are gone: a selected "Off" in red read as a
+  warning.
+- `SettingsChoiceRow` — mutually exclusive values as chips. Label and chips sit
+  in a `FlowRow` of at most two items, so the chips ride in the trailing slot
+  when they fit and wrap to their own line when they do not. The selected chip
+  is accent at 16 % **plus a 1 dp accent border** and an accent semibold label,
+  which is what makes it readable on the Paper ground; unselected chips use
+  `palette.track` so they still separate from the raised card.
+- `SettingsActionRow` — a navigation row with a trailing chevron.
+- `BubbleScaleRow` — label left, current value as a small accent pill with
+  tabular figures, the slider on its own line under it with the two extremes as
+  muted `labelSmall` captions.
+
+**Width.** Below 840 dp the sections are one centred column capped at 640 dp.
+From 840 dp (the unfolded Fold) they split into two columns of at most 480 dp
+each — Reading + Screen on the left, Library + Appearance + About on the right —
+centred as a block, so the unfolded screen is no longer 40 % empty.
+
+The scroll position is hoisted into `KapowRoot` (`appSettingsScroll`) because
+`AnimatedContent` drops the screen from composition when the Licences page
+opens; coming back now lands where you left.
+
 ## Sections
 
-- **Reading (defaults)** — reading direction, enlarged bubbles on open, bubble
-  size, Guided View on open, volume keys turn pages. These are the values a
-  comic falls back to when its own setting is "Default"; the per-comic screen
-  spells them out ("Default (Off)"). The reader reads them once on open
+- **Reading (defaults)** — reading direction (choice), enlarged bubbles on open
+  (switch), bubble size (slider), Guided View on open (switch), volume keys turn
+  pages (switch). These are the values a comic falls back to when its own
+  setting is "Default"; the per-comic screen spells them out ("Default (Off)",
+  "Default (Pages)"). The reader reads them once on open
   (`ReaderViewModel.applyOpenDefaults`) and the bubble scale/direction live
   through `combine` with the per-comic override.
 - **Screen** — night tint and keep the screen on while reading
   (`FLAG_KEEP_SCREEN_ON` is now conditional, default on).
-- **Library** — the comics folder (its display name), "Choose folder" and
-  "Refresh". Scans still run in `LibraryViewModel` so the library shows the
-  scanning/error state; the settings screen only shows the spinner on the
-  Refresh button while a scan runs.
+- **Library** — one row: the comics folder with its display name as supporting
+  text, and under it "Choose folder" as a tonal accent button and "Refresh" as a
+  quiet text button. Solid red stays reserved for destructive actions. Scans
+  still run in `LibraryViewModel` so the library shows the scanning/error state;
+  the settings screen only shows the spinner on the Refresh button while a scan
+  runs.
 - **Appearance** — theme picker, below.
-- **About** — version name and build label, "Show the introduction again"
-  (`docs/onboarding.md`), "Source code on GitHub" (opens the repository in
-  the browser) and "Open-source licences", which opens
+- **About** — version name and build label as a muted line at the top of the
+  surface, then chevron rows: "Show the introduction again"
+  (`docs/onboarding.md`), "Open-source licences" and "Source code on GitHub"
+  (opens the repository in the browser). Licences opens
   `LicencesScreen`: a static list of attributions (`attributions` in
   `LicencesScreen.kt` — library or model, licence, URL; tapping a row opens
   the URL). Names and licence identifiers are data, not translated copy. Keep
@@ -74,9 +113,14 @@ the library code reads as before. `MainActivity` collects
 `ReaderPreferencesRepository.theme` and re-themes the whole tree; the system
 bars are transparent so the ground shows behind them.
 
-The swatches are split-diagonal circles: the current ground on the upper-left
-half, the accent on the lower-right, a hairline outline so the black half
-reads on a black page, and a ring on the selected one. The Material You
+The ground is picked from three **mini-preview tiles**: a rounded rectangle
+painted in that ground's own background with a dot in the current accent, the
+name under it, and an accent ring on the selected one — you see the page you are
+choosing instead of reading a word for it.
+
+The accent swatches are split-diagonal circles: the current ground on the
+upper-left half, the accent on the lower-right, a hairline outline so the black
+half reads on a black page, and a ring on the selected one. The Material You
 swatch shows the resolved wallpaper colour with a sparkle glyph.
 
 The hero and settings-header glows blend the cover's ambient with the

@@ -11,6 +11,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -78,6 +79,7 @@ fun KapowRoot(initialUri: Uri? = null) {
     var settingsOf by remember { mutableStateOf<List<LibraryComic>?>(null) }
     var appSettingsOpen by remember { mutableStateOf(false) }
     var licencesOpen by remember { mutableStateOf(false) }
+    val appSettingsScroll = rememberScrollState()
     val seen = onboardingSeen ?: return
     val screen: Screen = open?.let { Screen.Reader(it) }
         ?: if (!seen) Screen.Onboarding
@@ -134,6 +136,7 @@ fun KapowRoot(initialUri: Uri? = null) {
                         is Screen.Settings -> ComicSettingsScreen(comics = target.comics, onBack = { settingsOf = null })
                         Screen.AppSettings -> AppSettingsScreen(
                             scanning = state.scanning,
+                            scrollState = appSettingsScroll,
                             onFolderPicked = viewModel::onFolderPicked,
                             onRefresh = viewModel::onRefresh,
                             onOpenLicences = { licencesOpen = true },

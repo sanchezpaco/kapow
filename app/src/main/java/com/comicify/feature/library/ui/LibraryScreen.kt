@@ -112,6 +112,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.comicify.R
+import com.comicify.core.ui.SectionHeader
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.domain.LibraryEntry
@@ -835,26 +836,6 @@ internal fun ResumePill() {
             fontWeight = FontWeight.SemiBold,
             color = AccentPale,
         )
-    }
-}
-
-@Composable
-internal fun SectionHeader(eyebrow: String, title: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            text = eyebrow.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 2.sp,
-            color = Accent,
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        Box(modifier = Modifier.weight(1f).height(1.dp).background(CardLine))
     }
 }
 

@@ -85,7 +85,7 @@ ReadingState(
 
 ComicSettings(
     documentUri, rightToLeft?, coverAlone, bubblesEnlarged?, guided?,
-    bubbleScale?, splitWidePages, splitSuggested,
+    bubbleScale?, splitWidePages, splitSuggested, verticalScroll,
 )
 ```
 
@@ -202,22 +202,42 @@ comics"): the chosen values are written to every issue, and each issue can be
 tweaked individually from inside the series screen.
 
 - Header washed with the cover's ambient colour (cover shared with the card).
-- Reading direction, cover alone in the spread (pairing parity, labelled
-  "Cover on its own page (pairs 2-3, 4-5…)"), split wide pages (see
-  `reading-modes.md#split-wide-pages`), enlarged bubbles on open and
-  Guided View on open. Chips are ordered Default · On · Off and wrap on narrow
-  widths; the "Default" chip spells out the global value it falls back to
-  ("Default (Left to right)", "Default (Off)"). The selected chip uses the
-  translucent accent, keeping solid red for destructive actions. Turning
-  bubbles on reveals a scale slider with its bounds labelled (same range and
-  steps as the reader's HUD slider) stored as the comic's `bubbleScale`; a
-  series-wide change writes it to every issue. Saved in `comic_settings`
-  through `LibraryRepository.saveSettings`; a row equal to
-  `ComicSettings.Default` is deleted rather than stored. `docs/reading-modes.md`
-  describes how the reader consumes them.
-- Content is capped at 640 dp wide so chips do not stretch across the unfolded
-  screen; the screen stays full-screen (not a bottom sheet) because of the
-  shared cover transition and the slider.
+- The settings themselves sit in one grouped surface built from the shared
+  vocabulary in `core/ui/SettingsControls.kt` (`SettingsSection`,
+  `SettingsChoiceRow`, `SettingsSwitchRow`, `BubbleScaleRow`), so this screen and
+  the app settings read as the same page. See `docs/settings.md` for the row
+  anatomy.
+- **Mode on open** — Default (…) · Pages · Guided view · Vertical scroll. The
+  reader's three layouts are mutually exclusive, so they are one choice here
+  rather than two independent toggles. It maps onto the unchanged
+  `ComicSettings` fields through the pure pair in
+  `feature/library/domain/ComicOpenMode.kt`:
+
+  | Choice | `guided` | `verticalScroll` |
+  | --- | --- | --- |
+  | Default (…) | `null` | `false` |
+  | Pages | `false` | `false` |
+  | Guided view | `true` | `false` |
+  | Vertical scroll | untouched | `true` |
+
+  Reading it back, `verticalScroll` wins over `guided` — the same precedence
+  `ReaderViewMode.of` applies — so a comic left in the strip by the HUD reads as
+  "Vertical scroll" here. The "Default (…)" label spells out the global mode
+  ("Default (Pages)" / "Default (Guided view)") from `OpenDefaults.guidedOnOpen`.
+- Reading direction (Default · Left to right · Right to left), cover alone in
+  the spread (switch, "Cover on its own page" / "Pairs 2-3, 4-5…"), split wide
+  pages (switch, see `reading-modes.md#split-wide-pages`) and enlarged bubbles on
+  open (Default · On · Off). The "Default" chip spells out the global value it
+  falls back to ("Default (Left to right)", "Default (Off)"). Turning bubbles on
+  reveals the scale slider (same range and steps as the reader's HUD slider)
+  stored as the comic's `bubbleScale`; a series-wide change writes it to every
+  issue. Saved in `comic_settings` through `LibraryRepository.saveSettings`; a
+  row equal to `ComicSettings.Default` is deleted rather than stored.
+  `docs/reading-modes.md` describes how the reader consumes them.
+- Header and rows share one centred column capped at 640 dp, so nothing is left
+  aligned under a wider header on the unfolded screen; the screen stays
+  full-screen (not a bottom sheet) because of the shared cover transition and
+  the slider.
 - Debug builds only: "Clear panel and bubble detections" drops the comic's
   `page_detections` rows so the next open re-runs the models.
 
