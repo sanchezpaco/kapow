@@ -171,7 +171,7 @@
     <string name="reader_end_title">Has llegado al final</string>
     <string name="reader_end_next">Siguiente número</string>
     <string name="reader_end_library">Volver a la biblioteca</string>
-    <string name="reader_end_resume">Seguir leyendo</string>
+    <string name="reader_end_close">Cerrar</string>
 
     <string name="posture_folded">Plegado</string>
     <string name="posture_unfolded">Desplegado</string>

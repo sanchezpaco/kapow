@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -57,6 +58,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -141,6 +143,11 @@ private val PanelIconSize = 24.dp
 private val BubbleScaleValueWidth = 44.dp
 private val MarkerDotSize = 8.dp
 private val MarkerDotInset = 3.dp
+private val BottomChromeScrim = Brush.verticalGradient(
+    listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f)),
+)
+private val EndCardMinWidth = 280.dp
+private val EndCardMaxWidth = 360.dp
 
 @Composable
 fun ReaderScreen(
@@ -199,6 +206,7 @@ fun ReaderScreen(
 
     BackHandler { if (atEnd) atEnd = false else onClose() }
 
+    val chromeVisible = state.chromeVisible && !atEnd
     val forwardSign = if (state.direction == ReadingDirection.LeftToRight) -1f else 1f
     val endOverscroll = rememberEndOverscroll(
         enabled = atLastPage && !state.guided && !(state.verticalScroll && nextIssue != null),
@@ -265,7 +273,7 @@ fun ReaderScreen(
         }
 
         TopChrome(
-            visible = state.chromeVisible,
+            visible = chromeVisible,
             posture = posture,
             viewMode = ReaderViewMode.of(state.guided, state.verticalScroll),
             guidedFullScreen = state.guidedFullScreen,
@@ -287,7 +295,7 @@ fun ReaderScreen(
         )
 
         BottomChrome(
-            visible = state.chromeVisible,
+            visible = chromeVisible,
             currentPage = state.position.pageIndex,
             pageCount = readingPageCount,
             scrubberLoader = if (state.guided) null else activeLoader ?: viewModel.pageLoader,
@@ -303,7 +311,7 @@ fun ReaderScreen(
             hasNext = nextIssue != null,
             onNext = { atEnd = false; nextIssue?.let(onOpenIssue) },
             onLibrary = onClose,
-            onResume = { atEnd = false },
+            onDismiss = { atEnd = false },
         )
 
         SplitSuggestionSnackbar(
@@ -371,18 +379,19 @@ private fun EndOfComicOverlay(
     hasNext: Boolean,
     onNext: () -> Unit,
     onLibrary: () -> Unit,
-    onResume: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
     AnimatedVisibility(visible = visible, enter = fadeIn(), exit = fadeOut()) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.82f))
-                .clickable(indication = null, interactionSource = null, onClick = onResume),
+                .clickable(indication = null, interactionSource = null, onClick = onDismiss),
             contentAlignment = Alignment.Center,
         ) {
             Column(
                 modifier = Modifier
+                    .widthIn(min = EndCardMinWidth, max = EndCardMaxWidth)
                     .clip(RoundedCornerShape(24.dp))
                     .background(Color.White.copy(alpha = 0.06f))
                     .padding(horizontal = 28.dp, vertical = 32.dp),
@@ -396,20 +405,21 @@ private fun EndOfComicOverlay(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Column(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (hasNext) {
-                        Button(onClick = onNext, modifier = Modifier.width(240.dp)) {
+                        Button(onClick = onNext, modifier = Modifier.fillMaxWidth()) {
                             Text(text = stringResource(R.string.reader_end_next))
                         }
                     }
-                    TextButton(onClick = onLibrary, modifier = Modifier.width(240.dp)) {
+                    FilledTonalButton(onClick = onLibrary, modifier = Modifier.fillMaxWidth()) {
                         Text(text = stringResource(R.string.reader_end_library))
                     }
-                    TextButton(onClick = onResume, modifier = Modifier.width(240.dp)) {
+                    TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = stringResource(R.string.reader_end_resume),
+                            text = stringResource(R.string.reader_end_close),
                             color = Color.White.copy(alpha = 0.7f),
                         )
                     }
@@ -844,43 +854,48 @@ private fun BottomChrome(
     guidedStopCount: Int,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        SlidingChrome(visible = visible, slideSign = 1f) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                if (scrubberLoader != null && pageCount > 0) {
-                    ThumbnailScrubber(
-                        loader = scrubberLoader,
-                        visible = visible,
-                        currentPage = currentPage,
-                        pageCount = pageCount,
-                        onSelect = onJumpToPage,
-                        modifier = Modifier.padding(bottom = 12.dp),
-                    )
-                }
-                if (pageCount > 0) {
-                    PageCounter(
-                        current = currentPage,
-                        total = pageCount,
-                        modifier = Modifier.padding(bottom = 12.dp),
-                    )
+    Box(modifier = modifier.fillMaxWidth()) {
+        SlidingChrome(visible = visible, slideSign = 1f, modifier = Modifier.matchParentSize()) {
+            Box(modifier = Modifier.fillMaxSize().background(BottomChromeScrim))
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            SlidingChrome(visible = visible, slideSign = 1f) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (scrubberLoader != null && pageCount > 0) {
+                        ThumbnailScrubber(
+                            loader = scrubberLoader,
+                            visible = visible,
+                            currentPage = currentPage,
+                            pageCount = pageCount,
+                            onSelect = onJumpToPage,
+                            modifier = Modifier.padding(bottom = 12.dp),
+                        )
+                    }
+                    if (pageCount > 0) {
+                        PageCounter(
+                            current = currentPage,
+                            total = pageCount,
+                            modifier = Modifier.padding(bottom = 12.dp),
+                        )
+                    }
                 }
             }
-        }
-        if (guided && guidedStopCount > 1) {
-            GuidedStops(
-                current = guidedStop,
-                count = guidedStopCount,
-                modifier = Modifier.padding(bottom = 12.dp),
-            )
-        }
-        if (pageCount > 0) {
-            ProgressBar(progress = readingProgress(currentPage, pageCount))
+            if (guided && guidedStopCount > 1) {
+                GuidedStops(
+                    current = guidedStop,
+                    count = guidedStopCount,
+                    modifier = Modifier.padding(bottom = 12.dp),
+                )
+            }
+            if (pageCount > 0) {
+                ProgressBar(progress = readingProgress(currentPage, pageCount))
+            }
         }
     }
 }
