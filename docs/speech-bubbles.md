@@ -859,3 +859,81 @@ offline on a PNG of the page as the reader decoded it so the visualizer sees
 the same pixels, and instrument `container` (box, fill, reach, what the
 growth stopped on) before touching a threshold — the visible symptom rarely
 names the real cause.
+
+## Text extraction is not a detection gate (2026-09-04)
+
+`SpeechBubbles.outlined` can extract text lines (`extractText = true`), and it was
+proposed as a way to tell a real balloon from a white blob: gate a detection on
+holding at least one text line, killing the text-free stops Guided View builds on
+false positives. **Measured, the idea is refuted** — the gate removes almost only
+true positives.
+
+### What the corpus says
+
+`BubbleTextDump` (unit test, `KAPOW_BUBBLE_DUMP_DIR=<eval comic dir>`) runs the
+production `outlined(extractText = true)` over an eval comic and writes
+`bubble-text.json`: per bubble its box, its text-line count, its ink share and
+whether it fell back to the raw box. Over the eighteen-comic eval corpus, **2 146
+detections, 567 (26 %) hold no text line at all**, and the rate is wildly
+comic-dependent:
+
+| aliens-03 | rapaces-1 | androides-1 | ruinas | blacksad-1 | titanes | ben-reilly-01 | one-piece |
+|---|---|---|---|---|---|---|---|
+| 83 % | 80 % | 67 % | 45 % | 38 % | 17 % | 0.4 % | 0.6 % |
+
+Scanned and painted books fail; clean digital books do not. A contact sheet of
+thirty-six randomly sampled "no text, body found" detections showed thirty-five
+ordinary speech balloons full of legible lettering ("YA ESTÁ MUERTO", "TIENE
+RAZÓN, PAIGE", "¡NO TENGO BASTANTES DEDOS!") and exactly one true false positive.
+
+### What the ground truth says
+
+Scored against the 1 510 hand-labelled bubbles on the 181 ground-truth pages that
+could be re-extracted from `comics/` (IoU 0.3, `tools/training/score.py`):
+
+| variant | detections | true positives | precision | recall | F1 |
+|---|---|---|---|---|---|
+| no gate | 1432 | 1378 | 0.962 | 0.913 | **0.937** |
+| drop "no text, body found" | 1080 | 1034 | 0.957 | 0.685 | 0.798 |
+| drop every text-free detection | 1001 | 962 | 0.961 | 0.637 | 0.766 |
+
+The gate drops 352 detections and **344 of them (98 %) are true positives**.
+Precision does not improve — it falls slightly. The gate is anti-correlated with
+what it was meant to do.
+
+### Why, and the two traps
+
+`textIn` segments the *interior holes* of the silhouette body and keeps the ones
+shaped like a word. On a clean digital balloon the letters are enclosed holes in a
+flat white body and it works; on a scan with textured paper, or where the body
+leaks into the art, the holes merge and nothing passes the word filters. So the
+signal measures scan quality, not balloon-ness.
+
+Two traps for anyone who tries this again:
+
+- **Fallback silhouettes carry no text by construction.** `silhouetteOf` returns
+  `Silhouette(Blob.filled(inner), emptyList())` when neither the paper body nor the
+  dark body is credible, so a naive `text.isEmpty()` test also deletes every
+  fallback. 238 of the 567 text-free detections are these.
+- **Gate after `mergeLinked`, never before**: merged silhouettes concatenate their
+  text lists, so half of a linked pair can be text-free on its own.
+
+An **ink-share** variant was tried as the narrow version — a detection whose body
+holds no ink is not a balloon. It does not work either: the one true false positive
+in the sample (`titanes:034 #4`, a blank corner of shirt) has 2.5 % ink, well above
+the low-ink tail, and a threshold high enough to catch it removes about seventy
+further detections. Text-free detections are not separable from real balloons by
+ink either.
+
+### What this means in practice
+
+Production never asks for text: `PanelDetector` calls `outlined(classes, boxes)`
+with the default `extractText = false`, so nothing ships this cost or this signal
+today. The extraction failure does contaminate the *offline* enlarged-bubble
+metrics that use `bubble.text` (`textOccluded`, `worstTextHidden`) — read those as
+lower bounds on scanned books.
+
+The text-free stops Guided View builds are therefore a **composition** question (an
+orphan detection with no text earning its own tap), not a detector gate — and at one
+page they sit far below the judge's error bar, so they are not worth a rule. See
+`docs/guided-view-eval.md`.

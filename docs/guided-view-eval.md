@@ -216,9 +216,10 @@ tools/eval/venv/bin/python tools/eval/summary.py eval                # the corpu
 - `tools/eval/consistency.py eval/_variance` — pairwise agreement across repeat
   judgings of the same pages. Judge one ~12-page sample spanning the verdict
   spectrum three times into `eval/_variance/run{1,2,3}/<comic>-<page>.json` and
-  read the error bar off it. **Do this before tuning `GuidedTour` again**: in the
-  fourth round two pages were caught changing verdict on byte-identical stop
-  lists, so a one-or-two-page delta says nothing.
+  read the error bar off it. Measured on 2026-09-04: `framing` agrees only 0.67 of
+  the time on identical input, and a round re-judging k pages must move total cost
+  by ≈ 1.03·√(2k) points to mean anything. Read "The judge's error bar" below
+  before accepting or rejecting any `GuidedTour` change.
 
 Between rounds only re-judge the pages whose `stops/NNN.json` changed and copy
 the previous verdicts for the rest — the tour is identical, so is the verdict.
@@ -815,3 +816,84 @@ Ruinas paintings. The cheapest next experiment is still the **bubble text gate**
 `SpeechBubbles.outlined` can already extract text lines, and gating a detection on
 "holds at least one text line" would kill the text-free stops. It is measurable
 against the bubble ground truth without spending a judge at all.
+
+## The judge's error bar (2026-09-04)
+
+The fourth round ended flat and caught two pages flipping verdict on byte-identical
+tours, so before tuning `GuidedTour` again we measured the judge itself. Twelve pages
+spanning the verdict spectrum — four all-`good`, three `minor`-only, five carrying a
+`bad` — were judged **three times** with the same rubric, the same prompt shape and the
+same inputs, into `eval/_variance/run{1,2,3}/`. `judged/NNN.json` was confirmed
+byte-identical to `stops/NNN.json` on all twelve first, so the corpus's own verdicts are
+a fourth judging of the same input and are quoted below as a cross-check.
+
+### Agreement
+
+| criterion | unanimous (3 runs) | pairwise (3 runs) | pairwise (4 samples) |
+|---|---|---|---|
+| order | 9/12 | 0.83 | 0.88 |
+| framing | 6/12 | **0.67** | **0.64** |
+| harmony | 12/12 | 1.00 | 0.96 |
+
+Offending-stop lists identical across all three runs: 22/36.
+
+**`framing` is the noisy one.** Two judgings of the same page agree on framing barely two
+times in three. `harmony` is effectively deterministic, `order` is solid. Every
+disagreement was one step (`good`↔`minor` or `minor`↔`bad`); nothing ever jumped
+`good`→`bad`. The judge sees the same thing every time and grades it differently — a
+policy-boundary problem, not a perception one.
+
+### What that does to the score
+
+Cost per page over the same twelve pages, on identical input:
+
+| run1 | run2 | run3 | corpus |
+|---|---|---|---|
+| 2.083 | 2.333 | 1.833 | 2.250 |
+
+And "pages with a `bad`" out of twelve: **4, 3, 3, 5**. That metric swings by two pages in
+twelve — a two-thirds relative swing — with the algorithm held completely still. Demoting
+it to a worklist in the fourth round was right.
+
+The noise is not spread evenly. Mean within-page variance of cost is **0.222 on pages the
+corpus scores clean** and **1.156 on pages carrying a `bad`** — five times higher. The
+pages we tune on are exactly the pages the judge cannot grade twice the same way.
+
+### The rule: what a round has to beat
+
+Pooled within-page sd of cost is σ = 0.782 on this sample. The sample is deliberately
+skewed hard (5/12 carry a `bad`, against 21/372 in the corpus); reweighted to the corpus
+mix it is **σ = 0.52**. A round re-judges only the k pages whose stops changed, and each
+of those contributes two independent judgings, so the noise on the round's total cost
+delta is σ√(2k):
+
+> **A round that re-judges k pages must move the total cost by at least 1.96·σ·√(2k)
+> ≈ 1.03·√(2k) points before the movement means anything.**
+
+| k pages re-judged | 10 | 20 | 30 | 50 |
+|---|---|---|---|---|
+| minimum believable move (cost points) | 4.6 | 6.5 | 8.0 | 10.3 |
+
+Applied to the fourth round: it moved the corpus from 1.016 to 1.036 cost per page over
+372 pages — **7.4 cost points, in the worse direction** — with `eval/changed.json` listing
+56 changed pages. The threshold at k = 56 is 10.9. **The round did not regress; it did
+not do anything measurable at all.** Its four kept rules stand on the families the judge
+named in prose, not on the score.
+
+Two corollaries for every round from here:
+
+- Do not read a per-page delta at all. A single page moving from `minor` to `bad` is the
+  judge's coin landing the other way about a third of the time.
+- A rule whose whole case rests on `framing` needs more evidence than one whose case rests
+  on `order` or `harmony`.
+
+### Pages that are genuinely bad, and pages that only look it
+
+Stable across all four judgings, so real: `ruinas:028` (`order: bad` every time — the
+semantic-order painting) and `spiderman-2099-01:008` (`harmony: bad` every time).
+Disputed, so not worth tuning against: `titanes:034` framing came out `bad / bad / good`,
+and `arkham:035` `bad / minor / minor`. Both sit on the current worklist of 21 pages with
+a `bad`; on this evidence that list is somewhere around a third softer than it reads.
+
+`tools/eval/consistency.py eval/_variance` reproduces the agreement table; the cost and
+threshold numbers are derived from the same three runs.

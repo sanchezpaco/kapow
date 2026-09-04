@@ -159,23 +159,48 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       with a **cost per page** (`good` 0, `minor` 1, `bad` 3) because "pages with
       a bad" proved too brittle to steer by, and two pages were caught flipping
       verdict on byte-identical tours. See `docs/guided-view-eval.md`
-- [ ] Guided View eval, measure the judge before tuning again: repeat the same
-      ~12-page sample three times into `eval/_variance/run{1,2,3}/` and run
-      `tools/eval/consistency.py` to get the error bar. No `GuidedTour` change is
-      accepted or rejected on a delta smaller than it
-- [ ] Guided View detector, bubble text gate: `SpeechBubbles.outlined` already
-      extracts text lines but `PanelDetector` and `GuidedTourVisualizer` call it
-      with `extractText = false`, so a white blob with no text is indistinguishable
-      from a balloon. Gate a detection on holding at least one text line, measure
-      against the bubble ground truth (no judge needed) and against the
-      enlarged-bubbles feature, which shares the same detections. Kills the
-      text-free stops on Titanes 034 and Arkham 031b
+- [x] Guided View eval, the judge's error bar (2026-09-04): twelve pages spanning
+      the verdict spectrum judged three times on byte-identical input
+      (`eval/_variance/run{1,2,3}/`). Pairwise agreement `harmony` 1.00, `order`
+      0.83, **`framing` 0.67**; every disagreement one step, never `good`→`bad`.
+      Cost per page over the sample ranged 1.83–2.33 and "pages with a bad" ranged
+      3–5 of 12 with the algorithm held still. Within-page cost variance is five
+      times higher on pages carrying a `bad` (1.156) than on clean ones (0.222) —
+      the pages we tune on are the ones the judge cannot grade twice the same way.
+      **The rule: a round re-judging k pages must move total cost by at least
+      1.96·σ·√(2k) ≈ 1.03·√(2k) points (σ = 0.52 at the corpus mix) to mean
+      anything.** The fourth round moved 7.4 points over 56 changed pages against a
+      threshold of 10.9 — it did not regress, it did nothing measurable. See
+      `docs/guided-view-eval.md`
+- [x] Guided View detector, bubble text gate — **investigated and rejected**
+      (2026-09-04): gating a detection on holding at least one text line drops 352
+      of 1432 detections against the bubble ground truth and **344 of them (98 %)
+      are true positives**; recall 0.913 → 0.685, F1 0.937 → 0.798, precision flat
+      (0.962 → 0.957). `textIn` measures scan quality, not balloon-ness: 26 % of
+      corpus detections hold no text line, 83 % on a scanned omnibus against 0.4 %
+      on a clean digital book. An ink-share variant fails too — the one true false
+      positive (`titanes:034`) has 2.5 % ink, above the low-ink tail. Production
+      never asks for text, so nothing ships this; the offline enlarged-bubble text
+      metrics are lower bounds on scans. New harness `BubbleTextDump`. See
+      `docs/speech-bubbles.md`
+- [ ] Bubble text extraction, `textIn` fails on scans: interior-hole segmentation
+      finds no word on 26 % of detections and the rate tracks the book, not the
+      art (aliens-03 83 %, rapaces-1 80 %, ruinas 45 %, ben-reilly 0.4 %). Nothing
+      in production reads it today, so this is only worth fixing if a feature
+      starts needing text — but the ground truth and `BubbleTextDump` now measure
+      it directly
 - [ ] Guided View detector, hand lettering: painted/hand-lettered captions the
       bubble model never returns are the single largest family of remaining bads
       (Arkham 027/031b/033/037). The corpus, ground-truth and retrain pipeline
       that produced student v4/v5 is what this needs — not another composition rule
 - [ ] Measure on the Fold what always-on bubble detection costs per page
       (logcat recipe in `docs/guided-view.md`; needs a hand on the device)
+- [ ] Guided View eval, tighten the `framing` rubric: at 0.67 pairwise agreement
+      it is the one criterion whose noise swamps the deltas, and every
+      disagreement is a policy boundary we own (whole-panel stop, sliced balloon,
+      wide tier small on the phone). Sharpen those three boundaries in
+      `judge_prompt.md`, re-run `eval/_variance` and check the agreement moved
+      before spending another tuning round
 - [ ] Guided View eval, next: human calibration set (~10 pages, judge vs
       maintainer, Fable vs Opus), then the full-corpus sweep as the regression
       gate; only then revisit the reading-order model.
