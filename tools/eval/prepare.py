@@ -11,6 +11,7 @@ from PIL import Image
 IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.webp')
 WIDE_PAGE_ASPECT = 1.0
 HALF_SUFFIXES = ('a', 'b')
+PDF_RENDER_DPI = 300
 
 
 def natural_key(path):
@@ -18,7 +19,10 @@ def natural_key(path):
 
 
 def extract(archive, into):
-    subprocess.run(['unar', '-q', '-o', into, archive], check=True)
+    if archive.lower().endswith('.pdf'):
+        subprocess.run(['pdftoppm', '-jpeg', '-r', str(PDF_RENDER_DPI), archive, os.path.join(into, 'page')], check=True)
+    else:
+        subprocess.run(['unar', '-q', '-o', into, archive], check=True)
     files = [os.path.join(root, f) for root, _, names in os.walk(into) for f in names if f.lower().endswith(IMAGE_EXTENSIONS)]
     return sorted(files, key=lambda f: natural_key(os.path.relpath(f, into)))
 

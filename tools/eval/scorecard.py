@@ -5,6 +5,7 @@ import sys
 
 CRITERIA = ('order', 'framing', 'harmony')
 SCORE = {'good': 2, 'minor': 1, 'bad': 0}
+PENALTY = {'good': 0, 'minor': 1, 'bad': 3}
 WORST_COUNT = 6
 
 
@@ -16,6 +17,10 @@ def load_dir(path):
 
 def page_score(verdict):
     return sum(SCORE[verdict[c]] for c in CRITERIA)
+
+
+def page_cost(verdict):
+    return sum(PENALTY[verdict[c]] for c in CRITERIA)
 
 
 def run(comic_dir, label):
@@ -34,6 +39,8 @@ def run(comic_dir, label):
         gates=dict(pages=gates['pages'], passed=gates['passed']),
         criteria={c: dict(counts[c], passRate=round((counts[c]['good'] + counts[c]['minor']) / judged, 3) if judged else None,
                           goodRate=round(counts[c]['good'] / judged, 3) if judged else None) for c in CRITERIA},
+        cost=sum(page_cost(v) for v in verdicts.values()),
+        costPerPage=round(sum(page_cost(v) for v in verdicts.values()) / judged, 3) if judged else None,
         allGoodPages=sum(1 for v in verdicts.values() if page_score(v) == 6),
         anyBadPages=sorted(v['page'] for v in verdicts.values() if any(v[c] == 'bad' for c in CRITERIA)),
         missedDialoguePages=sorted(v['page'] for v in verdicts.values() if v.get('missed_dialogue')),
@@ -41,7 +48,7 @@ def run(comic_dir, label):
     )
     json.dump(scorecard, open(os.path.join(comic_dir, 'scorecard.json'), 'w'), indent=1)
     write_gallery(comic_dir, worst)
-    print(json.dumps({k: scorecard[k] for k in ('label', 'judgedPages', 'gates', 'criteria', 'allGoodPages', 'anyBadPages', 'missedDialoguePages')}, indent=1))
+    print(json.dumps({k: scorecard[k] for k in ('label', 'judgedPages', 'gates', 'cost', 'costPerPage', 'criteria', 'allGoodPages', 'anyBadPages', 'missedDialoguePages')}, indent=1))
 
 
 def write_gallery(comic_dir, worst):

@@ -96,8 +96,7 @@ class PageLoader(
 
     suspend fun stops(index: Int, direction: ReadingDirection): List<Rect> {
         val panels = panels(index)
-        val gate = GuidedTour.needsBubbles(panels)
-        val bubbles = if (gate) bubbles(index).map { it.box } else emptyList()
+        val bubbles = bubbles(index).map { it.box }
         return GuidedTour.stops(panels, bubbles, direction)
     }
 
@@ -155,7 +154,10 @@ class PageLoader(
                 scope.launch {
                     runCatching {
                         if (bubbleScale != null) overlay(index, bubbleScale) else load(index)
-                        if (panels) panels(index).let { if (GuidedTour.needsBubbles(it)) bubbles(index) }
+                        if (panels) {
+                            panels(index)
+                            bubbles(index)
+                        }
                     }
                 }
             }

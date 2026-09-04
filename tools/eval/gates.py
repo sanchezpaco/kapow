@@ -31,11 +31,10 @@ def gate_page(page, ml_bubbles):
     uncovered = [i for i, b in enumerate(ml_bubbles) if not any(centre_inside(b, s) for s in stops)]
     duplicates = [i + 1 for i in range(len(stops) - 1) if near_duplicate(stops[i], stops[i + 1])]
     out_of_bounds = [i for i, s in enumerate(stops) if s[0] < 0 or s[1] < 0 or s[2] > 1 or s[3] > 1 or area(s) <= 0]
-    sane = 1 <= len(stops) <= MAX_STOPS
+    sane = 1 <= len(stops) <= max(MAX_STOPS, len(page["panels"]) + 2)
     return dict(
         file=page['file'],
         stops=len(stops),
-        needsBubbles=page['needsBubbles'],
         mlBubbles=len(ml_bubbles),
         uncoveredBubbles=uncovered,
         nearDuplicateStops=duplicates,

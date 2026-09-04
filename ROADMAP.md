@@ -112,12 +112,73 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       comic trial on Ben Reilly #01 drove six composition fixes in
       `GuidedTour` (order 22/22, no bad page left); judge self-consistency
       measured. See `docs/guided-view-eval.md`.
-- [ ] Guided View eval, next: stratified sample judged (Ruinas, Arkham,
-      Titanes RTL, Blacksad, Venomverse; round 0 in `docs/guided-view-eval.md`)
-      → apply the three composition fixes it exposed (grow panel stops over
-      their overhanging balloons, assignment threshold, order on anchors),
-      re-judge, human calibration set (~10 pages), then the full-corpus sweep
-      as the regression gate; only then revisit the reading-order model.
+- [x] Guided View eval, sample round 1 (2026-09-02): the stratified sample
+      (Ruinas, Arkham, Titanes RTL, Blacksad, Venomverse) exposed three
+      composition families, fixed in `GuidedTour`: panel stops grow over the
+      balloons they own, a balloon needs a quarter of its area inside a panel
+      to belong to it (else orphan window), a splash gets a window even for a
+      single cluster, the bubble gate measures the panels' union, and reading
+      order runs the guillotine on panel/cluster anchors with a cut tolerance
+      relative to the box. Round 2 dropped the bubble gate (the bubble model
+      runs on every page), made the non-owning neighbour shrink past a shared
+      balloon instead of re-showing it, and let balloon anchors float over
+      gutters. 129 pages: gates 116 → 129, order `bad` 9 → 2, pages with a
+      `bad` 23 → 9, Blacksad clean, no regression on Ben Reilly. What is left
+      is detector work (hand lettering, missed/overshooting boxes) and two
+      semantic-order paintings. See `docs/guided-view-eval.md`.
+- [x] Guided View eval, second stratified sample (2026-09-03): One Piece
+      (RTL manga), Rapaces, Spiderman 2099 (90s scan), LOK (PDF), Superman
+      (Johns) and Sueñan los Androides (painted), ~20 pages each, Opus judge.
+      Manga and the European album were clean on arrival; the scan's
+      page-sized box and dark painted pages exposed three composition
+      families, fixed in `GuidedTour` (wordless sliver strips dropped, the
+      page box no longer buries strips, tall panels beside a column ordered
+      apart, wordless fragment pages shown whole, enclosed panel stops
+      dropped); three candidate rules rejected on the twelve-comic regression
+      gate. 252 judged pages, gates 274/274, 15 pages with a `bad`, all
+      detector or semantic. `tools/eval/pending.py` / `restore.py` make the
+      re-judge incremental. See `docs/guided-view-eval.md`
+- [x] Guided View eval, third stratified sample (2026-09-04): Zombillenium
+      (dense European), Los Defensores (70s Marvel), Aliens (80s Dark Horse),
+      Sonic (cartoon), Shangri-La Frontier (digital manga RTL) and Vader Down
+      (widescreen), ~20 pages each, Opus judge. Three composition rules added
+      (duplicate panel boxes merge, painted pages open whole and drop their
+      wordless scraps, balloon clusters and reading windows are bounded to a
+      readable size) and four candidate rules rejected on the eighteen-comic
+      regression gate. 370 judged pages, gates 398/398, 20 pages with a `bad`;
+      Shangri-La, Vader Down, Rapaces, Spiderman 2099 and Blacksad are clean.
+      `tools/eval/render.sh` renders any list of comics. See
+      `docs/guided-view-eval.md`
+- [x] Guided View eval, fourth round (2026-09-04): four composition rules added
+      (dead-tap pass, reading-window minimum scaled to the page's median panel,
+      orphan windows clamped to their panel, gutter captions owned by the panel
+      across the gutter) and three rejected, plus a real crash fixed in `sized()`.
+      Eight pages fixed, seven broken: **the corpus score did not move**
+      (cost/page 1.016 → 1.036, 372 judged, gates 398/398). Composition has
+      plateaued; the remaining bads are mostly detector. The scorecard now leads
+      with a **cost per page** (`good` 0, `minor` 1, `bad` 3) because "pages with
+      a bad" proved too brittle to steer by, and two pages were caught flipping
+      verdict on byte-identical tours. See `docs/guided-view-eval.md`
+- [ ] Guided View eval, measure the judge before tuning again: repeat the same
+      ~12-page sample three times into `eval/_variance/run{1,2,3}/` and run
+      `tools/eval/consistency.py` to get the error bar. No `GuidedTour` change is
+      accepted or rejected on a delta smaller than it
+- [ ] Guided View detector, bubble text gate: `SpeechBubbles.outlined` already
+      extracts text lines but `PanelDetector` and `GuidedTourVisualizer` call it
+      with `extractText = false`, so a white blob with no text is indistinguishable
+      from a balloon. Gate a detection on holding at least one text line, measure
+      against the bubble ground truth (no judge needed) and against the
+      enlarged-bubbles feature, which shares the same detections. Kills the
+      text-free stops on Titanes 034 and Arkham 031b
+- [ ] Guided View detector, hand lettering: painted/hand-lettered captions the
+      bubble model never returns are the single largest family of remaining bads
+      (Arkham 027/031b/033/037). The corpus, ground-truth and retrain pipeline
+      that produced student v4/v5 is what this needs — not another composition rule
+- [ ] Measure on the Fold what always-on bubble detection costs per page
+      (logcat recipe in `docs/guided-view.md`; needs a hand on the device)
+- [ ] Guided View eval, next: human calibration set (~10 pages, judge vs
+      maintainer, Fable vs Opus), then the full-corpus sweep as the regression
+      gate; only then revisit the reading-order model.
 
 ## Phase 5 — Polish
 

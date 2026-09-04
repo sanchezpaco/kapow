@@ -34,66 +34,172 @@ both, a single panel stop shows the reader everything at once with the text too
 small, or skips speech entirely. `GuidedTour` (pure, `feature/reader/domain`)
 turns the panel boxes plus the speech-bubble boxes into the final stop list:
 
+- Two panel boxes that overlap by 70 % of the smaller, with neither
+  containing the other, are **one panel detected twice** and merge. That is
+  how a scan's paper edge, returned as a full-width band across the top of the
+  page, folds into the page-sized box behind it instead of opening the tour on
+  a dead strip (Spiderman 2099 009), and how a painted panel returned as two
+  overlapping halves stops being toured as one giant region (Sueñan los
+  Androides 023). A box properly contained in another is left alone — insets
+  are real, and so is a tall panel that merely overlaps the column beside it.
+- A page whose largest box covers at least 80 % of it, with the remaining
+  boxes adding under 20 % of the page outside it and covering under half of
+  it, is a **painted page**: one image the model broke up. It opens with a
+  whole-page establishing stop. If it has at most two smaller boxes, none of
+  them holding a balloon, they are scraps of the painting and drop out, and
+  the page is toured whole and then balloon cluster by balloon cluster
+  (Arkham 027, Sueñan los Androides 016). Otherwise they are real panels and
+  every one is kept — a silent panel on a painted page is still a panel (LOK
+  006a, Arkham 033), and four boxes across the top of a wordless manga splash
+  are its top tier, not scraps (One Piece 026). A box under 8 % of the page
+  that detected balloons already cover by 70 % does not count towards those
+  two: it is a caption the panel model also fired on.
 - A panel that **contains** other panels (a bleed host with insets, or a
   detector box glued around a whole row) never becomes a stop itself: only the
   largest strip its children leave free (above, below, left or right of them)
   does, and only when that strip is at least 8 % of the page and not already
-  covered by another panel. So a bottom region with its own balloons under a
+  covered by another panel (a box that encloses the host itself, such as the
+  page-sized box a scan's paper edge produces, does not count as covering —
+  it used to bury every strip on those pages and orphan their balloons into a
+  window straddling two tiers). So a bottom region with its own balloons under a
   row of insets is toured once, after the insets, instead of as a giant stop
-  that repeats them.
-- Each bubble is assigned to the **innermost** panel holding its centre (or the
-  one it overlaps most); a bubble inside no panel is an **orphan** and still
-  becomes a stop, so dialogue on a region the panel model missed — a whole
-  balloon the detector skipped — is never lost.
+  that repeats them. A strip narrower than 15 % of the page on its short
+  side that holds no balloon is dropped: a scanned page whose visible paper
+  edge makes the model return a page-sized box around the real panels used to
+  open on the blank margin the children left free (Spiderman 2099 008/016), a
+  dead tap by policy. A wide wordless strip stays — it is art the reader
+  should see, and sometimes dialogue the bubble model missed (Venomverse
+  009b).
+- Each bubble is assigned to the **innermost** panel holding its centre, or
+  else to the panel covering at least a quarter of it (a balloon hung over the
+  gutter); failing both, to the panel **straight across the gutter** — within
+  3 % of the page above or below it, with at least 80 % of the balloon inside
+  that panel's column, nearest one wins. That last rule is what makes a
+  caption sitting in the gutter over its panel read *with* that panel instead
+  of becoming a band of its own across the page (Defensores 049's three yellow
+  captions). A bubble that matches none of the three is an **orphan** and still
+  becomes a stop, so dialogue on a region the panel model missed is never lost.
+  (Owning a balloon merely because it *touches* one panel was tried and
+  rejected — it contradicts the quarter-overlap rule; the gutter rule is
+  narrower and does not.)
+- An ordinary panel's stop **grows over the balloons it owns** that overhang
+  its box (plus a hair of margin, clamped to the page), so a gutter-straddling
+  balloon is read whole with its panel instead of sliced at the detector's
+  edge. A stop edge that would still cut into a balloon it does not own by
+  more than a hair (a tenth of the balloon or more) **shrinks past that
+  balloon** when the trimmed stop keeps its own balloons and at least 70 % of
+  the panel, so the balloon is read once, with its owner. When it cannot
+  shrink that far and a quarter or more of the balloon is inside, it grows
+  over the balloon instead (one re-read beats lost words); a smaller cut it
+  cannot trim is left as it is — growing over it too chained across dense
+  manga grids, where every balloon overhangs its neighbour, until one stop
+  swallowed a whole tier (titanes 039) and the next stops re-read it. Below a
+  tenth the cut is a clipped border with every word visible, which the policy
+  scores `minor`.
+- An orphan cluster that some panel stop already shows whole gets no window of
+  its own (a caption caught between two grown panels was being read three
+  times).
 - A box smaller than 4 % of the page sitting inside another panel (a credits
   strip, a logo box) is absorbed into its host instead of becoming a dead stop.
-- Only a **large** panel (≥ 45 % of the page: a splash or full-art page) that
-  holds two or more bubble clusters is split into one **reading window per
-  cluster**. A true splash — the page's only panel — keeps the whole page as an
-  **establishing stop** before its windows, however many balloons it holds, so
-  the reader sees what the character is doing before reading what they say (the
-  maintainer's call over the judge's, which preferred to skip the opener on
-  dense splashes). A large panel among other panels goes straight to its
-  windows. Ordinary panels, however many balloons they hold, stay a single stop, so a
-  manga page is toured panel by panel and is never chopped into overlapping
-  fragments. Balloons within 7 % of the page cluster into one window, and two
-  windows that overlap by half or more merge into one, so a row of balloons is
-  read as one band instead of two nudged views.
-- A window is centred on its cluster, sized to at least 0.42 × 0.30 of the page
-  (plus a small margin so surrounding art shows), and clamped to the panel
-  **grown to include its cluster** — so it never drifts into the neighbouring
-  panel, yet still covers a balloon the panel box cut off. Orphan windows clamp
-  to the page. A window edge **never crosses a balloon**: when the minimum size
-  reaches into a neighbouring cluster the window shrinks past that balloon
-  (as long as its own cluster still fits), otherwise it grows to include it —
-  so no caption is ever shown cut mid-word.
+  A panel stop whose view the previous panel stop already encloses (a caption
+  box the detector returned as a panel, swallowed when its neighbour grew over
+  the balloons around it — Androides 018) is dropped as redundant; a window
+  inside its opener is not, that zoom is the point of the opener.
+- A page with no balloon at all whose one or two boxes cover under half of it
+  (a painted chapter title the detector cut into fragments, Androides 012b)
+  is shown whole rather than as arbitrary slices of one image.
+- Only a **large** panel (≥ 45 % of the page: a splash or full-art page) is
+  split into **reading windows**, one per bubble cluster. A true splash — the
+  page's only panel — keeps the whole page as an **establishing stop** before
+  its windows, however many balloons it holds, so the reader sees what the
+  character is doing before reading what they say (the maintainer's call over
+  the judge's, which preferred to skip the opener on dense splashes); it gets a
+  window even for a single cluster, since at whole-page scale no balloon is
+  readable on the phone. A large panel among other panels goes straight to its
+  windows, and only when it holds two or more clusters. Ordinary panels,
+  however many balloons they hold, stay a single stop, so a manga page is
+  toured panel by panel and is never chopped into overlapping fragments.
+  Balloons within 7 % of the page cluster into one window, and two windows
+  that overlap by half or more merge into one, so a row of balloons is read as
+  one band instead of two nudged views. Both joins stop at a **readable
+  height**: balloons only cluster while the cluster stays within the minimum
+  window height (30 % of the page), and two windows only merge while the
+  merged view stays under 45 % of it. Without those bounds a painted page of
+  scattered narration collapsed into one band half the page tall, which the
+  redundancy pass then dropped against the establishing stop, leaving eight
+  captions with no reading window at all (Sueñan los Androides 029).
+- A window is centred on its cluster, sized to a **minimum that scales with
+  the page** (plus a small margin so surrounding art shows), and clamped to the
+  panel **grown to include its cluster** — so it never drifts into the
+  neighbouring panel, yet still covers a balloon the panel box cut off. The
+  minimum is 0.42 × 0.30 of the page or the **median panel's** width and
+  height, whichever is smaller: on a fourteen-panel European page a
+  page-scale minimum turned one caption into a catch-all band spanning four
+  panels (Zombillenium 014/021, Defensores 032/049). An orphan window clamps to
+  the panel it overlaps most, grown to include its cluster — not to the page,
+  which let it bite into the row above (Zombillenium 014's tai-chi caption).
+  A window edge **never crosses a balloon**: when the minimum size reaches into
+  a neighbouring cluster the window shrinks past that balloon (as long as its
+  own cluster still fits), otherwise it grows to include it — so no caption is
+  ever shown cut mid-word, stopping once the grown view would pass 45 % of the
+  page tall or 60 % wide. Letting that growth run unbounded was tried: it
+  cleared one sliced caption (Androides 016) and cost as many pages, where a
+  window swallowed the tier beside it (Arkham 035, Androides 017).
 - After ordering, a **redundancy pass** drops any stop of similar size (at
   least half of its neighbour's area) that is ≥ 85 % contained in it, so no two
   consecutive stops show almost the same view — the cause of taps that appeared
   to "skip" several panels at once. A zoom from a panel into its first window
   is not redundant.
-- Clean grids are left untouched: a page whose panels are many, small and cover
-  ≥ 80 % of the art (`GuidedTour.needsBubbles` is false) never runs the slower
-  bubble model at all.
-- The final stops are ordered by a recursive **guillotine cut**: the page is
-  split at the topmost horizontal line that crosses no stop (top part first),
-  else at the leftmost vertical line that crosses none (left part first, or
-  right first for `ReadingDirection.RightToLeft`), and each part is cut again.
-  A tall panel spanning two rows of a right-hand column is therefore followed
-  by that column top-to-bottom, where a row-based sort read the column's top
-  panel last. Overlapping stops that admit no cut fall back to the
-  mutual-centre row test; a stop containing others is inserted right before the
-  first one it contains (an establishing stop precedes its windows).
+- Then a **dead-tap pass** drops any stop that shows at least one balloon,
+  shows no balloon whole that the other stops do not already show whole, and is
+  ≥ 90 % covered by them: a tap that re-reads text the reader has just read and
+  adds no art of its own (Defensores 030's middle gargoyle stop, Sonic 016's
+  staircase of sub-windows, Zombillenium 014's stripped panel). A stop with no
+  balloon at all is never dead — that is art, and a silent panel is a stop.
+  The **establishing opener** neither counts as a cover nor is ever dropped,
+  otherwise every window on a splash would look redundant against it.
+- The bubble model runs on **every** page. A coverage gate that skipped it on
+  dense grids (panels covering ≥ 80 %) cost more than it saved: manga and
+  European letterers hang balloons over the gutter of exactly those grids, and
+  without bubbles the panel stop cannot grow over them (titanes 035/038/044,
+  blacksad 013/015 in the eval sample were sliced for that reason alone).
+- The final stops are ordered by a recursive **guillotine cut** over their
+  **anchors** — the panel box for a panel stop, the balloon cluster for a
+  reading window — never over the windows themselves, whose minimum size
+  routinely straddles a gutter and would block every cut. The page is split at
+  the topmost horizontal line that crosses no anchor (top part first), else at
+  the leftmost vertical line that crosses none (left part first, or right
+  first for `ReadingDirection.RightToLeft`), and each part is cut again. A
+  panel anchor blocks a cut only when the line enters it by more than 5 % of
+  its extent (at least 1 % of the page), so a detector box overshooting the
+  gutter by a hair does not merge two columns; a balloon-cluster anchor is
+  **floating** and tolerates 30 %, because letterers hang captions over the
+  gutter and a caption poking a fifth of its width past a column must not glue
+  the two columns into one row. A tall panel spanning two rows of a
+  right-hand column is therefore followed by that column top-to-bottom, where
+  a row-based sort read the column's top panel last. Overlapping anchors that
+  admit no cut fall back to the mutual-centre row test; a stop whose anchor
+  contains others is inserted right before the first one it contains (an
+  establishing stop precedes its windows). When no cut exists because a tall
+  panel's box overlaps the column beside it (LOK 013b: a staggered layout
+  whose right-hand panel reaches under the bottom-middle one), the row test
+  would put every stop in one row and read the column by x alone; instead an
+  anchor spanning at least 80 % of its group's height — the whole uncut
+  group first, then each row of it — with no vertical companion (no other
+  stop covering 60 % of its height, which a merely taller panel in a real
+  row has, Ben Reilly 020) is set aside, the remaining column of
+  two or more stops is ordered on its own, and the tall anchor is slotted
+  before the first stop that lies beyond it in reading direction (a tall
+  right-hand panel comes last in LTR; a tall left column whose box overshoots
+  into a band across the page top still leads the page, 2099 009).
 
-`PageLoader.stops(index, direction)` runs the panel model, and only when
-`needsBubbles` is true also the bubble model (both cached in memory and
-persisted in Room), then builds the tour. `GuidedReader` consumes `stops`
+`PageLoader.stops(index, direction)` runs the panel model and the bubble
+model (both cached in memory and persisted in Room), then builds the tour. `GuidedReader` consumes `stops`
 instead of raw panels.
 
 `GuidedReader` asks `PageLoader.preload(…, panels = true)` for the pages
 around the current one, so their panels are detected (or read from Room)
-before the reader gets there — and their bubbles too when the page needs them;
-one detection runs at a time behind the shared
+before the reader gets there — and their bubbles too; one detection runs at a time behind the shared
 semaphore, with a per-page mutex so the current page is never detected twice.
 On the Fold, entering Guided View on a fresh comic detects the current page
 and the next two within ≈ 600 ms, and each step then finds the next page's

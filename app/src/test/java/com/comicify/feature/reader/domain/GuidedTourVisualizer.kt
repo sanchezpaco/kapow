@@ -54,18 +54,18 @@ class GuidedTourVisualizer {
             val pixels = analysis.getRGB(0, 0, analysis.width, analysis.height, null, 0, analysis.width)
             val classes = PixelClasses.classify(pixels, analysis.width, analysis.height, 1)
             val panels = panels(detected.panels, classes)
-            val gate = GuidedTour.needsBubbles(panels)
-            val bubbles = if (gate) SpeechBubbles.outlined(classes, detected.bubbles).map { it.box } else emptyList()
+            val bubbles = SpeechBubbles.outlined(classes, detected.bubbles).map { it.box }
             val stops = GuidedTour.stops(panels, bubbles, direction)
             val name = file.nameWithoutExtension
-            File(stopsDir, "$name.json").writeText(stopsJson(file.name, direction, page, gate, panels, bubbles, stops))
+            cropsDir.listFiles { f -> f.name.startsWith("$name-") }?.forEach { it.delete() }
+            File(stopsDir, "$name.json").writeText(stopsJson(file.name, direction, page, panels, bubbles, stops))
             ImageIO.write(annotated(page, panels, bubbles, stops), "jpg", File(annotatedDir, "$name.jpg"))
             stops.forEachIndexed { index, stop ->
                 val label = "$name-${String.format(Locale.ROOT, "%02d", index + 1)}"
                 ImageIO.write(viewport(page, stop, PHONE_VIEWPORT, PHONE_CROP_WIDTH), "jpg", File(cropsDir, "$label-phone.jpg"))
                 ImageIO.write(viewport(page, stop, TABLET_VIEWPORT, TABLET_CROP_WIDTH), "jpg", File(cropsDir, "$label-tablet.jpg"))
             }
-            println("${file.name}: ${panels.size} panels, ${bubbles.size} bubbles (gate=$gate) -> ${stops.size} stops")
+            println("${file.name}: ${panels.size} panels, ${bubbles.size} bubbles -> ${stops.size} stops")
         }
     }
 
@@ -81,9 +81,9 @@ class GuidedTourVisualizer {
         (rect.bottom * ORDERING_GRID).roundToInt(),
     )
 
-    private fun stopsJson(file: String, direction: ReadingDirection, page: BufferedImage, gate: Boolean, panels: List<Rect>, bubbles: List<Rect>, stops: List<Rect>): String {
+    private fun stopsJson(file: String, direction: ReadingDirection, page: BufferedImage, panels: List<Rect>, bubbles: List<Rect>, stops: List<Rect>): String {
         val dir = if (direction == ReadingDirection.RightToLeft) "rtl" else "ltr"
-        return "{\"file\": \"$file\", \"direction\": \"$dir\", \"width\": ${page.width}, \"height\": ${page.height}, \"needsBubbles\": $gate, " +
+        return "{\"file\": \"$file\", \"direction\": \"$dir\", \"width\": ${page.width}, \"height\": ${page.height}, " +
             "\"panels\": ${rects(panels)}, \"bubbles\": ${rects(bubbles)}, \"stops\": ${rects(stops)}}\n"
     }
 
