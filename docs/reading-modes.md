@@ -161,6 +161,16 @@ RAR files the probe waits for the archive extraction, so the snackbar can
 appear a few seconds after the first page.
 
 
+## Choosing a view mode
+
+The reader has three layouts — paged, Guided View and the vertical strip — and
+they are mutually exclusive, so `ReaderViewMode` (pure, in `reader/domain`) picks
+one from the two flags that persist it and the HUD offers them as a single
+choice behind one control rather than as separate toggles that hide each other.
+Enlarged bubbles are **not** a fourth mode: they are an overlay that works over
+the paged layouts and over the strip, and only Guided View turns them off
+(`ReaderViewMode.allowsBubbles`), so they sit in the same menu as a toggle.
+
 ## Continuous vertical scroll
 
 A third top-level mode, chosen per comic (`ComicSettings.verticalScroll`, HUD
@@ -179,9 +189,24 @@ above it. Margin cropping can make the decoded page slightly narrower than the
 file, which `ContentScale.Fit` letterboxes against the black background rather
 than resizing the item.
 
-Zoom and vertical pan are dropped in this mode: the vertical drag is the scroll,
-so there is no gesture left to pan with. A tap anywhere toggles the chrome; the
+**Zoom scales the whole strip, not one page.** That is what removes the gesture
+conflict the mode looked like it had: the vertical drag is always the scroll, the
+horizontal drag is always the pan, and a two-finger pinch competes with neither.
+Pinch and double-tap zoom up to 4x, horizontal drag pans within the scaled
+bounds, and vertical drag keeps scrolling. Pages are decoded at 2160 px wide
+against a much narrower screen, so there is real resolution behind the zoom.
+
+The scale is applied through a `graphicsLayer` **only while actually zoomed**.
+Wrapping a scrolling `LazyColumn` in a composited layer forces the whole viewport
+to re-rasterise every frame instead of letting Compose move already-rasterised
+items: measured, that alone took p99 from 29 ms to **700 ms** and janky frames
+from 0.3 % to 6.8 %. At scale 1 the modifier is not in the chain at all.
+
+A tap anywhere toggles the chrome; the
 thumbnail scrubber and volume keys still work, jumping and stepping by item.
+**Enlarged bubbles work here too** — they are a render overlay on a page, with
+nothing page-turn-specific about them, so the strip draws the same
+`BubbleLayer` the paged surfaces do.
 Reading position stays the first visible page, so it maps to the same
 `ReadingPosition.pageIndex` every other surface uses and survives a mode switch.
 

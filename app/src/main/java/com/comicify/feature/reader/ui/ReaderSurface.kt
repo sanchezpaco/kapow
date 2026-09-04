@@ -78,6 +78,7 @@ fun ReaderSurface(
             VerticalStripReader(
                 loader = loader,
                 comic = comic,
+                bubbleScale = bubbleScale,
                 initialPage = initialPage,
                 pageTurnRequests = pageTurnRequests,
                 pendingJump = pendingJump,

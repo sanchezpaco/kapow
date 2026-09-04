@@ -26,6 +26,7 @@ import com.comicify.feature.reader.data.PanelDetector
 import com.comicify.feature.reader.data.SplitPagesComicSource
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.ComicOpenError
+import com.comicify.feature.reader.domain.ReaderViewMode
 import com.comicify.feature.reader.domain.SplitSuggestion
 import dagger.hilt.android.EntryPointAccessors
 import java.io.IOException
@@ -194,8 +195,10 @@ class ReaderViewModel(
         _state.update { it.copy(pendingJump = null) }
     }
 
-    fun toggleGuided() {
-        _state.update { it.copy(guided = !it.guided) }
+    fun setViewMode(mode: ReaderViewMode) {
+        _state.update { it.copy(guided = mode == ReaderViewMode.Guided) }
+        val strip = mode == ReaderViewMode.Strip
+        if (_state.value.verticalScroll != strip) updateSettings { it.copy(verticalScroll = strip) }
     }
 
     fun toggleBubblesEnlarged() {
@@ -279,11 +282,6 @@ class ReaderViewModel(
     fun toggleSplitWidePages() {
         val split = !_state.value.splitWidePages
         updateSettings { it.copy(splitWidePages = split) }
-    }
-
-    fun toggleVerticalScroll() {
-        val vertical = !_state.value.verticalScroll
-        updateSettings { it.copy(verticalScroll = vertical) }
     }
 
     private fun updateSettings(transform: (ComicSettingsEntity) -> ComicSettingsEntity) {

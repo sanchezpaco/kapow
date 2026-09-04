@@ -38,13 +38,15 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.CropPortrait
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.VerticalSplit
 import androidx.compose.material.icons.filled.ViewCarousel
+import androidx.compose.material.icons.filled.ViewDay
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -102,6 +104,7 @@ import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
 import com.comicify.feature.reader.domain.ComicOpenError
+import com.comicify.feature.reader.domain.ReaderViewMode
 import com.comicify.feature.reader.domain.TapZone
 import kotlinx.coroutines.flow.MutableSharedFlow
 
@@ -234,22 +237,20 @@ fun ReaderScreen(
         TopChrome(
             visible = state.chromeVisible,
             posture = posture,
-            guided = state.guided,
+            viewMode = ReaderViewMode.of(state.guided, state.verticalScroll),
             guidedFullScreen = state.guidedFullScreen,
             bubblesEnlarged = state.bubblesEnlarged,
             bubbleScale = state.bubbleScale,
             nightTintEnabled = state.nightTintEnabled,
             direction = state.direction,
             splitWidePages = state.splitWidePages,
-            verticalScroll = state.verticalScroll,
-            onToggleGuided = viewModel::toggleGuided,
+            onViewMode = viewModel::setViewMode,
             onToggleBubblesEnlarged = viewModel::toggleBubblesEnlarged,
             onBubbleScale = viewModel::setBubbleScale,
             onToggleGuidedFullScreen = viewModel::toggleGuidedFullScreen,
             onToggleNightTint = viewModel::toggleNightTint,
             onToggleDirection = viewModel::toggleReadingDirection,
             onToggleSplitWidePages = viewModel::toggleSplitWidePages,
-            onToggleVerticalScroll = viewModel::toggleVerticalScroll,
             onReportGlitch = { glitchDialogOpen = true },
             onClose = onClose,
             modifier = Modifier.align(Alignment.TopCenter),
@@ -392,22 +393,20 @@ private fun EndOfComicOverlay(
 private fun TopChrome(
     visible: Boolean,
     posture: ReadingPosture,
-    guided: Boolean,
+    viewMode: ReaderViewMode,
     guidedFullScreen: Boolean,
     bubblesEnlarged: Boolean,
     bubbleScale: Float,
     nightTintEnabled: Boolean,
     direction: ReadingDirection,
     splitWidePages: Boolean,
-    verticalScroll: Boolean,
-    onToggleGuided: () -> Unit,
+    onViewMode: (ReaderViewMode) -> Unit,
     onToggleBubblesEnlarged: () -> Unit,
     onBubbleScale: (Float) -> Unit,
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
     onToggleDirection: () -> Unit,
     onToggleSplitWidePages: () -> Unit,
-    onToggleVerticalScroll: () -> Unit,
     onReportGlitch: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
@@ -434,31 +433,28 @@ private fun TopChrome(
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.Top) {
-                    if (!guided && !verticalScroll) {
-                        BubbleToggle(enlarged = bubblesEnlarged, onToggle = onToggleBubblesEnlarged)
-                        Spacer(modifier = Modifier.width(10.dp))
-                    }
-                    if (!verticalScroll) {
-                        GuidedToggle(guided = guided, onToggle = onToggleGuided)
-                        Spacer(modifier = Modifier.width(10.dp))
-                    }
+                    ViewModeMenu(
+                        mode = viewMode,
+                        bubblesEnlarged = bubblesEnlarged,
+                        onMode = onViewMode,
+                        onToggleBubbles = onToggleBubblesEnlarged,
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
                     ReaderSettingsMenu(
-                        showGuidedLayout = guided && posture == ReadingPosture.UnfoldedSpread,
+                        showGuidedLayout = viewMode == ReaderViewMode.Guided && posture == ReadingPosture.UnfoldedSpread,
                         guidedFullScreen = guidedFullScreen,
                         nightTintEnabled = nightTintEnabled,
                         direction = direction,
                         splitWidePages = splitWidePages,
-                        verticalScroll = verticalScroll,
                         onToggleGuidedFullScreen = onToggleGuidedFullScreen,
                         onToggleNightTint = onToggleNightTint,
                         onToggleDirection = onToggleDirection,
                         onToggleSplitWidePages = onToggleSplitWidePages,
-                        onToggleVerticalScroll = onToggleVerticalScroll,
                         onReportGlitch = onReportGlitch,
                     )
                 }
                 AnimatedVisibility(
-                    visible = bubblesEnlarged && !guided,
+                    visible = bubblesEnlarged && viewMode.allowsBubbles(),
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically(),
                 ) {
@@ -470,23 +466,59 @@ private fun TopChrome(
 }
 
 @Composable
-private fun GuidedToggle(guided: Boolean, onToggle: () -> Unit) {
-    CircleControl(
-        icon = Icons.Filled.ViewCarousel,
-        active = guided,
-        contentDescription = stringResource(R.string.reader_action_guided),
-        onClick = onToggle,
-    )
+private fun ViewModeMenu(
+    mode: ReaderViewMode,
+    bubblesEnlarged: Boolean,
+    onMode: (ReaderViewMode) -> Unit,
+    onToggleBubbles: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        CircleControl(
+            icon = Icons.Filled.Visibility,
+            active = expanded || mode != ReaderViewMode.Pages || bubblesEnlarged,
+            contentDescription = stringResource(R.string.reader_action_view_mode),
+            onClick = { expanded = !expanded },
+        )
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+        ) {
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ViewModeRow(Icons.Filled.CropPortrait, R.string.reader_mode_pages, mode == ReaderViewMode.Pages) {
+                    onMode(ReaderViewMode.Pages)
+                }
+                ViewModeRow(Icons.Filled.ViewCarousel, R.string.reader_mode_guided, mode == ReaderViewMode.Guided) {
+                    onMode(ReaderViewMode.Guided)
+                }
+                ViewModeRow(Icons.Filled.ViewDay, R.string.reader_mode_strip, mode == ReaderViewMode.Strip) {
+                    onMode(ReaderViewMode.Strip)
+                }
+                if (mode.allowsBubbles()) {
+                    ViewModeRow(Icons.Filled.ChatBubbleOutline, R.string.reader_mode_bubbles, bubblesEnlarged) {
+                        onToggleBubbles()
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
-private fun BubbleToggle(enlarged: Boolean, onToggle: () -> Unit) {
-    CircleControl(
-        icon = Icons.Filled.ChatBubbleOutline,
-        active = enlarged,
-        contentDescription = stringResource(R.string.reader_action_enlarge_bubbles),
-        onClick = onToggle,
-    )
+private fun ViewModeRow(icon: ImageVector, labelRes: Int, active: Boolean, onClick: () -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(if (active) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.78f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = Color.White)
+        Text(text = stringResource(labelRes), color = Color.White, style = MaterialTheme.typography.labelLarge)
+    }
 }
 
 @Composable
@@ -520,12 +552,10 @@ private fun ReaderSettingsMenu(
     nightTintEnabled: Boolean,
     direction: ReadingDirection,
     splitWidePages: Boolean,
-    verticalScroll: Boolean,
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
     onToggleDirection: () -> Unit,
     onToggleSplitWidePages: () -> Unit,
-    onToggleVerticalScroll: () -> Unit,
     onReportGlitch: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -571,12 +601,6 @@ private fun ReaderSettingsMenu(
                     active = splitWidePages,
                     contentDescription = stringResource(R.string.reader_action_split_wide_pages),
                     onClick = onToggleSplitWidePages,
-                )
-                CircleControl(
-                    icon = Icons.Filled.SwapVert,
-                    active = verticalScroll,
-                    contentDescription = stringResource(R.string.reader_action_vertical_scroll),
-                    onClick = onToggleVerticalScroll,
                 )
                 CircleControl(
                     icon = Icons.Filled.BugReport,

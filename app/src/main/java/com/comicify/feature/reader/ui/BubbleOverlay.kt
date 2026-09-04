@@ -1,7 +1,15 @@
 package com.comicify.feature.reader.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
@@ -60,4 +68,22 @@ object BubbleOverlay {
             close()
         }
     }
+}
+
+@Composable
+fun BubbleLayer(page: ImageBitmap, bubbles: List<PaintedBubble>, cached: () -> Boolean) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                compositingStrategy = if (cached()) CompositingStrategy.Offscreen else CompositingStrategy.Auto
+            }
+            .drawBehind { BubbleOverlay.run { drawBubbles(page, fittedImageRect(page, size), bubbles) } },
+    )
+}
+
+fun fittedImageRect(image: ImageBitmap, viewport: Size): Rect {
+    val scale = minOf(viewport.width / image.width, viewport.height / image.height)
+    val fitted = Size(image.width * scale, image.height * scale)
+    return Rect(Offset((viewport.width - fitted.width) / 2f, (viewport.height - fitted.height) / 2f), fitted)
 }

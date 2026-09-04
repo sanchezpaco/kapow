@@ -139,7 +139,11 @@
     <string name="reader_split_suggestion">Parece que este cómic tiene dos páginas por imagen</string>
     <string name="reader_split_suggestion_action">Dividir</string>
     <string name="reader_action_split_wide_pages">Dividir páginas dobles</string>
-    <string name="reader_action_vertical_scroll">Scroll vertical continuo</string>
+    <string name="reader_action_view_mode">Modo de lectura</string>
+    <string name="reader_mode_pages">Páginas</string>
+    <string name="reader_mode_guided">Vista guiada</string>
+    <string name="reader_mode_strip">Scroll vertical</string>
+    <string name="reader_mode_bubbles">Bocadillos ampliados</string>
     <string name="reader_strip_finished">Terminado · %1$s</string>
     <string name="reader_strip_next">Siguiente · %1$s</string>
     <string name="reader_action_direction_ltr">Sentido de lectura: izquierda a derecha</string>

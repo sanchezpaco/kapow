@@ -216,26 +216,9 @@ fun ZoomablePage(
     }
 }
 
-@Composable
-private fun BubbleLayer(page: ImageBitmap, bubbles: List<PaintedBubble>, cached: () -> Boolean) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                compositingStrategy = if (cached()) CompositingStrategy.Offscreen else CompositingStrategy.Auto
-            }
-            .drawBehind { drawBubbles(page, fittedImageRect(page, size), bubbles) },
-    )
-}
-
 private sealed interface BubbleOverlayState {
     data object None : BubbleOverlayState
     data object Loading : BubbleOverlayState
     data class Ready(val bubbles: List<PaintedBubble>) : BubbleOverlayState
 }
 
-private fun fittedImageRect(image: ImageBitmap, viewport: Size): Rect {
-    val scale = minOf(viewport.width / image.width, viewport.height / image.height)
-    val fitted = Size(image.width * scale, image.height * scale)
-    return Rect(Offset((viewport.width - fitted.width) / 2f, (viewport.height - fitted.height) / 2f), fitted)
-}
