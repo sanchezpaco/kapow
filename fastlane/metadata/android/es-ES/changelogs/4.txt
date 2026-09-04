@@ -1,0 +1,5 @@
+• Controles del lector rediseñados: un panel con etiquetas para el modo de vista (Páginas, Vista guiada, Scroll vertical, Bocadillos ampliados con su tamaño) y otro para los ajustes
+• Miniaturas y contador legibles sobre páginas claras
+• Los filtros de la biblioteca ya no saltan al ocultarse «Seguir leyendo»; «Recientes» es un botón de orden
+• Ajustes rediseñados: secciones agrupadas, interruptores y un «Modo al abrir» por cómic
+• Un cómic terminado sigue completado aunque vuelvas atrás

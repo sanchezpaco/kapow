@@ -7,6 +7,8 @@ All notable user-facing changes to Kapow. The format follows
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-09-04
+
 ### Changed
 - Reader controls: the eye and the gear now open one labelled panel each
   instead of floating pills and unlabelled icons. Pages / Guided view /

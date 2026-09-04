@@ -1,0 +1,5 @@
+• Reader controls redesigned: one labelled panel for the view mode (Pages, Guided view, Vertical scroll, Enlarged bubbles with a size stepper) and one for settings
+• Page thumbnails and counter stay readable over light pages
+• Library filters no longer jump when "Continue reading" hides; "Recent" is a sort toggle
+• Settings screens redesigned: grouped sections, switches, one "Mode on open" per comic
+• A finished comic stays completed when you page back into it
