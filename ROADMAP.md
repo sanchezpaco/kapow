@@ -459,7 +459,9 @@ Goal: the details that make it feel premium.
 
 ## Phase 6 — Last tasks to 1.0
 
-Goal: a signed bundle on Google Play (internal testing first). The app is
+Goal: a signed bundle on Google Play (internal testing first). **Reached:**
+Kapow is on Play in closed/open testing since 2026-09-04, bundles uploaded by
+hand. The app is
 Kapow (`com.sanchezpaco.kapow`, decided 2026-08-28). Logo decided 2026-08-29:
 a white speech bubble with a Luckiest Guy "K" (yellow→red) over a tilted,
 halftoned comic-page grid in blue — adaptive vector in `res/drawable/`,
@@ -473,20 +475,25 @@ Blocking:
       7-Zip-JBinding keep rules and the arm64-only `abiFilter` survive the
       bundle, install the bundle-derived APK (`make deploy-bundle`; verified
       on the emulator, Fold pending)
-- [ ] Play Console: create the app as Kapow, upload the first bundle by hand,
-      link a service account for `make publish-internal`. The repository goes
-      public before the first upload (AGPL source offer) and the listing links
-      to it
+- [x] Play Console (done, confirmed 2026-09-04): the app is created as Kapow,
+      several bundles uploaded by hand, and Kapow is live on a **closed/open
+      testing** track — past the "internal testing first" goal of this phase.
+      The repository went public under AGPL-3.0 before the first upload and the
+      listing links to it
+- [ ] Play publishing automation: link a service account so
+      `make publish-internal` works end to end. Uploads are by hand today and
+      that is fine — convenience, not a blocker
 - [x] Onboarding on first launch (3 steps): choose the folder, reader
       gestures (centre = HUD, edges = page turn, pinch = zoom), Guided View +
       enlarged bubbles with the HUD icons; "Show the introduction again" from
       Settings → About. Flag in DataStore. See `docs/onboarding.md`
-- [~] Privacy policy URL + Play "Data safety" form (no data collected).
+- [x] Privacy policy URL + Play "Data safety" form (no data collected).
       Policy as `docs/privacy.md` (EN + ES: nothing collected, the glitch
       report is user-initiated mail from the user's own account, backups are
       Android's own), live since 2026-08-29 at
       <https://sanchezpaco.github.io/kapow/privacy> (GitHub Pages, `docs/` on
-      `main`); the Data safety form in Play Console is still to fill in. `dataExtractionRules` / `fullBackupContent` done: Room +
+      `main`); the Data safety form in Play Console is filled in (confirmed
+      2026-09-04). `dataExtractionRules` / `fullBackupContent` done: Room +
       DataStore only (`docs/settings.md` → Backup)
 - [x] Licences screen under Settings → About (`LicencesScreen`). Both model
       sources are Apache-2.0; the bubble student was trained with Ultralytics
