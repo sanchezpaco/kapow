@@ -62,12 +62,14 @@
     <string name="library_delete_series_confirm_body">Los %1$d cómics de %2$s se borrarán definitivamente del dispositivo.</string>
     <string name="library_back">Atrás</string>
     <string name="settings_series_scope">Se aplica a los %1$d cómics</string>
+    <string name="settings_mode_on_open">Modo al abrir</string>
+    <string name="detail_setting_cover_alone_detail">Empareja 2-3, 4-5…</string>
+    <string name="detail_setting_split_wide_pages_detail">Dos páginas de cómic en una</string>
     <string name="detail_settings_eyebrow">Este cómic</string>
     <string name="detail_settings">Ajustes de lectura</string>
     <string name="detail_setting_direction">Sentido de lectura</string>
-    <string name="detail_setting_cover_alone">Portada sola (empareja 2-3, 4-5…)</string>
-    <string name="detail_setting_split_wide_pages">Dividir páginas dobles (dos páginas en una)</string>
-    <string name="detail_setting_vertical_scroll">Scroll vertical continuo</string>
+    <string name="detail_setting_cover_alone">Portada sola</string>
+    <string name="detail_setting_split_wide_pages">Dividir páginas dobles</string>
     <string name="detail_setting_bubbles">Bocadillos ampliados al abrir</string>
     <string name="detail_setting_guided">Vista guiada al abrir</string>
     <string name="detail_option_ltr">Izquierda a derecha</string>

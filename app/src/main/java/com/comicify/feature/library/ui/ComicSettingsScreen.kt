@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -34,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -43,21 +43,27 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.comicify.BuildConfig
-import com.comicify.core.ui.OptionChips
+import com.comicify.R
 import com.comicify.core.ui.BubbleScaleRow
-import com.comicify.core.ui.OnOffChips
-import com.comicify.core.ui.SettingRow
-import com.comicify.core.ui.TriStateChips
+import com.comicify.core.ui.SettingsChoiceRow
+import com.comicify.core.ui.SettingsDivider
+import com.comicify.core.ui.SettingsSection
+import com.comicify.core.ui.SettingsSwitchRow
 import com.comicify.core.ui.defaultLabel
 import com.comicify.core.ui.labelRes
-import com.comicify.R
+import com.comicify.core.ui.triStateOptions
 import com.comicify.domain.model.ReadingDirection
-import com.comicify.feature.library.domain.ComicSettings
 import com.comicify.feature.library.domain.LibraryComic
+import com.comicify.feature.library.domain.openMode
+import com.comicify.feature.library.domain.withOpenMode
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
+import com.comicify.feature.reader.domain.ReaderViewMode
 
 private val SettingsCoverWidth = 96.dp
 private val SettingsContentMaxWidth = 640.dp
+private val ScreenPadding = 20.dp
+private val SectionGap = 22.dp
+private val ClearRowMinHeight = 56.dp
 
 @Composable
 fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
@@ -68,59 +74,87 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
     val wholeSeries = comics.size > 1
     BackHandler(onBack = onBack)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp)
-            .widthIn(max = SettingsContentMaxWidth),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        GhostAction(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.library_back), onClick = onBack)
-        SettingsHeader(comics = comics)
-        SectionHeader(
-            eyebrow = stringResource(if (wholeSeries) R.string.settings_series_eyebrow else R.string.detail_settings_eyebrow),
-            title = stringResource(R.string.detail_settings),
-        )
-        SettingRow(label = stringResource(R.string.detail_setting_direction)) {
-            OptionChips(
-                options = listOf(
-                    null to defaultLabel(stringResource(defaults.direction.labelRes())),
-                    ReadingDirection.LeftToRight to stringResource(R.string.detail_option_ltr),
-                    ReadingDirection.RightToLeft to stringResource(R.string.detail_option_rtl),
-                ),
-                selected = settings.direction,
-                onSelect = { viewModel.onSettingsChanged(settings.copy(direction = it)) },
-            )
-        }
-        SettingRow(label = stringResource(R.string.detail_setting_cover_alone)) {
-            OnOffChips(selected = settings.coverAlone, onSelect = { viewModel.onSettingsChanged(settings.copy(coverAlone = it)) })
-        }
-        SettingRow(label = stringResource(R.string.detail_setting_split_wide_pages)) {
-            OnOffChips(selected = settings.splitWidePages, onSelect = { viewModel.onSettingsChanged(settings.copy(splitWidePages = it)) })
-        }
-        SettingRow(label = stringResource(R.string.detail_setting_vertical_scroll)) {
-            OnOffChips(selected = settings.verticalScroll, onSelect = { viewModel.onSettingsChanged(settings.copy(verticalScroll = it)) })
-        }
-        SettingRow(label = stringResource(R.string.detail_setting_bubbles)) {
-            TriStateChips(
-                selected = settings.bubblesEnlarged,
-                default = defaults.bubblesOnOpen,
-                onSelect = { viewModel.onSettingsChanged(settings.copy(bubblesEnlarged = it, bubbleScale = settings.bubbleScale.takeIf { _ -> it == true })) },
-            )
-            if (settings.bubblesEnlarged == true) {
-                BubbleScaleRow(
-                    scale = settings.bubbleScale ?: BUBBLE_ENLARGE_SCALE,
-                    onScaleCommitted = { viewModel.onSettingsChanged(settings.copy(bubbleScale = it)) },
+    Box(modifier = Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState())) {
+        Column(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .widthIn(max = SettingsContentMaxWidth + ScreenPadding * 2)
+                .padding(ScreenPadding),
+            verticalArrangement = Arrangement.spacedBy(SectionGap),
+        ) {
+            GhostAction(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.library_back), onClick = onBack)
+            SettingsHeader(comics = comics)
+            SettingsSection(
+                eyebrow = stringResource(if (wholeSeries) R.string.settings_series_eyebrow else R.string.detail_settings_eyebrow),
+                title = stringResource(R.string.detail_settings),
+            ) {
+                SettingsChoiceRow(
+                    label = stringResource(R.string.settings_mode_on_open),
+                    options = openModeOptions(defaults.guidedOnOpen),
+                    selected = settings.openMode(),
+                    onSelect = { viewModel.onSettingsChanged(settings.withOpenMode(it)) },
                 )
+                SettingsDivider()
+                SettingsChoiceRow(
+                    label = stringResource(R.string.detail_setting_direction),
+                    options = listOf(
+                        null to defaultLabel(stringResource(defaults.direction.labelRes())),
+                        ReadingDirection.LeftToRight to stringResource(R.string.detail_option_ltr),
+                        ReadingDirection.RightToLeft to stringResource(R.string.detail_option_rtl),
+                    ),
+                    selected = settings.direction,
+                    onSelect = { viewModel.onSettingsChanged(settings.copy(direction = it)) },
+                )
+                SettingsDivider()
+                SettingsSwitchRow(
+                    label = stringResource(R.string.detail_setting_cover_alone),
+                    supporting = stringResource(R.string.detail_setting_cover_alone_detail),
+                    checked = settings.coverAlone,
+                    onCheckedChange = { viewModel.onSettingsChanged(settings.copy(coverAlone = it)) },
+                )
+                SettingsDivider()
+                SettingsSwitchRow(
+                    label = stringResource(R.string.detail_setting_split_wide_pages),
+                    supporting = stringResource(R.string.detail_setting_split_wide_pages_detail),
+                    checked = settings.splitWidePages,
+                    onCheckedChange = { viewModel.onSettingsChanged(settings.copy(splitWidePages = it)) },
+                )
+                SettingsDivider()
+                SettingsChoiceRow(
+                    label = stringResource(R.string.detail_setting_bubbles),
+                    options = triStateOptions(defaults.bubblesOnOpen),
+                    selected = settings.bubblesEnlarged,
+                    onSelect = { enlarged ->
+                        viewModel.onSettingsChanged(
+                            settings.copy(bubblesEnlarged = enlarged, bubbleScale = settings.bubbleScale.takeIf { enlarged == true }),
+                        )
+                    },
+                )
+                if (settings.bubblesEnlarged == true) {
+                    BubbleScaleRow(
+                        label = stringResource(R.string.app_settings_bubble_scale),
+                        scale = settings.bubbleScale ?: BUBBLE_ENLARGE_SCALE,
+                        onScaleCommitted = { viewModel.onSettingsChanged(settings.copy(bubbleScale = it)) },
+                    )
+                }
+                if (BuildConfig.DEBUG) {
+                    SettingsDivider()
+                    ClearDetectionsRow(onClearDetections = viewModel::onClearDetections)
+                }
             }
         }
-        SettingRow(label = stringResource(R.string.detail_setting_guided)) {
-            TriStateChips(selected = settings.guided, default = defaults.guidedOnOpen, onSelect = { viewModel.onSettingsChanged(settings.copy(guided = it)) })
-        }
-        if (BuildConfig.DEBUG) ClearDetectionsRow(onClearDetections = viewModel::onClearDetections)
     }
+}
+
+@Composable
+private fun openModeOptions(guidedOnOpen: Boolean): List<Pair<ReaderViewMode?, String>> {
+    val defaultMode = if (guidedOnOpen) R.string.reader_mode_guided else R.string.reader_mode_pages
+    return listOf(
+        null to defaultLabel(stringResource(defaultMode)),
+        ReaderViewMode.Pages to stringResource(R.string.reader_mode_pages),
+        ReaderViewMode.Guided to stringResource(R.string.reader_mode_guided),
+        ReaderViewMode.Strip to stringResource(R.string.reader_mode_strip),
+    )
 }
 
 @Composable
@@ -175,9 +209,10 @@ private fun ClearDetectionsRow(onClearDetections: () -> Unit) {
     var cleared by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .fillMaxWidth()
+            .heightIn(min = ClearRowMinHeight)
             .clickable { onClearDetections(); cleared = true }
-            .padding(vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
