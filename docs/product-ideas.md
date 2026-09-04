@@ -138,3 +138,12 @@ direction and split-wide-pages, zoom locked, disabled in landscape spread.
 
 5 + 6 + 7 first (no ML dependency, visible on the first screen), then 1
 (improves the flagship feature without touching detection).
+
+**Updated 2026-09-04:** 5, 6 and 7 all shipped (library hero, series detail,
+shared-element transition), so **1 is next** — and it has gained weight, because
+Guided View's composition has since plateaued and every remaining failure is
+detector-shaped, leaving motion and pacing as the headroom that is left.
+Idea 4 (bubble OCR) also deserves a second look: the hand-lettering family was
+scoped on 2026-09-04 as needing *text* detection rather than balloon detection,
+which is exactly what idea 4 proposes, and it would replace the `textIn`
+extractor that the same session found unreliable on scans.
