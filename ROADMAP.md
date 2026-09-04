@@ -205,13 +205,17 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       are turned. The large number is the cold per-page path: decode 89–152 ms
       + bubbles 131–242 ms + plan 0–106 ms ≈ 250–350 ms before bubbles appear
       (59–67 ms warm from Room). See `docs/performance.md`
-- [ ] Reader lag reported by the user with bubbles on — **on hold, not
-      reproduced** (2026-09-04): Doctor Muerte and Un Mundo Bajo Muerte both
-      measured clean folded and unfolded. Next time it happens, capture the
-      comic, the page, the posture and whether the symptom is a stuttering page
-      turn (frame work) or bubbles appearing late (the 250–350 ms cold path) —
-      they are different problems. Note the bubble toggle and scale are **per
-      comic**
+- [~] Reader lag reported by the user with bubbles on — **a cause was found on
+      2026-09-04 (evening), reproduced in the vertical strip**: `BubbleLayout.enlarge`
+      and the `PageDetectionCodec` decoding of stored detections both inherited
+      the caller's dispatcher, which was the main thread, so every page that came
+      into view blocked the UI thread. Fixed in `35263ea`. The paged reader pays
+      the same cost for one or two pages per turn, which is very likely the
+      original report — but that has **not been confirmed** with the reporter, so
+      leave this open until it is. Note `gfxinfo` cannot see this class of bug at
+      all (it measures frame duration, not whether the frame changed): use a
+      `screenrecord` contact sheet, see `docs/performance.md`. Note the bubble
+      toggle and scale are **per comic**
 - [ ] **Deferred until reader performance is fixed** (2026-09-04): Guided View is
       closed at cost/page 1.03, 351 of 372 pages with no `bad`, and the cumulative
       improvement (−89 points over 340 common pages against a ±27 noise floor) is
