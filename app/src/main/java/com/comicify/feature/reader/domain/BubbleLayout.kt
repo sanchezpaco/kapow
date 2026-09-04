@@ -7,6 +7,7 @@ import kotlin.math.min
 
 const val BUBBLE_ENLARGE_SCALE = 1.3f
 val BUBBLE_SCALE_RANGE = 1.1f..2f
+const val BUBBLE_SCALE_STEP = 0.1f
 internal const val CONTAINED_SCALE_FLOOR = 1.15f
 internal const val TEXT_BODY_SHARE = 0.9f
 private const val SEPARATION_PASSES = 16

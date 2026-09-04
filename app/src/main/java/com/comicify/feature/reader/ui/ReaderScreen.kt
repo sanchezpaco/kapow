@@ -15,18 +15,23 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
@@ -35,12 +40,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CropPortrait
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.VerticalSplit
@@ -50,14 +57,15 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -65,7 +73,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,10 +93,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -103,6 +113,7 @@ import com.comicify.core.window.rememberReadingWindowState
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
+import com.comicify.feature.reader.domain.BUBBLE_SCALE_STEP
 import com.comicify.feature.reader.domain.ComicOpenError
 import com.comicify.feature.reader.domain.ReaderViewMode
 import com.comicify.feature.reader.domain.TapZone
@@ -110,8 +121,24 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 
 private const val CHROME_SLIDE_MS = 200
 private const val BACKDROP_DOWNSCALE = 4f
+private const val TabularFigures = "tnum"
 private val InitialAmbient = Color(0xFF0B0B0F)
 private val NightTintColor = Color(0xFFFF8F00).copy(alpha = 0.16f)
+private val PanelColor = Color(0xF0141416)
+private val PanelHairlineColor = Color.White.copy(alpha = 0.08f)
+private val PanelHairlineWidth = 1.dp
+private val PanelShape = RoundedCornerShape(20.dp)
+private val PanelRowShape = RoundedCornerShape(12.dp)
+private val PanelWidth = 280.dp
+private val PanelScreenMargin = 24.dp
+private val PanelPadding = 8.dp
+private val PanelRowHeight = 48.dp
+private val PanelRowPadding = 12.dp
+private val PanelRowGap = 12.dp
+private val PanelIconSize = 24.dp
+private val BubbleScaleValueWidth = 44.dp
+private val MarkerDotSize = 8.dp
+private val MarkerDotInset = 3.dp
 
 @Composable
 fun ReaderScreen(
@@ -412,6 +439,7 @@ private fun TopChrome(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var openPanel by remember { mutableStateOf<HudPanelKind?>(null) }
     SlidingChrome(visible = visible, slideSign = -1f, modifier = modifier) {
         Row(
             modifier = Modifier
@@ -434,14 +462,34 @@ private fun TopChrome(
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.Top) {
-                    ViewModeMenu(
-                        mode = viewMode,
-                        bubblesEnlarged = bubblesEnlarged,
-                        onMode = onViewMode,
-                        onToggleBubbles = onToggleBubblesEnlarged,
+                    CircleControl(
+                        icon = Icons.Filled.Visibility,
+                        open = openPanel == HudPanelKind.ViewMode,
+                        marked = viewMode != ReaderViewMode.Pages || bubblesEnlarged,
+                        contentDescription = stringResource(R.string.reader_action_view_mode),
+                        onClick = { openPanel = openPanel.toggled(HudPanelKind.ViewMode) },
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    ReaderSettingsMenu(
+                    CircleControl(
+                        icon = Icons.Filled.Settings,
+                        open = openPanel == HudPanelKind.Settings,
+                        marked = nightTintEnabled || direction == ReadingDirection.RightToLeft || splitWidePages,
+                        contentDescription = stringResource(R.string.reader_action_settings),
+                        onClick = { openPanel = openPanel.toggled(HudPanelKind.Settings) },
+                    )
+                }
+                RevealedPanel(visible = openPanel == HudPanelKind.ViewMode) {
+                    ViewModePanel(
+                        mode = viewMode,
+                        bubblesEnlarged = bubblesEnlarged,
+                        bubbleScale = bubbleScale,
+                        onMode = { openPanel = null; onViewMode(it) },
+                        onToggleBubbles = onToggleBubblesEnlarged,
+                        onBubbleScale = onBubbleScale,
+                    )
+                }
+                RevealedPanel(visible = openPanel == HudPanelKind.Settings) {
+                    ReaderSettingsPanel(
                         showGuidedLayout = viewMode == ReaderViewMode.Guided && posture == ReadingPosture.UnfoldedSpread,
                         guidedFullScreen = guidedFullScreen,
                         nightTintEnabled = nightTintEnabled,
@@ -451,103 +499,194 @@ private fun TopChrome(
                         onToggleNightTint = onToggleNightTint,
                         onToggleDirection = onToggleDirection,
                         onToggleSplitWidePages = onToggleSplitWidePages,
-                        onReportGlitch = onReportGlitch,
+                        onReportGlitch = { openPanel = null; onReportGlitch() },
                     )
                 }
-                AnimatedVisibility(
-                    visible = bubblesEnlarged && viewMode.allowsBubbles(),
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically(),
-                ) {
-                    BubbleScaleSlider(scale = bubbleScale, onScale = onBubbleScale)
-                }
             }
         }
     }
 }
 
+private enum class HudPanelKind { ViewMode, Settings }
+
+private fun HudPanelKind?.toggled(kind: HudPanelKind): HudPanelKind? = if (this == kind) null else kind
+
 @Composable
-private fun ViewModeMenu(
+private fun RevealedPanel(visible: Boolean, content: @Composable () -> Unit) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn() + expandVertically(),
+        exit = fadeOut() + shrinkVertically(),
+        content = { content() },
+    )
+}
+
+@Composable
+private fun HudPanel(content: @Composable ColumnScope.() -> Unit) {
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    Column(
+        modifier = Modifier
+            .width(min(PanelWidth, screenWidth - PanelScreenMargin))
+            .clip(PanelShape)
+            .background(PanelColor)
+            .border(PanelHairlineWidth, PanelHairlineColor, PanelShape)
+            .padding(PanelPadding),
+        content = content,
+    )
+}
+
+@Composable
+private fun PanelRow(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    labelColor: Color = Color.White,
+    trailing: @Composable () -> Unit = {},
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(PanelRowHeight)
+            .clip(PanelRowShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = PanelRowPadding),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(PanelRowGap),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = labelColor,
+            modifier = Modifier.size(PanelIconSize),
+        )
+        Text(
+            text = label,
+            color = labelColor,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.weight(1f),
+        )
+        trailing()
+    }
+}
+
+@Composable
+private fun PanelDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = PanelRowPadding, vertical = PanelPadding),
+        thickness = PanelHairlineWidth,
+        color = PanelHairlineColor,
+    )
+}
+
+@Composable
+private fun ViewModePanel(
     mode: ReaderViewMode,
     bubblesEnlarged: Boolean,
+    bubbleScale: Float,
     onMode: (ReaderViewMode) -> Unit,
     onToggleBubbles: () -> Unit,
+    onBubbleScale: (Float) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        CircleControl(
-            icon = Icons.Filled.Visibility,
-            active = expanded || mode != ReaderViewMode.Pages || bubblesEnlarged,
-            contentDescription = stringResource(R.string.reader_action_view_mode),
-            onClick = { expanded = !expanded },
-        )
-        AnimatedVisibility(
-            visible = expanded,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
-        ) {
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ViewModeRow(Icons.Filled.CropPortrait, R.string.reader_mode_pages, mode == ReaderViewMode.Pages) {
-                    onMode(ReaderViewMode.Pages)
-                }
-                ViewModeRow(Icons.Filled.ViewCarousel, R.string.reader_mode_guided, mode == ReaderViewMode.Guided) {
-                    onMode(ReaderViewMode.Guided)
-                }
-                ViewModeRow(Icons.Filled.ViewDay, R.string.reader_mode_strip, mode == ReaderViewMode.Strip) {
-                    onMode(ReaderViewMode.Strip)
-                }
-                if (mode.allowsBubbles()) {
-                    ViewModeRow(Icons.Filled.ChatBubbleOutline, R.string.reader_mode_bubbles, bubblesEnlarged) {
-                        onToggleBubbles()
-                    }
-                }
+    HudPanel {
+        ViewModeChoice(Icons.Filled.CropPortrait, R.string.reader_mode_pages, mode == ReaderViewMode.Pages) {
+            onMode(ReaderViewMode.Pages)
+        }
+        ViewModeChoice(Icons.Filled.ViewCarousel, R.string.reader_mode_guided, mode == ReaderViewMode.Guided) {
+            onMode(ReaderViewMode.Guided)
+        }
+        ViewModeChoice(Icons.Filled.ViewDay, R.string.reader_mode_strip, mode == ReaderViewMode.Strip) {
+            onMode(ReaderViewMode.Strip)
+        }
+        if (mode.allowsBubbles()) {
+            PanelDivider()
+            PanelRow(
+                icon = Icons.Filled.ChatBubbleOutline,
+                label = stringResource(R.string.reader_mode_bubbles),
+                onClick = onToggleBubbles,
+            ) {
+                Switch(checked = bubblesEnlarged, onCheckedChange = null)
+            }
+            RevealedPanel(visible = bubblesEnlarged) {
+                BubbleScaleStepper(scale = bubbleScale, onScale = onBubbleScale)
             }
         }
     }
 }
 
 @Composable
-private fun ViewModeRow(icon: ImageVector, labelRes: Int, active: Boolean, onClick: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(if (active) MaterialTheme.colorScheme.primary else Color.Black.copy(alpha = 0.78f))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+private fun ViewModeChoice(icon: ImageVector, labelRes: Int, selected: Boolean, onSelect: () -> Unit) {
+    val accent = MaterialTheme.colorScheme.primary
+    PanelRow(
+        icon = icon,
+        label = stringResource(labelRes),
+        onClick = onSelect,
+        labelColor = if (selected) accent else Color.White,
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = Color.White)
-        Text(text = stringResource(labelRes), color = Color.White, style = MaterialTheme.typography.labelLarge)
+        if (selected) {
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(PanelIconSize),
+            )
+        }
     }
 }
 
 @Composable
-private fun BubbleScaleSlider(scale: Float, onScale: (Float) -> Unit) {
+private fun BubbleScaleStepper(scale: Float, onScale: (Float) -> Unit) {
     Row(
         modifier = Modifier
-            .background(Color.Black.copy(alpha = 0.55f), CircleShape)
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .fillMaxWidth()
+            .height(PanelRowHeight)
+            .padding(horizontal = PanelRowPadding),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End,
     ) {
+        BubbleScaleStep(
+            icon = Icons.Filled.Remove,
+            contentDescription = stringResource(R.string.reader_bubble_scale_smaller),
+            enabled = scale > BUBBLE_SCALE_RANGE.start,
+            onClick = { onScale(scale - BUBBLE_SCALE_STEP) },
+        )
         Text(
             text = "%.1f×".format(scale),
             color = Color.White,
-            style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.width(44.dp),
+            style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = TabularFigures),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.width(BubbleScaleValueWidth),
         )
-        Slider(
-            value = scale,
-            onValueChange = onScale,
-            valueRange = BUBBLE_SCALE_RANGE,
-            steps = 8,
-            modifier = Modifier.width(200.dp),
+        BubbleScaleStep(
+            icon = Icons.Filled.Add,
+            contentDescription = stringResource(R.string.reader_bubble_scale_bigger),
+            enabled = scale < BUBBLE_SCALE_RANGE.endInclusive,
+            onClick = { onScale(scale + BUBBLE_SCALE_STEP) },
         )
     }
 }
 
 @Composable
-private fun ReaderSettingsMenu(
+private fun BubbleScaleStep(
+    icon: ImageVector,
+    contentDescription: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    IconButton(
+        onClick = { onClick() },
+        enabled = enabled,
+        modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = if (enabled) Color.White else Color.White.copy(alpha = 0.3f),
+        )
+    }
+}
+
+@Composable
+private fun ReaderSettingsPanel(
     showGuidedLayout: Boolean,
     guidedFullScreen: Boolean,
     nightTintEnabled: Boolean,
@@ -559,58 +698,49 @@ private fun ReaderSettingsMenu(
     onToggleSplitWidePages: () -> Unit,
     onReportGlitch: () -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        CircleControl(
-            icon = Icons.Filled.Settings,
-            active = expanded,
-            contentDescription = stringResource(R.string.reader_action_settings),
-            onClick = { expanded = !expanded },
-        )
-        AnimatedVisibility(
-            visible = expanded,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically(),
+    HudPanel {
+        PanelRow(
+            icon = Icons.Filled.NightsStay,
+            label = stringResource(R.string.reader_action_night_tint),
+            onClick = onToggleNightTint,
         ) {
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (showGuidedLayout) {
-                    CircleControl(
-                        icon = if (guidedFullScreen) Icons.AutoMirrored.Filled.MenuBook else Icons.Filled.Fullscreen,
-                        active = guidedFullScreen,
-                        contentDescription = stringResource(
-                            if (guidedFullScreen) R.string.reader_action_guided_keep_spread else R.string.reader_action_guided_full_screen,
-                        ),
-                        onClick = onToggleGuidedFullScreen,
-                    )
-                }
-                CircleControl(
-                    icon = Icons.Filled.NightsStay,
-                    active = nightTintEnabled,
-                    contentDescription = stringResource(R.string.reader_action_night_tint),
-                    onClick = onToggleNightTint,
-                )
-                CircleControl(
-                    icon = Icons.Filled.SwapHoriz,
-                    active = direction == ReadingDirection.RightToLeft,
-                    contentDescription = stringResource(
-                        if (direction == ReadingDirection.RightToLeft) R.string.reader_action_direction_rtl else R.string.reader_action_direction_ltr,
-                    ),
-                    onClick = onToggleDirection,
-                )
-                CircleControl(
-                    icon = Icons.Filled.VerticalSplit,
-                    active = splitWidePages,
-                    contentDescription = stringResource(R.string.reader_action_split_wide_pages),
-                    onClick = onToggleSplitWidePages,
-                )
-                CircleControl(
-                    icon = Icons.Filled.BugReport,
-                    active = false,
-                    contentDescription = stringResource(R.string.reader_action_report_glitch),
-                    onClick = { expanded = false; onReportGlitch() },
-                )
+            Switch(checked = nightTintEnabled, onCheckedChange = null)
+        }
+        PanelRow(
+            icon = Icons.Filled.SwapHoriz,
+            label = stringResource(R.string.reader_setting_direction),
+            onClick = onToggleDirection,
+        ) {
+            Text(
+                text = stringResource(
+                    if (direction == ReadingDirection.RightToLeft) R.string.reader_direction_rtl else R.string.reader_direction_ltr,
+                ),
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
+        PanelRow(
+            icon = Icons.Filled.VerticalSplit,
+            label = stringResource(R.string.reader_action_split_wide_pages),
+            onClick = onToggleSplitWidePages,
+        ) {
+            Switch(checked = splitWidePages, onCheckedChange = null)
+        }
+        if (showGuidedLayout) {
+            PanelRow(
+                icon = Icons.Filled.Fullscreen,
+                label = stringResource(R.string.reader_action_guided_full_screen),
+                onClick = onToggleGuidedFullScreen,
+            ) {
+                Switch(checked = guidedFullScreen, onCheckedChange = null)
             }
         }
+        PanelDivider()
+        PanelRow(
+            icon = Icons.Filled.BugReport,
+            label = stringResource(R.string.reader_action_report_glitch),
+            onClick = onReportGlitch,
+        )
     }
 }
 
@@ -626,15 +756,33 @@ private fun GlitchReportDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun CircleControl(icon: ImageVector, active: Boolean, contentDescription: String, onClick: () -> Unit) {
-    IconButton(
-        onClick = onClick,
-        modifier = Modifier.background(
-            if (active) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.12f),
-            CircleShape,
-        ),
-    ) {
-        Icon(imageVector = icon, contentDescription = contentDescription, tint = Color.White)
+private fun CircleControl(
+    icon: ImageVector,
+    open: Boolean,
+    marked: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    val accent = MaterialTheme.colorScheme.primary
+    Box {
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier.background(
+                if (open) accent else Color.White.copy(alpha = 0.12f),
+                CircleShape,
+            ),
+        ) {
+            Icon(imageVector = icon, contentDescription = contentDescription, tint = Color.White)
+        }
+        if (marked && !open) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = -MarkerDotInset, y = MarkerDotInset)
+                    .size(MarkerDotSize)
+                    .background(accent, CircleShape),
+            )
+        }
     }
 }
 

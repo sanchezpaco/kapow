@@ -107,7 +107,7 @@ Available on `CompactSingle`, and on demand elsewhere. Full detail in
 An alternative to Guided View for small lettering that keeps the whole page (and
 its art) on screen: the ChatBubble button in the HUD (`ReaderUiState.bubblesEnlarged`,
 hidden while Guided View is on) redraws every detected speech bubble and caption
-scaled up **in place** (1.3× by default, a slider under the HUD buttons sets 1.1–2×, persisted), as an overlay on the regular page surfaces
+scaled up **in place** (1.3× by default, a stepper in the view-mode panel sets 1.1–2×, persisted), as an overlay on the regular page surfaces
 (`ZoomablePage`, so it works on single pages, the spread and tabletop and follows
 pinch/double-tap zoom). It is a static render enhancement — no page zoom, no
 bubble-to-bubble navigation, nothing to order — so it deliberately sidesteps
@@ -171,6 +171,18 @@ Enlarged bubbles are **not** a fourth mode: they are an overlay that works over
 the paged layouts and over the strip, and only Guided View turns them off
 (`ReaderViewMode.allowsBubbles`), so they sit in the same menu as a toggle.
 
+The eye button opens the **view-mode panel** (see `Shared reader chrome`). Its
+first three rows are the exclusive choice: the selected one is drawn in the
+accent colour with a trailing check, and picking one closes the panel, because
+choosing a layout is a one-shot decision. Below a hairline, "Enlarged bubbles"
+is a `Switch` row — a state you leave on, not a destination — and it disappears
+entirely in Guided View. Turning it on reveals the bubble-scale stepper
+underneath it: `−` and `+` buttons around the current value, stepping by
+`BUBBLE_SCALE_STEP` (0.1) inside `BUBBLE_SCALE_RANGE` (1.1–2×), clamped at both
+ends. The stepper replaced a floating slider that used to sit under the HUD
+buttons over the art: the setting now lives next to the switch that enables it,
+and nothing permanently covers the page.
+
 ## Continuous vertical scroll
 
 A third top-level mode, chosen per comic (`ComicSettings.verticalScroll`, HUD
@@ -204,7 +216,7 @@ from 0.3 % to 6.8 %. At scale 1 the modifier is not in the chain at all.
 
 A tap anywhere toggles the chrome, and **the chrome hides again as soon as the
 strip starts scrolling** — in the paged reader the next tap dismisses it, but in
-a strip you never tap, so the bubble-size slider would otherwise sit over the
+a strip you never tap, so the HUD would otherwise sit over the
 artwork for as long as you kept reading. The
 thumbnail scrubber and volume keys still work, jumping and stepping by item.
 **Enlarged bubbles work here too** — they are a render overlay on a page, with
@@ -262,8 +274,8 @@ thrashing the HWUI texture cache that caused the original 78 %-jank bug
 on open: `bubblesEnlarged` and `guided`, when not null, replace the reader's
 initial off state; `rightToLeft`, when not null, overrides the global reading
 direction, and the reader's direction toggle then writes the override instead
-of the global preference; `bubbleScale` works the same way for the HUD slider
-(override wins, and dragging the slider updates the override when one exists);
+of the global preference; `bubbleScale` works the same way for the HUD stepper
+(override wins, and stepping updates the override when one exists);
 `coverAlone` feeds the spread pairing above, `splitWidePages` the split
 described above and `verticalScroll` the continuous strip.
 Everything else stays global in `ReaderPreferencesRepository`.
@@ -304,13 +316,31 @@ is unit-tested directly (`PageOrderTest`).
   painted in an `Offscreen` layer at a quarter of the screen and scaled ×4,
   since the full-screen shader cost ≈ 2 ms of GPU per frame on the inner
   screen).
-- The top bar keeps only two always-visible controls — the Guided View toggle and
-  a settings **gear** — plus the close button. The gear opens a dropdown with the
-  rest of the reader settings (night tint, reading direction, split wide
-  pages, and, in the spread,
-  the panel-layout toggle) and a posture label. Because immersive mode hides the
-  status bar, the top bar pads for `displayCutout` (unioned with `statusBars`), so
-  the controls never sit under the foldable's front-camera cutout.
+- The top bar keeps only two always-visible controls — an **eye** for the view
+  mode and a **gear** for the reader settings — plus the close button. Because
+  immersive mode hides the status bar, the top bar pads for `displayCutout`
+  (unioned with `statusBars`), so the controls never sit under the foldable's
+  front-camera cutout.
+- **One panel style, two panels.** Each button opens the same container
+  (`HudPanel`): a 280 dp-wide near-opaque near-black card, 20 dp corners, a 1 dp
+  white hairline, clamped to the screen width minus 24 dp so it still fits a
+  compact phone. Its rows (`PanelRow`) are all built the same way — 48 dp tall,
+  full width, a 24 dp leading icon, a `labelLarge` label, and a trailing slot
+  that carries the row's state (a check, a `Switch`, or the current value as
+  text). The old design floated two different kinds of translucent pill through
+  which the art showed; a solid panel with labelled rows reads over any page.
+  The panels live inside the chrome, so they slide away with it, and only one is
+  open at a time: `TopChrome` owns a single nullable `HudPanelKind`, so opening
+  one closes the other instead of letting two columns interleave.
+- The gear panel holds night tint, reading direction (trailing text, tapping
+  flips it), split wide pages, the panel-layout toggle in the spread, and, below
+  a hairline, "Report a visual glitch" as a plain action row that closes the
+  panel.
+- **The circle button's fill means "open", never "on".** It takes the accent
+  colour only while its own panel is showing. Whether its contents are at the
+  defaults is a separate signal: an 8 dp accent dot on the top-end corner of the
+  circle, shown while the panel is closed and the eye is off Pages or has
+  bubbles on, or the gear has night tint, right-to-left or the split active.
 - Center tap toggles a minimal overlay: progress, page number, quick settings.
   The chrome stays composed while hidden: `SlidingChrome` fades it with
   `ModulateAlpha` and slides it fully off-screen (so it receives no touches)

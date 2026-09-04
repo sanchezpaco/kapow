@@ -657,8 +657,9 @@ pages are unaffected).
 ## Laying out the enlargement (`BubbleLayout`)
 
 `enlarge(bubbles, scale)` scales every bubble by the user's scale (default
-`BUBBLE_ENLARGE_SCALE` = 1.3×, adjustable 1.1–2.0× with the slider that appears
-under the HUD buttons while the toggle is on; persisted in DataStore as
+`BUBBLE_ENLARGE_SCALE` = 1.3×, adjustable 1.1–2.0× in `BUBBLE_SCALE_STEP` (0.1)
+increments with the stepper that appears in the reader's view-mode panel
+under the "Enlarged bubbles" switch; persisted in DataStore as
 `bubble_scale`). The whole original silhouette is filled from the art around
 it at render time (see `CrescentFill` under Rendering), so whatever the copy
 does not cover shows as a smudge of the surrounding colours the size of the
