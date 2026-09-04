@@ -21,7 +21,9 @@ the tour a reader would experience.
   almost square).
 - `stops/NNN.json` — the raw numbers (normalized 0..1 page coordinates) if you need them.
 
-Read the annotated page first, then every crop of the page (both phone and tablet), then judge.
+Read `stops/NNN.json` first and count the stops; then the annotated page; then **every** crop of
+the page, phone and tablet, one per stop — the number of stops you judged must equal the count
+in the JSON (a stop you did not open is a stop you did not judge). Then judge.
 The reading direction of this comic is given to you (`ltr` = Western left-to-right;
 `rtl` = manga, rows still top-to-bottom but right-to-left within a row).
 
@@ -38,11 +40,17 @@ Score each criterion `good`, `minor` or `bad`:
 
 2. **framing** — Does each stop frame a sensible unit (a whole panel, or on splash/painted
    pages a coherent reading window around a dialogue cluster with its art), and does its
-   crop read comfortably? Check the crops: text must be large enough to read on the phone
-   crop, no balloon or caption cut in half by the stop edge, and the art the text refers to
-   visible. A whole-page stop is judged by the **Policy** below. `bad` = text unreadably
-   small on both screens, a balloon sliced so words are lost, or a stop framing a
-   meaningless region.
+   crop read comfortably? Check the crops. **Legibility is a yes/no test, not a size
+   judgement**: a crop is legible when you can transcribe every word in the lit region
+   without guessing. Small-but-legible on the phone crop is `good`; do not mark a stop down
+   because its text could be bigger. `minor` = the phone crop fails the test but the tablet
+   crop passes, or a balloon is touched by a stop edge while every word of it is lit whole
+   in some stop of the tour, or a stop spans parts of several panels but contains legible
+   dialogue. `bad` is reserved for exactly three cases — (a) the phone AND tablet crops both
+   fail the legibility test for a reading stop, (b) a balloon or caption whose words are lit
+   whole by no stop of the tour (words lost), or (c) a stop that lights a region with no
+   text and no subject (an empty patch of art or background). A whole-page stop is judged by
+   the **Policy** below. Nothing else is `bad`.
 
 3. **harmony** — Does the sequence flow as the page's storytelling does: no two consecutive
    stops that show almost the same view, no dead stop on an empty region, no dialogue skipped
@@ -60,23 +68,36 @@ with the policy itself, say so in `notes` but score according to the policy.
   opener is `framing: good` however small its text is — it is not a reading stop, it is
   what lets the reader connect the words to the art. A whole-page or whole-panel stop
   anywhere else (a big panel on a page with other panels) is a dead tap: `framing: minor`
-  if the text is still readable on the tablet crop, `bad` if not.
+  if the text passes the legibility test on the tablet crop, `bad` if it fails on both.
+- **Whole-panel stops and wide tiers.** A stop that frames one whole panel — including a
+  full-width tier, a tall column, a panel with several stacked captions — is `framing:
+  good` when its phone crop passes the legibility test, `minor` when only the tablet crop
+  passes, never `bad` for size alone. Do not ask for the panel to be split into windows
+  because its text is small: "small" is not a verdict, "cannot transcribe" is.
 - **Reading windows.** On a large panel with several balloon groups, one window per group is
-  correct; a window need not contain art beyond the balloons, but it must not cut a balloon
-  or caption: any balloon sliced by a window edge so that words are cut is `framing: bad`
-  for that stop (a clipped border with all words visible is `minor`). Windows that share
-  most of their area, so a tap barely moves the view, are `harmony: minor`; if they show
-  the same text a third time, `bad`.
+  correct; a window need not contain art beyond the balloons. Windows that share most of
+  their area, so a tap barely moves the view, are `harmony: minor`; if they show the same
+  text a third time, `bad`.
+- **A balloon touched by a stop edge.** Decide by the tour, not by the stop: if every word
+  of that balloon is lit whole in some stop (the previous one, the next one, any one), the
+  slice is `framing: minor` on the stop that cuts it, however ugly — the reader gets the
+  words. It is `framing: bad` only when no stop lights the balloon whole, so its words are
+  lost from the tour. Words that are visible only in the dimmed surround do not count as
+  lit. Say in the reason which stop delivers the balloon whole, or that none does.
+- **A stop that is not a unit.** A stop spanning parts of several panels, or half a wide
+  panel plus a band of the next tier, is `framing: minor` when the dialogue it lights is
+  legible and every balloon it touches is delivered whole somewhere (the previous rule);
+  it is `harmony` that pays if the sequence jumps as a result. It is `framing: bad` only
+  when it lights no text and no subject (an empty region — case (c) above), or loses words.
 - **Art that the dialogue depends on.** On a single-image page the opener covers this. On
   any other page do not ask for extra art-only stops (a final "reveal", a character framed
   whole) — the reader can pan freely; missing art there is at most `notes`. But when a
   page's windows show only text and the reader could not tell from the tour what the
   speaker is doing, score `harmony: minor`.
-- **Wide full-width tiers** whose text is small on the phone crop but readable on the
-  tablet crop are `framing: minor`, never `bad`. The tour is the same on both screens.
 - **Detector errors** (a panel box overshooting into a neighbour, a caption overhanging the
-  gutter clipped at the panel edge) are scored where they hurt — `framing` — as `minor`
-  when every word is still readable, `bad` when words are lost.
+  gutter clipped at the panel edge) are scored where they hurt — `framing` — by the same
+  rules as above: `minor` when every word is delivered whole somewhere in the tour, `bad`
+  when words are lost.
 - **Order** is judged only on stop sequence: rows top-to-bottom, within a row by reading
   direction, a tall panel spanning several rows before the column beside it, an inset
   after its host, a floating caption where the eye meets it between the panels around it.

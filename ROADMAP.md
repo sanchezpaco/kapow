@@ -221,12 +221,17 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       improvement (−89 points over 340 common pages against a ±27 noise floor) is
       demonstrated. The two items below wait for the bubble-latency work, and when
       we come back the order is the rubric first, the lettering after it.
-- [ ] Guided View eval, tighten the `framing` rubric: at 0.67 pairwise agreement
-      it is the one criterion whose noise swamps the deltas, and every
-      disagreement is a policy boundary we own (whole-panel stop, sliced balloon,
-      wide tier small on the phone). Sharpen those three boundaries in
-      `judge_prompt.md`, re-run `eval/_variance` and check the agreement moved
-      before spending another tuning round
+- [x] Guided View eval, tighten the `framing` rubric (2026-09-04, evening): the
+      three boundaries the judge kept flipping on (small-but-legible text, a
+      balloon sliced but delivered whole by another stop, a stop that is not a
+      unit) are now yes/no rules in `judge_prompt.md`, `framing: bad` has exactly
+      three triggers, and the judge must count the stops before it starts.
+      Re-judged the same twelve pages three times (`eval/_variance_v2`):
+      `framing` agreement 0.67 → 0.89, `order` 0.83 → 0.89, `harmony` 1.00 →
+      0.83 (the non-unit rule moved its cost there), σ 0.52 → 0.35, so the
+      minimum believable move is now ≈ 0.68·√(2k). The corpus verdicts are
+      old-rubric and no longer comparable: the next round needs a new baseline.
+      See `docs/guided-view-eval.md` → "Tightening the framing rubric"
 - [ ] Guided View eval, next: human calibration set (~10 pages, judge vs
       maintainer, Fable vs Opus), then the full-corpus sweep as the regression
       gate; only then revisit the reading-order model.

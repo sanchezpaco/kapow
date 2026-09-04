@@ -216,10 +216,12 @@ tools/eval/venv/bin/python tools/eval/summary.py eval                # the corpu
 - `tools/eval/consistency.py eval/_variance` — pairwise agreement across repeat
   judgings of the same pages. Judge one ~12-page sample spanning the verdict
   spectrum three times into `eval/_variance/run{1,2,3}/<comic>-<page>.json` and
-  read the error bar off it. Measured on 2026-09-04: `framing` agrees only 0.67 of
-  the time on identical input, and a round re-judging k pages must move total cost
-  by ≈ 1.03·√(2k) points to mean anything. Read "The judge's error bar" below
-  before accepting or rejecting any `GuidedTour` change.
+  read the error bar off it. Measured on 2026-09-04 with the first rubric: `framing`
+  agreed only 0.67 of the time on identical input. After the rubric was tightened the
+  same evening (`eval/_variance_v2/`) it agrees 0.89, and a round re-judging k pages
+  must move total cost by ≈ 0.68·√(2k) points to mean anything. Read "The judge's
+  error bar" and "Tightening the framing rubric" below before accepting or rejecting
+  any `GuidedTour` change.
 
 Between rounds only re-judge the pages whose `stops/NNN.json` changed and copy
 the previous verdicts for the rest — the tour is identical, so is the verdict.
@@ -897,3 +899,84 @@ a `bad`; on this evidence that list is somewhere around a third softer than it r
 
 `tools/eval/consistency.py eval/_variance` reproduces the agreement table; the cost and
 threshold numbers are derived from the same three runs.
+
+## Tightening the framing rubric (2026-09-04, evening)
+
+The error bar above named `framing` as the noisy criterion and every one of its six
+disagreements as a policy boundary we own. Reading the three runs' reasons side by side
+made the boundaries concrete:
+
+- **small-but-legible text** — `androides-1:018` and `one-piece-ace-01:019` flipped
+  `good`/`minor` on whole-panel stops whose captions were "small on the phone crop though
+  readable". "Small" was a taste call; nobody disagreed that the words could be read.
+- **a balloon sliced by a stop edge** — `arkham:035` and `defensores-1:049` flipped
+  `minor`/`bad` on the same slice: one judge counted the words as lost, the next noticed
+  the neighbouring stop delivered the balloon whole.
+- **a stop that is not a unit** — `spiderman-2099-01:008` stop 3 (a band across the
+  middle tier and the top third of the bottom row) was `bad` for "framing four half
+  panels" once and `minor` twice; no words were lost either time.
+- **a stop the judge never opened** — `titanes:034` came out `good` once because that
+  judge described stops 1–5 and never mentioned the empty sixth. Not a policy question:
+  an attention one.
+
+`tools/eval/judge_prompt.md` now decides each of these by rule. Legibility is a yes/no
+transcription test ("can you transcribe every word in the lit region without guessing"),
+and small-but-legible is `good`. A sliced balloon is `minor` when any stop of the tour
+lights it whole and `bad` only when none does — "delivered by the tour, not by the stop".
+A non-unit stop with legible dialogue is `minor`, with the sequence's cost charged to
+`harmony`. `framing: bad` is reserved for exactly three cases: unreadable on both crops,
+words lit whole by no stop, or a stop with no text and no subject. And the judge must
+count the stops in `stops/NNN.json` before it starts and open a crop for every one.
+
+The same twelve pages were then judged three more times with the new rubric, same
+model (Opus), same prompt shape, into `eval/_variance_v2/run{1,2,3}/`:
+
+| criterion | unanimous, old → new | pairwise, old → new |
+|---|---|---|
+| order | 9/12 → 10/12 | 0.83 → 0.89 |
+| framing | 6/12 → **10/12** | 0.67 → **0.89** |
+| harmony | 12/12 → 9/12 | 1.00 → 0.83 |
+
+Offending-stop lists identical across the three runs: 22/36 → 24/36. Cost per page over
+the twelve pages by run: 2.083 / 2.167 / 2.250 (was 2.083 / 2.333 / 1.833); pages with a
+`bad`: 2 / 3 / 3 (was 4 / 3 / 3). The pooled within-page sd of cost fell from 0.782 to
+0.527 on this deliberately bad-heavy sample, and from **0.52 to 0.35** reweighted to the
+corpus mix (within-page variance 0.222 → 0.095 on pages the corpus scores clean, 1.156 →
+0.533 on pages carrying a `bad`).
+
+### The rule, updated
+
+> A round that re-judges k pages must move the total cost by at least 1.96·σ·√(2k)
+> ≈ **0.68·√(2k)** points before the movement means anything.
+
+| k pages re-judged | 10 | 20 | 30 | 50 |
+|---|---|---|---|---|
+| minimum believable move (cost points) | 3.0 | 4.3 | 5.3 | 6.8 |
+
+Two of the remaining `framing` splits are one-step and explainable: `androides-1:018`
+`good / minor / good` (one judge charged a caption clipped at stop 8 that stop 7 delivers
+whole — the rule says `minor`, so that judge was right and the other two lenient) and
+`ruinas:028` `bad / minor / minor` (whether stop 3's mongrel band loses words; two judges
+say the neighbouring stops carry them).
+
+### What it cost `harmony`
+
+`harmony` was perfectly consistent under the old rubric and split on three pages under
+the new one — `spiderman-2099-01:008` `minor / bad / bad`, `blacksad-1:026` `good / good /
+minor`, `superman-johns-1:013` `minor / good / minor`. The first is the new rule doing
+what it says: the non-unit stop's re-reads now land on `harmony`, and the judges do not
+yet agree whether two re-reads from one overshoot count as "one re-read" (`minor`) or
+"repeated re-reads" (`bad`). The other two are the old "art the dialogue depends on"
+boundary (an establishing window the reader would want). Both are one-step and both are
+the next boundaries to write down — but not in this pass: the rubric stays exactly as
+measured, so the numbers above describe the file that is committed.
+
+### What this does to the corpus
+
+The 372 corpus verdicts were judged under the old rubric. The new one is systematically
+kinder on `framing` (three of the twelve pages lost their `framing: bad`) and slightly
+harder on `harmony`, so **corpus cost per page is not comparable across the rubric
+change**. The first tuning round under the new rubric needs a new baseline: either
+re-judge the whole gate set once (≈370 judges) or compare only deltas measured entirely
+under the new rubric. Which one is the maintainer's call; the human calibration set
+(next in the ROADMAP) is the natural moment to spend the judges.
