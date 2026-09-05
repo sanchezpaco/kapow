@@ -1061,3 +1061,48 @@ other an RTL doubt the note itself withdraws.
 the changed pages' *old* tour from `rounds/v3-base` and their *new* tour side by side under
 v3, and the twelve calibration pages are the primary signal because the maintainer graded
 them. The composition target is the maintainer's policy, not the judge's taste.
+
+## Panel-unit rounds, measured (2026-09-05, evening)
+
+Branch `guided/panel-unit` (rules in `docs/guided-view.md` and the two dated
+subsections above). Everything below is rubric v3, Opus judges, one judging per tour;
+the baseline tours are the `rounds/v3-base` snapshot judged twice (`_variance_v3`).
+
+**The twelve calibration pages** (`_round_pu/calib`, `_round_pu/calib2`):
+
+| | baseline (mean of 2) | round 1 | round 2 |
+|---|---|---|---|
+| cost / page | 3.29 | 2.42 | **1.75** |
+| pages with `framing: bad` | 6–7 | 5 | 4 |
+| agreement with the maintainer, framing | 0.62 | — | 6/12 |
+
+Round 2 against the baseline: −18.5 cost points over k = 12, where the rubric-v3 noise
+floor (pooled sd 0.38 from the two baseline runs) says anything under 3.7 is noise.
+Fixed and stable: spiderman-2099-01 008 (bad/bad → all good), arkham 035 → minor in
+round 1, blacksad 026 → all good, defensores 049, one-piece 019 (bad → minor),
+titanes 034 (bad → minor), zombillenium 014 → all good, superman 013's splash whole.
+
+**Twenty changed pages outside the targets** (`_round_pu/sample/{old,new}`, one page
+per comic, second pass for the remainder, held-out set excluded), old tour and new tour
+judged under the same rubric:
+
+| | old tour | round 2 |
+|---|---|---|
+| cost / page | 2.10 | **1.00** |
+| pages with a `bad` | 8 | 2 |
+
+−22 cost points over k = 20 against a 4.7 threshold. Twelve pages improved, five held,
+three worsened: aliens-03 026 (a tier still overshooting *upward* into the row above —
+the cut-back only looked downward), venomverse-001 007a (a painted half-page whose
+detected box ends at 62 %; the opener became that box instead of the page) and vader
+011b (the opener now slices an overhanging balloon, +1 minor). Combined with the
+calibration pages: **−40.5 points over 32 pages against a threshold of 6.0** — the first
+round since the harness exists whose movement is unambiguously real.
+
+**What is left after round 2** is mostly one family: a single panel that the detector
+returns as two adjacent boxes with no gutter between them (superman 013's bottom tier,
+sonic 016's top tier, ruinas 028's red wall, titanes 034's top tier) — halving them leaves
+a speaker outside the lit region, and geometry cannot tell a seam from a gutter without
+looking at pixels. Plus one regression of round 2's own band-merge rule (arkham 035's
+tilted tarot cards, two real panels whose boxes overlap, fused into one stop). Both are
+the round-3 brief.
