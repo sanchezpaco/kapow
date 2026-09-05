@@ -8,7 +8,10 @@ import com.comicify.core.ui.theme.ThemeChoice
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.library.data.LibraryRepository
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
+import com.comicify.feature.settings.data.LauncherIconRepository
+import com.comicify.feature.settings.domain.LauncherIcon
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -26,23 +29,26 @@ data class AppSettingsUiState(
     val keepScreenOn: Boolean = true,
     val folderUri: String? = null,
     val theme: ThemeChoice = ThemeChoice.Default,
+    val launcherIcon: LauncherIcon = LauncherIcon.Default,
 )
 
 @HiltViewModel
 class AppSettingsViewModel @Inject constructor(
     application: Application,
     library: LibraryRepository,
+    private val launcherIcons: LauncherIconRepository,
 ) : ViewModel() {
 
     private val preferences = ReaderPreferencesRepository(application)
+    private val launcherIcon = MutableStateFlow(launcherIcons.current())
 
     val state: StateFlow<AppSettingsUiState> = combine(
         preferences.openDefaults,
         preferences.bubbleScale,
         combine(preferences.volumeKeyPageTurnEnabled, preferences.nightTintEnabled, preferences.keepScreenOn, ::Triple),
         library.folderUri,
-        preferences.theme,
-    ) { defaults, bubbleScale, (volumeKeys, nightTint, keepScreenOn), folderUri, theme ->
+        combine(preferences.theme, launcherIcon, ::Pair),
+    ) { defaults, bubbleScale, (volumeKeys, nightTint, keepScreenOn), folderUri, (theme, icon) ->
         AppSettingsUiState(
             direction = defaults.direction,
             bubblesOnOpen = defaults.bubblesOnOpen,
@@ -53,6 +59,7 @@ class AppSettingsViewModel @Inject constructor(
             keepScreenOn = keepScreenOn,
             folderUri = folderUri,
             theme = theme,
+            launcherIcon = icon,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppSettingsUiState())
 
@@ -64,6 +71,12 @@ class AppSettingsViewModel @Inject constructor(
     fun onNightTintChanged(enabled: Boolean) = save { preferences.setNightTintEnabled(enabled) }
     fun onKeepScreenOnChanged(enabled: Boolean) = save { preferences.setKeepScreenOn(enabled) }
     fun onThemeSelected(theme: ThemeChoice) = save { preferences.setTheme(theme) }
+
+    fun onLauncherIconSelected(icon: LauncherIcon) {
+        launcherIcons.select(icon)
+        launcherIcon.value = launcherIcons.current()
+    }
+
     fun onReplayOnboarding() = save { preferences.setOnboardingSeen(false) }
 
     private fun save(write: suspend () -> Unit) {

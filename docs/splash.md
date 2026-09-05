@@ -30,6 +30,12 @@ Every shape and colour comes from `LogoShapes.kt`, the same values as
 `tools/store_assets/icon.py`, so the splash and the icon are one object.
 The timing lives in `SplashTimeline.kt` as pure functions of the clock.
 
+The splash is always the **blue** stage. `Theme.Kapow.Starting` names
+`@mipmap/ic_launcher` and belongs to `.MainActivity`, not to the
+`activity-alias` the launcher icon picker switches (`docs/release.md`), and
+`LogoShapes` hardcodes the blue palette — so choosing another launcher icon
+does not repaint the splash.
+
 ## Gating
 
 `ColdStartSplash.claim(context)` returns `true` once per process and only

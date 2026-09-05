@@ -57,7 +57,7 @@ opens; coming back now lands where you left.
   still run in `LibraryViewModel` so the library shows the scanning/error state;
   the settings screen only shows the spinner on the Refresh button while a scan
   runs.
-- **Appearance** — theme picker, below.
+- **Appearance** — theme picker and launcher icon picker, below.
 - **About** — version name and build label as a muted line at the top of the
   surface, then chevron rows: "Show the introduction again"
   (`docs/onboarding.md`), "Open-source licences" and "Source code on GitHub"
@@ -122,6 +122,27 @@ The accent swatches are split-diagonal circles: the current ground on the
 upper-left half, the accent on the lower-right, a hairline outline so the black
 half reads on a black page, and a ring on the selected one. The Material You
 swatch shows the resolved wallpaper colour with a sparkle glyph.
+
+## Launcher icon
+
+The last row of Appearance is "App icon": five round tiles, one per stage of
+the logo's page grid (Blue, Ink, Red, Violet, Mix — same bubble and K), with a
+muted line saying the launcher may take a moment to update. Each tile draws the
+real `AdaptiveIconDrawable` of that stage's mipmap at 48 dp clipped round, so
+you pick the icon by looking at it, and the selected one carries the accent
+ring the ground tiles use.
+
+The choice is not a preference: it is which `activity-alias` is enabled.
+`LauncherIcon` (`feature/settings/domain`) names the five aliases and their
+mipmaps; `LauncherIconRepository` (`feature/settings/data`, `@Singleton`,
+injected like the other repositories) reads the state back from
+`PackageManager.getComponentEnabledSetting` — treating `STATE_DEFAULT` as
+"enabled" only for `Blue`, the one the manifest ships enabled — and switches by
+enabling the new alias first and then disabling the others, both with
+`DONT_KILL_APP`. `AppSettingsViewModel` seeds a `MutableStateFlow` from the
+repository and folds it into `AppSettingsUiState`, so the tiles follow the
+same immutable-state / events-up flow as everything else. See `docs/release.md`
+for the stages themselves and what the aliases do to the launcher.
 
 The hero and settings-header glows blend the cover's ambient with the
 ground (not black), so they read on paper as well.

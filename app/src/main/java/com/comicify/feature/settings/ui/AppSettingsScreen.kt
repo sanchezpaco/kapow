@@ -39,6 +39,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +49,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -56,6 +59,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -78,6 +82,7 @@ import com.comicify.core.ui.theme.ThemeGround
 import com.comicify.core.ui.theme.resolve
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.library.ui.GhostAction
+import com.comicify.feature.settings.domain.LauncherIcon
 
 private val ScreenPadding = 20.dp
 private val SectionGap = 22.dp
@@ -95,6 +100,7 @@ private val GroundTileCorner = 12.dp
 private val GroundTileRingWidth = 2.dp
 private val GroundTileDot = 10.dp
 private val GroundTileGap = 10.dp
+private val LauncherTileSize = 48.dp
 private val ActionCorner = 12.dp
 private val ActionPaddingHorizontal = 16.dp
 private val ActionPaddingVertical = 11.dp
@@ -138,7 +144,12 @@ fun AppSettingsScreen(
             }
             val appSections: @Composable () -> Unit = {
                 LibrarySection(state.folderUri, scanning, onPickFolder = { folderLauncher.launch(null) }, onRefresh = onRefresh)
-                AppearanceSection(state.theme, onThemeSelected = viewModel::onThemeSelected)
+                AppearanceSection(
+                    theme = state.theme,
+                    launcherIcon = state.launcherIcon,
+                    onThemeSelected = viewModel::onThemeSelected,
+                    onLauncherIconSelected = viewModel::onLauncherIconSelected,
+                )
                 AboutSection(onReplayOnboarding = viewModel::onReplayOnboarding, onOpenLicences = onOpenLicences)
             }
             if (twoColumns) {
@@ -277,7 +288,12 @@ private fun RescanAction(scanning: Boolean, onRefresh: () -> Unit) {
 }
 
 @Composable
-private fun AppearanceSection(theme: ThemeChoice, onThemeSelected: (ThemeChoice) -> Unit) {
+private fun AppearanceSection(
+    theme: ThemeChoice,
+    launcherIcon: LauncherIcon,
+    onThemeSelected: (ThemeChoice) -> Unit,
+    onLauncherIconSelected: (LauncherIcon) -> Unit,
+) {
     val context = LocalContext.current
     SettingsSection(
         eyebrow = stringResource(R.string.app_settings_theme_eyebrow),
@@ -311,6 +327,59 @@ private fun AppearanceSection(theme: ThemeChoice, onThemeSelected: (ThemeChoice)
                 }
             }
         }
+        SettingsDivider()
+        SettingsStackedRow(
+            label = stringResource(R.string.app_settings_launcher_icon),
+            supporting = stringResource(R.string.app_settings_launcher_icon_hint),
+        ) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(GroundTileGap),
+                verticalArrangement = Arrangement.spacedBy(GroundTileGap),
+            ) {
+                LauncherIcon.entries.forEach { icon ->
+                    LauncherIconTile(
+                        icon = icon,
+                        label = stringResource(icon.labelRes()),
+                        selected = icon == launcherIcon,
+                        onClick = { onLauncherIconSelected(icon) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LauncherIconTile(icon: LauncherIcon, label: String, selected: Boolean, onClick: () -> Unit) {
+    val palette = KapowTheme.palette
+    val context = LocalContext.current
+    val drawable = remember(icon) { requireNotNull(ContextCompat.getDrawable(context, icon.mipmap)) }
+    Column(
+        modifier = Modifier.selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Canvas(
+            modifier = Modifier
+                .size(LauncherTileSize)
+                .clip(CircleShape)
+                .border(
+                    width = if (selected) GroundTileRingWidth else SwatchOutlineWidth,
+                    color = if (selected) palette.accent else palette.track,
+                    shape = CircleShape,
+                ),
+        ) {
+            drawIntoCanvas { canvas ->
+                drawable.setBounds(0, 0, size.width.toInt(), size.height.toInt())
+                drawable.draw(canvas.nativeCanvas)
+            }
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = if (selected) palette.accent else palette.inkDim,
+        )
     }
 }
 
@@ -388,6 +457,14 @@ private fun ThemeGround.labelRes(): Int = when (this) {
     ThemeGround.Black -> R.string.app_settings_ground_black
     ThemeGround.Graphite -> R.string.app_settings_ground_graphite
     ThemeGround.Paper -> R.string.app_settings_ground_paper
+}
+
+private fun LauncherIcon.labelRes(): Int = when (this) {
+    LauncherIcon.Blue -> R.string.app_settings_icon_blue
+    LauncherIcon.Ink -> R.string.app_settings_icon_ink
+    LauncherIcon.Red -> R.string.app_settings_icon_red
+    LauncherIcon.Violet -> R.string.app_settings_icon_violet
+    LauncherIcon.Mix -> R.string.app_settings_icon_mix
 }
 
 private fun ThemeAccent.labelRes(): Int = when (this) {
