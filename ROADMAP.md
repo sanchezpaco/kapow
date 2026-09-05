@@ -261,8 +261,18 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       the panel is the unit, windows need their speaker, big panels need an
       establishing stop. Rubric v3 (`961bf5e`) encodes that; framing agreement
       with the maintainer 0.39 → 0.62, judge cost/page 2.2 → 3.3 ≈ the
-      maintainer's 3.1. Composition round `guided/panel-unit` follows. See
-      `docs/guided-view-eval.md`
+      maintainer's 3.1. **Composition rounds 1–3 done the same day**
+      (`guided/panel-unit`, merged `3a46e6a`): gutter grid, panel = stop, tiles
+      only when the whole panel is not legible on the phone (smallest balloon
+      ≥ 56 px on the cover), establishing stop, holes as missed panels,
+      overshoot cut-back in every direction. Judged under v3: the twelve
+      calibration pages 3.29 → 1.75 cost/page, a 20-page sample of changed
+      pages 2.10 → 1.00 and 8 → 2 pages with a `bad`; −40 points over 32 pages
+      against a 6-point noise floor. Left: single panels the detector returns
+      as two touching boxes (superman 013, sonic 016, ruinas 028, titanes 034,
+      arkham 035) need a pixel seam probe in panel detection — design note in
+      `docs/guided-view-eval.md`; the maintainer has not yet graded the new
+      tours (gallery artifact linked there). See `docs/guided-view-eval.md`
 
 ## Phase 5 — Polish
 
