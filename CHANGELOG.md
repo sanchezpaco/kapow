@@ -7,6 +7,14 @@ All notable user-facing changes to Kapow. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- Enlarged bubbles keep up with page turns the first time through a comic.
+  Every page was being decoded twice — once for the bubble detector and again
+  for the layout that runs after it — so on a comic the app had not seen
+  before, the bubbles fell several pages behind the reader and the page you
+  were looking at showed a spinner instead of enlarged balloons. Pages are now
+  decoded once, and the pages ahead of you are prepared before the one behind.
+
 ## [1.0.3] - 2026-09-04
 
 ### Changed
