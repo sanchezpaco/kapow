@@ -140,8 +140,8 @@ class PageLoader(
     private fun cachedOverlay(index: Int, scale: Float): List<PaintedBubble>? = overlayCache[index]?.takeIf { it.scale == scale }?.bubbles
 
     private suspend fun planOverlay(index: Int, scale: Float): List<PaintedBubble> {
-        val bubbles = bubbles(index)
         val art = load(index)
+        val bubbles = bubbles(index)
         return timed("bubble plan", index) {
             withContext(Dispatchers.Default) { BubblePlan.of(art.analysis, BubbleLayout.enlarge(bubbles, scale)) }
         }
@@ -162,7 +162,7 @@ class PageLoader(
     fun preload(around: Int, indices: Iterable<Int>, bubbleScale: Float?, panels: Boolean) {
         focus = around
         indices.filter { it in 0 until source.pageCount }
-            .sortedBy { abs(it - around) }
+            .sortedWith(preloadOrder(around))
             .forEach { index ->
                 scope.launch(Dispatchers.Default) {
                     runCatching {
@@ -178,3 +178,6 @@ class PageLoader(
 
     private class PageOverlay(val scale: Float, val bubbles: List<PaintedBubble>)
 }
+
+internal fun preloadOrder(around: Int): Comparator<Int> =
+    compareBy({ it < around }, { abs(it - around) })

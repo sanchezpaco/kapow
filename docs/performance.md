@@ -274,3 +274,80 @@ Two smaller gotchas from the same session:
   whichever screen is active, so a swipe can silently go nowhere. Confirm with
   a screenshot hash before and after rather than trusting that input landed.
 
+
+## The paged reader with bubbles on, cold (2026-09-04, evening)
+
+The section above closed with "could not be reproduced, parked until it recurs".
+It reproduces on the emulator, and the cause is not frame work at all.
+
+Measured in **release** on the Fold AVD (`emulator-5554`, 1968×2184 unfolded),
+Ben Reilly #1 (CBR, 24 pages), paged reader, enlarged bubbles on at 1.3×,
+twenty page turns 1.3 s apart. Cold means the release build had never opened
+the comic, so `page_detections` was empty; warm is the second pass.
+
+| run | decode / page | bubbles / page | plan / page | decodes per page | bubbles behind the reader | janky frames |
+|---|---|---|---|---|---|---|
+| cold, before | 891–3373 ms | 2321–6229 ms | 149–2346 ms | **2** | up to **7 pages** | 405/1157 = **35 %** |
+| cold, after | 212–552 ms | 125–638 ms | 0–279 ms | 1 | 0 | 77/787 = **9.8 %** |
+| warm, before | 192–590 ms | from Room | 28–538 ms | 1 | 0 | 97/740 = 13.1 % |
+| warm, after | 176–307 ms | from Room | 38–140 ms | 1 | 0 | 43/789 = **5.5 %** |
+
+Missed vsyncs over the same turns went from 196 to 2 cold, and 22 to 1 warm.
+
+The other two postures, after the fix, warm, driven with swipes:
+
+| posture | decode / page | plan / page | janky frames | missed vsync |
+|---|---|---|---|---|
+| folded cover width (`wm size 1080x2520`) | 203–272 ms | 56–163 ms | 51/818 = 6.2 % | 0 |
+| rotated spread (two pages) | 382–392 ms | 121–162 ms | 45/539 = 8.3 % | 1 |
+
+**The spread still decodes some pages twice.** Its preload window is five pages
+wide and it composes two `ZoomablePage`s at once, so the five-entry `load` cache
+is smaller than the working set. It costs nothing visible here — the spread kept
+up with a turn every 2.2 s and janked less than the single page did before the
+fix — so the cache size was left alone rather than guessed upward. Worth
+revisiting only if the spread is measured falling behind.
+
+**Nothing ever froze.** The contact sheet shows every page arriving on the turn,
+before and after. What the reporter would call lag is the other symptom: on a
+cold comic the bubble pipeline fell behind the reader and never caught up, so
+the page on screen kept the "bubbles are coming" spinner in its top-right
+corner and drew the balloons at their printed size for the whole read. The
+backlog only drained about 5.5 s **after** the last page turn. Turning bubbles
+on appeared to do nothing except make the app slow.
+
+The cause was one line of ordering in `PageLoader.planOverlay`:
+
+    val bubbles = bubbles(index)   // waits on the detection semaphore, seconds
+    val art = load(index)          // cache evicted by now -> decodes again
+
+`load` caches five pages and the preload window is four wide, so any page that
+sat waiting for its turn at the detector had its art evicted before the layout
+pass asked for it. **Every page was decoded twice**, and each wasted decode
+evicted a page the reader was about to need, which slowed the next decode,
+which widened the backlog. The log makes it obvious once you look for it: the
+sequence `bubbles on page N` → `decode on page N` → `bubble plan on page N`
+repeats for every page.
+
+Loading the art *before* the detection holds a reference across the wait, so the
+second `load` is a cache hit. That single swap removes the duplicate decode and
+the whole spiral with it: the pipeline now finishes each page inside its 1.3 s
+dwell and never falls behind. `preload` also sorts the window with
+`preloadOrder`, which puts the focused page first and then the pages *ahead* of
+the reader — the old `sortedBy { abs(it - around) }` tied page−1 with page+1 and
+prepared the page you had just left first.
+
+Notes for the next measurement:
+
+- **Read the log for repeated `decode on page N`.** Two decodes of one page is
+  the signature of cache thrash and it is invisible in `gfxinfo`.
+- **The spinner is the instrument.** `ZoomablePage` shows a small progress ring
+  while the overlay is pending; on a 5 fps contact sheet, counting the tiles
+  that still carry it measures "how late are the bubbles" directly.
+- **`wm size 1080x2520` breaks edge taps** on this AVD — `input tap` lands in
+  override coordinates while the reader's tap zones do not follow, so page
+  turns silently do nothing. Drive the pager with `input swipe` instead.
+- **A near-full `/data` fails page decoding.** At 91 % the platform evicts app
+  cache directories, and `CbrComicSource` extracts its pages there, so the
+  reader shows "Page N could not be decoded" until the app is restarted. Check
+  `df -h /data/user/0` before blaming a change.

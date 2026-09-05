@@ -215,7 +215,23 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       leave this open until it is. Note `gfxinfo` cannot see this class of bug at
       all (it measures frame duration, not whether the frame changed): use a
       `screenrecord` contact sheet, see `docs/performance.md`. Note the bubble
-      toggle and scale are **per comic**
+      toggle and scale are **per comic**. **A second, larger cause was found and
+      fixed the same evening** in the paged reader, measured in release on the
+      Fold emulator over Ben Reilly #1: `planOverlay` asked for the bubbles
+      before the art, so the page was evicted from the five-entry cache while it
+      waited at the detector and **every page was decoded twice**. On a comic the
+      app had not seen before, that thrash put the bubbles up to **seven pages
+      behind the reader** — the spinner stayed up and the balloons were never
+      enlarged for the whole read, and the backlog drained 5.5 s after the last
+      turn. Loading the art first fixes it: one decode per page, the pipeline
+      finishes inside the 1.3 s dwell, janky frames 35 % → 9.8 % cold and
+      13.1 % → 5.5 % warm, missed vsyncs 196 → 2. `preload` now also prepares
+      the pages ahead of the reader before the one behind. Nothing ever froze in
+      any run. **Only the reporter's confirmation is missing** — the emulator
+      symptom (bubbles that never appear on a first read) matches "big lag" well
+      enough to be the same bug, but it has not been reproduced on the Fold, and
+      the fast-turning case (3 pages/s) is still expected to fall behind because
+      one page of ML detection costs more than a third of a second
 - [ ] **Deferred until reader performance is fixed** (2026-09-04): Guided View is
       closed at cost/page 1.03, 351 of 372 pages with no `bad`, and the cumulative
       improvement (−89 points over 340 common pages against a ±27 noise floor) is
