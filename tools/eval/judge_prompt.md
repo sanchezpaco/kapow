@@ -38,19 +38,26 @@ Score each criterion `good`, `minor` or `bad`:
    would forgive; `bad` = a stop is clearly visited out of sequence (e.g. jumps back up the
    page, reads a later panel first, splits a conversation out of order).
 
-2. **framing** — Does each stop frame a sensible unit (a whole panel, or on splash/painted
-   pages a coherent reading window around a dialogue cluster with its art), and does its
-   crop read comfortably? Check the crops. **Legibility is a yes/no test, not a size
-   judgement**: a crop is legible when you can transcribe every word in the lit region
-   without guessing. Small-but-legible on the phone crop is `good`; do not mark a stop down
-   because its text could be bigger. `minor` = the phone crop fails the test but the tablet
-   crop passes, or a balloon is touched by a stop edge while every word of it is lit whole
-   in some stop of the tour, or a stop spans parts of several panels but contains legible
-   dialogue. `bad` is reserved for exactly three cases — (a) the phone AND tablet crops both
-   fail the legibility test for a reading stop, (b) a balloon or caption whose words are lit
-   whole by no stop of the tour (words lost), or (c) a stop that lights a region with no
-   text and no subject (an empty patch of art or background). A whole-page stop is judged by
-   the **Policy** below. Nothing else is `bad`.
+2. **framing** — Does each stop frame a sensible unit, and does its crop read comfortably?
+   **The unit is the panel.** A stop is a whole panel (grown, if needed, to swallow a balloon
+   that overhangs its gutter), or — only inside one large panel — a reading window that
+   holds a balloon group **together with the character speaking it**. Check the crops.
+   **Legibility is a yes/no test, not a size judgement**: a crop is legible when you can
+   transcribe every word in the lit region without guessing; small-but-legible on the phone
+   crop is `good`, do not mark a stop down because its text could be bigger.
+   `minor` = the phone crop fails the legibility test but the tablet crop passes; a balloon
+   touched by a stop edge while every word of it is lit whole in some stop of the tour; a
+   large panel toured by windows without a whole-panel establishing stop first; a stop
+   trimmed a sliver short of its panel border with nothing of substance lost.
+   `bad` = (a) a stop that is **not a panel unit**: it crosses a panel border to light part of
+   a neighbour (a band across a row, an overshoot into the next tier, half a panel plus a
+   strip of another), or it cuts its own panel so that a figure, the subject or a drawn
+   element the reader needs is lost outside the lit region; (b) a **window that shows
+   balloons without their speaker** (no face or figure the balloon belongs to inside the
+   lit region); (c) two windows on the same panel that **overlap** so each slices balloons
+   the other shows whole; (d) words lit whole by no stop of the tour; (e) unreadable on
+   both crops for a reading stop; (f) a stop that lights a region with no text and no
+   subject. A whole-page stop is judged by the **Policy** below.
 
 3. **harmony** — Does the sequence flow as the page's storytelling does: no two consecutive
    stops that show almost the same view, no dead stop on an empty region, no dialogue skipped
@@ -73,22 +80,33 @@ with the policy itself, say so in `notes` but score according to the policy.
   full-width tier, a tall column, a panel with several stacked captions — is `framing:
   good` when its phone crop passes the legibility test, `minor` when only the tablet crop
   passes, never `bad` for size alone. Do not ask for the panel to be split into windows
-  because its text is small: "small" is not a verdict, "cannot transcribe" is.
-- **Reading windows.** On a large panel with several balloon groups, one window per group is
-  correct; a window need not contain art beyond the balloons. Windows that share most of
-  their area, so a tap barely moves the view, are `harmony: minor`; if they show the same
-  text a third time, `bad`.
+  because its text is small: "small" is not a verdict, "cannot transcribe" is. When in
+  doubt between one whole panel and two windows, the whole panel is the right tour.
+- **Reading windows.** Only a large panel (roughly a third of the page or more) is toured by
+  windows, and then: the panel is shown whole first as an establishing stop (missing →
+  `framing: minor` on the first window; if the windows never show the panel's scene or
+  subject at all, `bad`); each window holds one balloon group **and its speaker** — a
+  window of balloons floating over background with the speaking character outside the lit
+  region is `framing: bad` (the fix is a wider window, or no split at all); windows on the
+  same panel do not overlap — two windows that each slice balloons the other shows whole
+  are `framing: bad` for both, and windows that merely share most of their area so a tap
+  barely moves the view are `harmony: minor`.
+- **A stop that crosses a panel border** to light part of a neighbouring panel — a band
+  over a row of panels, an overshoot past a tier gutter into the next row, a panel plus a
+  strip of the one beside it — is `framing: bad` even when every word stays legible; the
+  only allowed reach across a gutter is to swallow **whole** a balloon or caption that
+  overhangs it. A stop that cuts its own panel short so that a figure, the subject, or a
+  drawn element the dialogue refers to falls outside the lit region is also `bad`; a
+  sliver trimmed off a border with nothing lost is `minor`.
 - **A balloon touched by a stop edge.** Decide by the tour, not by the stop: if every word
   of that balloon is lit whole in some stop (the previous one, the next one, any one), the
-  slice is `framing: minor` on the stop that cuts it, however ugly — the reader gets the
-  words. It is `framing: bad` only when no stop lights the balloon whole, so its words are
-  lost from the tour. Words that are visible only in the dimmed surround do not count as
-  lit. Say in the reason which stop delivers the balloon whole, or that none does.
-- **A stop that is not a unit.** A stop spanning parts of several panels, or half a wide
-  panel plus a band of the next tier, is `framing: minor` when the dialogue it lights is
-  legible and every balloon it touches is delivered whole somewhere (the previous rule);
-  it is `harmony` that pays if the sequence jumps as a result. It is `framing: bad` only
-  when it lights no text and no subject (an empty region — case (c) above), or loses words.
+  slice is `framing: minor` on the stop that cuts it — the reader gets the words. It is
+  `framing: bad` only when no stop lights the balloon whole, so its words are lost from
+  the tour. Words visible only in the dimmed surround do not count as lit. Say in the
+  reason which stop delivers the balloon whole, or that none does.
+- **Two small neighbouring panels that would read fine as one stop** (a pair of narrow
+  reaction panels, a balloon split across two tiny stops) are `harmony: minor` — one tap
+  too many — never `framing`.
 - **Art that the dialogue depends on.** On a single-image page the opener covers this. On
   any other page do not ask for extra art-only stops (a final "reveal", a character framed
   whole) — the reader can pan freely; missing art there is at most `notes`. But when a
@@ -96,8 +114,9 @@ with the policy itself, say so in `notes` but score according to the policy.
   speaker is doing, score `harmony: minor`.
 - **Detector errors** (a panel box overshooting into a neighbour, a caption overhanging the
   gutter clipped at the panel edge) are scored where they hurt — `framing` — by the same
-  rules as above: `minor` when every word is delivered whole somewhere in the tour, `bad`
-  when words are lost.
+  rules as above: a stop that crosses into a neighbour is `bad` whatever caused it; a
+  clipped caption is `minor` when its words are delivered whole somewhere in the tour,
+  `bad` when they are lost.
 - **Order** is judged only on stop sequence: rows top-to-bottom, within a row by reading
   direction, a tall panel spanning several rows before the column beside it, an inset
   after its host, a floating caption where the eye meets it between the panels around it.
