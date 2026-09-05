@@ -1262,3 +1262,16 @@ a speaker outside the lit region, and geometry cannot tell a seam from a gutter 
 looking at pixels. Plus one regression of round 2's own band-merge rule (arkham 035's
 tilted tarot cards, two real panels whose boxes overlap, fused into one stop). Both are
 the round-3 brief.
+
+### After round 3
+
+Round 3 changed three of the sample pages and none of the twelve targets beyond
+hair-sized trims. Re-judged: vader-down-01 011b `minor` → all `good` (the opener now stops
+short of the balloon it sliced), venomverse-001 007a `bad` → `minor` (the page edge below
+the 62 % box is toured again), aliens-03 026 still `bad` — the upward overshoot is cut, but
+stop 1 (the tilted close-up) now reaches into panel 2 for a balloon it does not swallow
+whole; the next round's first item. Sample after round 3: cost/page **0.80**, pages with a
+`bad` **1** (aliens 026).
+
+The before/after gallery of all 32 pages with every verdict, for the maintainer to grade
+the new tours: <https://claude.ai/code/artifact/ca4f38f1-9f52-4f81-ac2b-2d97f77fb74f>.
