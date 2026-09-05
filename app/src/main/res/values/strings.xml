@@ -105,6 +105,13 @@
     <string name="app_settings_accent_violet">Violet</string>
     <string name="app_settings_accent_pink">Pink</string>
     <string name="app_settings_accent_dynamic">Material You (wallpaper colour)</string>
+    <string name="app_settings_launcher_icon">App icon</string>
+    <string name="app_settings_launcher_icon_hint">The launcher may take a moment to show the new icon.</string>
+    <string name="app_settings_icon_blue">Blue</string>
+    <string name="app_settings_icon_ink">Ink</string>
+    <string name="app_settings_icon_red">Red</string>
+    <string name="app_settings_icon_violet">Violet</string>
+    <string name="app_settings_icon_mix">Mix</string>
     <string name="app_settings_about">About</string>
     <string name="app_settings_version">Version %1$s · build %2$s</string>
     <string name="app_settings_replay_onboarding">Show the introduction again</string>

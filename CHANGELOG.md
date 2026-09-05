@@ -7,6 +7,11 @@ All notable user-facing changes to Kapow. The format follows
 
 ## [Unreleased]
 
+### Added
+- Settings → Appearance: pick the launcher icon. The same bubble and K over a
+  blue, ink, red, violet or mixed comic page; the home screen shows the new
+  icon a moment after you choose it.
+
 ## [1.0.3] - 2026-09-04
 
 ### Changed

@@ -9,6 +9,7 @@ import random
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 from fontTools.misc.transform import Transform
@@ -37,6 +38,51 @@ PANELS = [
     (84, 44, 160, 100), (-50, 64, 30, 160), (34, 64, 80, 110), (84, 104, 160, 160), (34, 114, 80, 160),
 ]
 PANEL_STROKE = 1.6
+DARK_PANEL_EVERY = 3
+
+INK_PANEL_DARK = "#101014"
+INK_PANEL_MID = "#20202A"
+INK_GUTTER = "#6E6E7A"
+RED_PANEL_DARK = "#3E0A12"
+RED_PANEL_MID = "#71151F"
+RED_GUTTER = "#C4564F"
+VIOLET_PANEL_DARK = "#241046"
+VIOLET_PANEL_MID = "#432079"
+VIOLET_GUTTER = "#9068C4"
+MIX_GUTTER = "#6C7488"
+
+
+@dataclass(frozen=True)
+class Stage:
+    gutter: str
+    panels: tuple
+
+
+def one_hue(dark: str, mid: str) -> tuple:
+    return tuple(dark if i % DARK_PANEL_EVERY == 0 else mid for i in range(len(PANELS)))
+
+
+MIX_HUES = [
+    (PANEL_DARK, "#1E4E90"), (RED_PANEL_DARK, "#8E1A28"),
+    (VIOLET_PANEL_DARK, "#552A9C"), (INK_PANEL_DARK, "#2B2B37"),
+]
+
+
+def mixed_hues() -> tuple:
+    return tuple(
+        MIX_HUES[i % len(MIX_HUES)][0 if i % DARK_PANEL_EVERY == 0 else 1]
+        for i in range(len(PANELS))
+    )
+
+
+DEFAULT_STAGE = "blue"
+STAGES = {
+    DEFAULT_STAGE: Stage(GUTTER, one_hue(PANEL_DARK, PANEL_MID)),
+    "ink": Stage(INK_GUTTER, one_hue(INK_PANEL_DARK, INK_PANEL_MID)),
+    "red": Stage(RED_GUTTER, one_hue(RED_PANEL_DARK, RED_PANEL_MID)),
+    "violet": Stage(VIOLET_GUTTER, one_hue(VIOLET_PANEL_DARK, VIOLET_PANEL_MID)),
+    "mix": Stage(MIX_GUTTER, mixed_hues()),
+}
 VIGNETTE_CENTRE = (54, 48.6)
 VIGNETTE_RADIUS = 81
 
@@ -89,16 +135,16 @@ def vector_header() -> str:
     )
 
 
-def background_vector() -> str:
+def background_vector(stage: Stage) -> str:
     panels = "".join(
-        f'        <path android:pathData="{rect_path(*p)}" android:fillColor="{PANEL_MID if i % 3 else PANEL_DARK}"\n'
+        f'        <path android:pathData="{rect_path(*p)}" android:fillColor="{stage.panels[i]}"\n'
         f'            android:strokeColor="{INK}" android:strokeWidth="{PANEL_STROKE}" />\n'
         for i, p in enumerate(PANELS)
     )
     vx, vy = VIGNETTE_CENTRE
     return (
         vector_header()
-        + f'    <path android:pathData="{rect_path(0, 0, VIEWPORT, VIEWPORT)}" android:fillColor="{GUTTER}" />\n'
+        + f'    <path android:pathData="{rect_path(0, 0, VIEWPORT, VIEWPORT)}" android:fillColor="{stage.gutter}" />\n'
         + f'    <group android:rotation="{PAGE_TILT}" android:pivotX="54" android:pivotY="54">\n'
         + panels
         + "    </group>\n"
@@ -198,9 +244,38 @@ def rasterise(svg: str, size: int, out: Path) -> None:
         )
 
 
+def background_name(stage_name: str) -> str:
+    suffix = "" if stage_name == DEFAULT_STAGE else f"_{stage_name}"
+    return f"ic_launcher_background{suffix}"
+
+
+def mipmap_name(stage_name: str) -> str:
+    suffix = "" if stage_name == DEFAULT_STAGE else f"_{stage_name}"
+    return f"ic_launcher{suffix}"
+
+
+def adaptive_icon_xml(stage_name: str) -> str:
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        '<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n'
+        f'    <background android:drawable="@drawable/{background_name(stage_name)}" />\n'
+        '    <foreground android:drawable="@drawable/ic_launcher_foreground" />\n'
+        '    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />\n'
+        "</adaptive-icon>\n"
+    )
+
+
+def write_stages() -> None:
+    mipmaps = RES / "mipmap-anydpi-v26"
+    for stage_name, stage in STAGES.items():
+        (RES / f"drawable/{background_name(stage_name)}.xml").write_text(background_vector(stage))
+        (mipmaps / f"{mipmap_name(stage_name)}.xml").write_text(adaptive_icon_xml(stage_name))
+        (mipmaps / f"{mipmap_name(stage_name)}_round.xml").write_text(adaptive_icon_xml(stage_name))
+
+
 def main() -> None:
     k = k_path()
-    (RES / "drawable/ic_launcher_background.xml").write_text(background_vector())
+    write_stages()
     (RES / "drawable/ic_launcher_foreground.xml").write_text(foreground_vector(k))
     (RES / "drawable/ic_launcher_monochrome.xml").write_text(monochrome_vector(k))
     if "--png" in sys.argv:

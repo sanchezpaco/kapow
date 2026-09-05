@@ -105,6 +105,13 @@
     <string name="app_settings_accent_violet">Violeta</string>
     <string name="app_settings_accent_pink">Rosa</string>
     <string name="app_settings_accent_dynamic">Material You (color del fondo de pantalla)</string>
+    <string name="app_settings_launcher_icon">Icono de la app</string>
+    <string name="app_settings_launcher_icon_hint">El lanzador puede tardar un momento en mostrar el nuevo icono.</string>
+    <string name="app_settings_icon_blue">Azul</string>
+    <string name="app_settings_icon_ink">Tinta</string>
+    <string name="app_settings_icon_red">Rojo</string>
+    <string name="app_settings_icon_violet">Violeta</string>
+    <string name="app_settings_icon_mix">Mezcla</string>
     <string name="app_settings_about">Acerca de</string>
     <string name="app_settings_version">Versión %1$s · build %2$s</string>
     <string name="app_settings_replay_onboarding">Volver a ver la introducción</string>

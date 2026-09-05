@@ -79,6 +79,39 @@ drops its `strokeColor`, so the K is a gradient-fill path plus a separate
 stroke-only path; and launchers show only the inner 72 of the 108 dp, so the
 foreground mark is scaled by 72/90 to look like the 512 px store icon.
 
+### Stages and the launcher aliases
+
+The page grid comes in five stages — `blue` (the shipped one), `ink` (near-black
+page, grey gutters), `red`, `violet` and `mix` (each panel a different hue of
+the palette, cycled deterministically over blue/red/violet/ink) — all with the
+same bubble, K, halftone and vignette. `STAGES` at the top of `icon.py` is the
+whole definition; the script writes `ic_launcher_background_<stage>.xml` plus a
+mipmap pair `ic_launcher_<stage>{,_round}.xml` sharing the one foreground and
+monochrome. Blue keeps the plain names (`ic_launcher_background.xml`,
+`ic_launcher{,_round}.xml`) so the manifest default does not move, and `--png`
+still rasterises blue only: **the store icon stays blue** whatever the user
+picks.
+
+`MAIN`/`LAUNCHER` does not live on `.MainActivity` any more. Five
+`<activity-alias>` elements target it, one per stage, each with its own
+`android:icon`/`android:roundIcon` and the same `android:label`; `.LauncherBlue`
+ships `android:enabled="true"`, the other four `false`. The launcher shows the
+icon of whichever alias is enabled and redraws a moment after the switch (the
+picker in Settings → Appearance, `docs/settings.md`). Because the alias carries
+the `LAUNCHER` category, `adb shell monkey -p <package> -c
+android.intent.category.LAUNCHER 1` keeps working through the enabled alias.
+`.MainActivity` stays exported with the `VIEW` filter, so opening a comic from
+a file manager is untouched. Manifest components survive R8 as they are: the
+release merged manifest under
+`app/build/intermediates/merged_manifests/release/` shows the five aliases.
+
+One thing the aliases cannot do: `<activity-alias>` takes no `android:theme`,
+so the cold-start splash still runs `Theme.Kapow.Starting` from `.MainActivity`
+with `windowSplashScreenAnimatedIcon="@mipmap/ic_launcher"`, and the Compose
+overlay repaints the same blue `LogoShapes`. **The splash stays blue** even
+when the launcher icon is not; making it follow would mean per-stage colours in
+`LogoShapes` as well, not just a manifest attribute (see `docs/splash.md`).
+
 ## Feature graphic and screenshots
 
 `tools/store_assets/feature_graphic.py` renders the 1024×500 feature graphic
