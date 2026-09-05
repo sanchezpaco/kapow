@@ -9,10 +9,10 @@ import org.junit.Test
 
 class GuidedTourTest {
 
-    private val topLeft = Rect(0.02f, 0.02f, 0.30f, 0.30f)
-    private val topRight = Rect(0.70f, 0.02f, 0.98f, 0.30f)
-    private val bottomLeft = Rect(0.02f, 0.70f, 0.30f, 0.98f)
-    private val bottomRight = Rect(0.70f, 0.70f, 0.98f, 0.98f)
+    private val topLeft = Rect(0.02f, 0.02f, 0.48f, 0.48f)
+    private val topRight = Rect(0.52f, 0.02f, 0.98f, 0.48f)
+    private val bottomLeft = Rect(0.02f, 0.52f, 0.48f, 0.98f)
+    private val bottomRight = Rect(0.52f, 0.52f, 0.98f, 0.98f)
     private val ltr = ReadingDirection.LeftToRight
     private val rtl = ReadingDirection.RightToLeft
 
@@ -46,7 +46,7 @@ class GuidedTourTest {
     @Test
     fun bubblesOutsideEveryPanelBecomeTheirOwnStops() {
         val panel = topRight
-        val orphan = Rect(0.05f, 0.40f, 0.22f, 0.52f)
+        val orphan = Rect(0.05f, 0.60f, 0.22f, 0.72f)
         val stops = GuidedTour.stops(listOf(panel), listOf(orphan), ltr)
         assertTrue(stops.any { it.contains(orphan.center) })
         assertTrue(stops.contains(panel))
@@ -73,25 +73,26 @@ class GuidedTourTest {
         )
         val stops = GuidedTour.stops(listOf(splash), bubbles, ltr)
         assertEquals(listOf(splash), stops.take(1))
-        assertEquals(5, stops.size)
+        assertEquals(stops.toString(), 4, stops.size)
+        assertTrue(stops.toString(), stops.drop(1).all { it.width == splash.width })
     }
 
     @Test
-    fun largePanelBesideOtherPanelsGetsNoEstablishingStop() {
+    fun largePanelBesideOtherPanelsIsShownWholeBeforeItsWindows() {
         val strip = Rect(0f, 0f, 1f, 0.3f)
         val big = Rect(0f, 0.31f, 1f, 1f)
         val bubbles = listOf(Rect(0.05f, 0.35f, 0.20f, 0.42f), Rect(0.75f, 0.85f, 0.95f, 0.95f))
         val stops = GuidedTour.stops(listOf(strip, big), bubbles, ltr)
-        assertEquals(listOf(strip), stops.take(1))
-        assertFalse(stops.toString(), stops.contains(big))
-        assertEquals(3, stops.size)
+        assertEquals(listOf(strip, big), stops.take(2))
+        assertEquals(stops.toString(), 4, stops.size)
+        assertTrue(stops.toString(), stops[2].bottom == stops[3].top)
     }
 
     @Test
     fun tinyBoxInsideAPanelIsAbsorbed() {
-        val panel = Rect(0.5f, 0.6f, 1f, 1f)
-        val credits = Rect(0.55f, 0.95f, 0.95f, 1f)
-        assertEquals(listOf(topLeft, panel), GuidedTour.stops(listOf(topLeft, panel, credits), emptyList(), ltr))
+        val credits = Rect(0.57f, 0.94f, 0.93f, 0.98f)
+        val panels = listOf(topLeft, topRight, bottomLeft, bottomRight, credits)
+        assertEquals(listOf(topLeft, topRight, bottomLeft, bottomRight), GuidedTour.stops(panels, emptyList(), ltr))
     }
 
     @Test
@@ -107,7 +108,6 @@ class GuidedTourTest {
             val contains = bubble.left >= stop.left && bubble.top >= stop.top && bubble.right <= stop.right && bubble.bottom <= stop.bottom
             assertTrue("stop $stop slices $bubble", !overlaps || contains)
         }
-        assertTrue(stops.toString(), stops.any { it.right < stack[0].left && it.left <= lone.left })
     }
 
     @Test
@@ -219,7 +219,7 @@ class GuidedTourTest {
         val stops = GuidedTour.stops(listOf(left, right), listOf(overhanging), ltr)
         assertEquals(stops.toString(), 2, stops.size)
         assertEquals(Rect(0.02f, 0.02f, 0.57f, 0.50f), stops[0])
-        assertTrue(stops.toString(), stops[1].left > overhanging.right && stops[1].width >= 0.7f * right.width)
+        assertEquals(right, stops[1])
     }
 
     @Test
@@ -233,32 +233,33 @@ class GuidedTourTest {
     }
 
     @Test
-    fun neighbourShrinksPastABalloonItDoesNotOwnSoItIsReadOnce() {
+    fun panelKeepsItsWholeBoxWhenItsNeighboursBalloonOverhangsIntoIt() {
         val left = Rect(0.02f, 0.02f, 0.48f, 0.50f)
         val right = Rect(0.52f, 0.02f, 0.98f, 0.50f)
         val shared = Rect(0.40f, 0.10f, 0.66f, 0.20f)
         val stops = GuidedTour.stops(listOf(left, right), listOf(shared), ltr)
         assertEquals(stops.toString(), 2, stops.size)
-        assertTrue(stops.toString(), stops[0].right < shared.left && stops[0].width >= 0.7f * left.width)
+        assertEquals(left, stops[0])
         assertTrue(stops.toString(), stops[1].left <= shared.left && stops[1].right >= shared.right)
     }
 
     @Test
-    fun neighbourGrowsOverABalloonItCannotShrinkPast() {
+    fun panelGrowsOverTheBalloonItOwnsEvenWhenItReachesTheNeighbour() {
         val left = Rect(0.02f, 0.02f, 0.48f, 0.50f)
         val right = Rect(0.52f, 0.02f, 0.98f, 0.50f)
         val wide = Rect(0.20f, 0.10f, 0.66f, 0.20f)
         val stops = GuidedTour.stops(listOf(left, right), listOf(wide), ltr)
         assertEquals(stops.toString(), 2, stops.size)
-        assertTrue(stops.toString(), stops.all { it.left <= wide.left && it.right >= wide.right })
+        assertTrue(stops.toString(), stops[0].left <= wide.left && stops[0].right >= wide.right)
+        assertEquals(right, stops[1])
     }
 
     @Test
     fun orphanCaptionAlreadyShownWholeByAPanelStopGetsNoWindow() {
-        val photo = Rect(0.02f, 0.02f, 0.48f, 0.40f)
-        val other = Rect(0.52f, 0.52f, 0.98f, 0.98f)
-        val owned = Rect(0.30f, 0.30f, 0.55f, 0.38f)
-        val orphan = Rect(0.50f, 0.20f, 0.60f, 0.26f)
+        val photo = Rect(0.02f, 0.02f, 0.46f, 0.98f)
+        val other = Rect(0.54f, 0.02f, 0.98f, 0.98f)
+        val owned = Rect(0.30f, 0.30f, 0.58f, 0.38f)
+        val orphan = Rect(0.47f, 0.20f, 0.53f, 0.26f)
         val stops = GuidedTour.stops(listOf(photo, other), listOf(owned, orphan), ltr)
         assertEquals(stops.toString(), 2, stops.size)
         assertTrue(stops.toString(), stops[0].contains(orphan.center))
@@ -279,10 +280,10 @@ class GuidedTourTest {
     @Test
     fun balloonBarelyTouchingAPanelIsAnOrphan() {
         val panel = topRight
-        val touching = Rect(0.55f, 0.25f, 0.75f, 0.35f)
+        val touching = Rect(0.40f, 0.42f, 0.60f, 0.56f)
         val stops = GuidedTour.stops(listOf(panel), listOf(touching), ltr)
         assertEquals(stops.toString(), 2, stops.size)
-        assertTrue(stops.toString(), stops[0].left > touching.right && stops[0].width >= 0.7f * panel.width)
+        assertEquals(panel, stops[0])
         assertTrue(stops.toString(), stops[1].contains(touching.center))
     }
 
@@ -293,7 +294,7 @@ class GuidedTourTest {
         val stops = GuidedTour.stops(listOf(splash), bubbles, ltr)
         assertEquals(stops.toString(), 2, stops.size)
         assertEquals(splash, stops[0])
-        assertTrue(stops.toString(), stops[1].height < 0.5f && bubbles.all { stops[1].contains(it.center) })
+        assertTrue(stops.toString(), stops[1].height <= 0.5f && bubbles.all { stops[1].contains(it.center) })
     }
 
     @Test
@@ -329,17 +330,6 @@ class GuidedTourTest {
         val bubbles = listOf(Rect(0.12f, 0.10f, 0.30f, 0.16f), Rect(0.60f, 0.50f, 0.80f, 0.56f))
         val stops = GuidedTour.stops(listOf(page, left, right, bottom), bubbles, ltr)
         assertEquals(listOf(left, right, bottom), stops)
-    }
-
-    @Test
-    fun stopEdgeCuttingAForeignBalloonByMoreThanAHairMovesPastIt() {
-        val left = Rect(0.02f, 0.02f, 0.48f, 0.50f)
-        val right = Rect(0.52f, 0.02f, 0.98f, 0.50f)
-        val overhanging = Rect(0.45f, 0.10f, 0.75f, 0.20f)
-        val stops = GuidedTour.stops(listOf(left, right), listOf(overhanging), ltr)
-        assertEquals(stops.toString(), 2, stops.size)
-        assertTrue(stops.toString(), stops[0].right < overhanging.left)
-        assertTrue(stops.toString(), stops[1].left <= overhanging.left)
     }
 
     @Test
@@ -411,11 +401,11 @@ class GuidedTourTest {
 
     @Test
     fun tinyBoxSwallowedByTheGrownPanelBeforeItIsNotAStop() {
-        val panel = Rect(0.06f, 0.64f, 0.30f, 0.79f)
-        val captionBox = Rect(0.19f, 0.76f, 0.41f, 0.83f)
+        val panel = Rect(0.06f, 0.64f, 0.30f, 0.82f)
+        val captionBox = Rect(0.19f, 0.76f, 0.41f, 0.81f)
         val below = Rect(0.04f, 0.88f, 0.42f, 1.00f)
         val balloon = Rect(0.10f, 0.70f, 0.42f, 0.78f)
-        val caption = Rect(0.20f, 0.77f, 0.40f, 0.82f)
+        val caption = Rect(0.20f, 0.77f, 0.40f, 0.80f)
         val stops = GuidedTour.stops(listOf(panel, captionBox, below), listOf(balloon, caption), ltr)
         assertEquals(stops.toString(), 2, stops.size)
         assertTrue(stops.toString(), stops[0].contains(caption.center) && stops[0].contains(balloon.center))
@@ -480,16 +470,34 @@ class GuidedTourTest {
     }
 
     @Test
-    fun readingWindowsShrinkToThePanelScaleOfADensePage() {
-        val splash = Rect(0.01f, 0.01f, 0.99f, 0.48f)
+    fun orphanWindowsShrinkToThePanelScaleOfADensePage() {
         val grid = (0..2).flatMap { column ->
-            (0..1).map { row -> Rect(0.01f + column * 0.33f, 0.50f + row * 0.25f, 0.30f + column * 0.33f, 0.72f + row * 0.25f) }
+            (0..2).map { row -> Rect(0.01f + column * 0.33f, 0.01f + row * 0.25f, 0.30f + column * 0.33f, 0.23f + row * 0.25f) }
         }
-        val left = Rect(0.06f, 0.06f, 0.20f, 0.14f)
-        val right = Rect(0.70f, 0.30f, 0.86f, 0.40f)
-        val stops = GuidedTour.stops(listOf(splash) + grid, listOf(left, right), ltr)
-        val windows = stops.filter { it.width < splash.width }.filter { it.contains(left.center) || it.contains(right.center) }
-        assertEquals(stops.toString(), 2, windows.size)
-        assertTrue(stops.toString(), windows.all { it.width < 0.42f })
+        val caption = Rect(0.25f, 0.235f, 0.55f, 0.255f)
+        val stops = GuidedTour.stops(grid, listOf(caption), ltr)
+        val window = stops.first { it.contains(caption.center) && it !in grid }
+        assertTrue(stops.toString(), window.width < 0.42f && window.height < 0.30f)
+    }
+
+    @Test
+    fun aRowThatStopsShortOfThePageGetsAStopForThePanelTheDetectorMissed() {
+        val top = Rect(0.02f, 0.02f, 0.98f, 0.30f)
+        val right = Rect(0.55f, 0.34f, 0.98f, 0.62f)
+        val bottom = Rect(0.02f, 0.66f, 0.98f, 0.96f)
+        val stops = GuidedTour.stops(listOf(top, right, bottom), emptyList(), ltr)
+        assertEquals(stops.toString(), 4, stops.size)
+        assertEquals(listOf(top, Rect(0.02f, 0.34f, 0.55f, 0.62f), right, bottom), stops)
+    }
+
+    @Test
+    fun aPanelStopIsCutBackAtTheGutterOfTheRowBelowIt() {
+        val top = Rect(0.02f, 0.02f, 0.98f, 0.40f)
+        val bottomLeftPanel = Rect(0.02f, 0.44f, 0.48f, 0.96f)
+        val bottomRightPanel = Rect(0.52f, 0.44f, 0.98f, 0.96f)
+        val strayCaption = Rect(0.10f, 0.42f, 0.40f, 0.50f)
+        val stops = GuidedTour.stops(listOf(top, bottomLeftPanel, bottomRightPanel), listOf(strayCaption), ltr)
+        assertEquals(stops.toString(), 3, stops.size)
+        assertEquals(top, stops[0])
     }
 }

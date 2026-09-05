@@ -1013,3 +1013,53 @@ rubric in the header, and a "reveal" that shows Opus ×3, Fable ×2 and the corp
 next to your own with the agreement computed. Grades stay in the browser and export as
 JSON; drop the export at `eval/_calibration/maintainer.json` and compare with the runs
 above. Until that file exists the judge is calibrated against itself only.
+
+## The panel is the unit (2026-09-05)
+
+The maintainer graded twelve pages himself and found the tours wrong the same way on
+eight of them: stops that were neither a whole panel nor a tight reading window. His
+policy replaces the "reading window" taste the judge had been steering by, and
+`GuidedTour` was rewritten around it. The rules, as implemented:
+
+1. **A gutter grid.** The frames are cut recursively into bands — rows first, then
+   columns — at every line no frame straddles by more than `PANEL_CUT_INTRUSION` (5 %)
+   of its own extent, each band tightened to its frames along the axis it was cut on.
+   A frame's leaf is its **cell**.
+2. **A panel stop is the panel.** Its whole detected box, grown over the balloons it
+   owns, clamped to `cell ∪ those balloons`. It never crosses a gutter into a
+   neighbour, and a box that overshoots one is cut back at it. The shrink-past rule for
+   foreign balloons and the grow-over rule for balloons a panel does not own are both
+   **gone**: a clipped balloon the tour delivers whole elsewhere costs `minor`, losing
+   art costs more.
+3. **Holes in the grid are panels the detector missed.** The free parts of a region —
+   before the first band, between bands, after the last — become stops. With dialogue
+   inside: `SPOKEN_VOID_EDGE` 0.15 / `SPOKEN_VOID_GAP` 0.10 across, grown to show those
+   balloons whole. Without: `LOST_PANEL_EDGE` 0.25 / `LOST_PANEL_GAP` 0.15, and only
+   across a region, never down it (a row that stops short of the page is missing a
+   panel; a short column usually is not). A hole the panel stops already cover by 90 %
+   is dropped; a painted page keeps only the holes that hold dialogue.
+4. **Windows tile their panel.** Only a panel ≥ `LARGE_PANEL` (45 %) is toured by
+   windows, and they partition it: two or three slices along its long axis, each
+   spanning the full short axis. No cut slices a balloon cluster (it moves to the
+   nearest gap between clusters); every slice is ≥ `TILE_MIN_SHARE` (0.2) of the long
+   axis; slices with no cluster drop out; a surviving slice over `TILE_MAX_SHARE`
+   (0.7) of the panel rejects the tiling. Two slices are preferred, three when two do
+   not separate the clusters or on a `SPLASH_PANEL` (≥ 70 %) with three or more of
+   them. The long axis is measured in page pixels via `PAGE_ASPECT` (1.5) — in
+   normalized coordinates every whole-page panel looks square.
+5. **A large panel toured by windows is shown whole first**, and the redundancy pass
+   never drops a window against the opener before it.
+6. **Orphan windows clamp to their grid cell** (grown to their cluster) instead of to
+   the panel they happen to overlap most.
+7. **Dead taps**: a balloon under `TINY_BUBBLE` (0.5 % of the page) is not text, so a
+   window inside an establishing stop that shows no real text is dropped — "no text and
+   no subject".
+8. **Tiny-inset absorption needs a real host**: a box under 4 % of the page is absorbed
+   only when the smallest panel containing it is not itself a container. The page-sized
+   box a scan's paper edge produces used to swallow real narrow panels.
+
+`tools/eval/gates.py` gained one exemption: a consecutive pair where the later stop is
+contained in the earlier one at no more than 70 % of its area is a **zoom**, not a near
+duplicate. Without it every establishing stop followed by a half of itself failed the
+gate. Gates stay 398/398 over the eighteen comics; 174 of the 398 pages changed.
+Judging comes next — this section records the rules, not results.

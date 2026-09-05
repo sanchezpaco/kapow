@@ -1,10 +1,13 @@
 package com.comicify.feature.reader.domain
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import com.comicify.domain.model.ReadingDirection
 
 private const val LARGE_PANEL = 0.45f
+private const val SPLASH_PANEL = 0.7f
+private const val PAGE_ASPECT = 1.5f
 private const val CLUSTER_GAP = 0.07f
 private const val MARGIN = 0.05f
 private const val MIN_WINDOW_WIDTH = 0.42f
@@ -16,6 +19,8 @@ private const val MAX_WINDOW_WIDTH = 0.6f
 private const val REDUNDANT_FRACTION = 0.85f
 private const val REDUNDANT_SIZE_RATIO = 0.5f
 private const val SPLIT_MIN_CLUSTERS = 2
+private const val TILE_MIN_SHARE = 0.2f
+private const val TILE_MAX_SHARE = 0.7f
 private const val MIN_INSET_AREA = 0.04f
 private const val SPARSE_PANEL_COVERAGE = 0.5f
 private const val SPARSE_MAX_PANELS = 2
@@ -30,7 +35,6 @@ private const val BUBBLE_SLICE_OVERLAP = 0.10f
 private const val CUT_TOLERANCE = 0.01f
 private const val PANEL_CUT_INTRUSION = 0.05f
 private const val BALLOON_CUT_INTRUSION = 0.3f
-private const val FRAME_SHRINK_KEEP = 0.7f
 private const val SPANNING_HEIGHT = 0.8f
 private const val SPANNING_COMPANY = 0.6f
 private const val SPANNED_COLUMN_MIN = 2
@@ -41,6 +45,11 @@ private const val PAINTED_PAGE = 0.8f
 private const val PAINTED_FRAGMENTS_OUTSIDE = 0.2f
 private const val PAINTED_MAX_FRAGMENTS = 2
 private const val DEAD_TAP_COVERAGE = 0.9f
+private const val TINY_BUBBLE = 0.005f
+private const val SPOKEN_VOID_EDGE = 0.15f
+private const val SPOKEN_VOID_GAP = 0.10f
+private const val LOST_PANEL_EDGE = 0.25f
+private const val LOST_PANEL_GAP = 0.15f
 
 object GuidedTour {
 
@@ -48,25 +57,47 @@ object GuidedTour {
 
     private class Stop(val anchor: Rect, val view: Rect, val floating: Boolean = false, val opening: Boolean = false)
 
+    private class Layout(val cells: Map<Rect, Rect>, val lost: List<Rect>) {
+
+        fun cellOf(frame: Rect): Rect = cells[frame] ?: wholePage
+
+        fun claimedElsewhere(point: Offset, frame: Rect): Boolean =
+            cells.any { (owner, cell) -> owner !== frame && cell != cellOf(frame) && cell.contains(point) }
+
+        fun regionHolding(point: Offset): Rect =
+            (cells.values + lost).firstOrNull { it.contains(point) } ?: wholePage
+    }
+
     fun stops(panels: List<Rect>, bubbles: List<Rect>, direction: ReadingDirection): List<Rect> {
         val detected = withoutDuplicates(panels)
         if (bubbles.isEmpty() && detected.size <= SPARSE_MAX_PANELS && detected.sumOf { it.area.toDouble() } < SPARSE_PANEL_COVERAGE) return listOf(wholePage)
         val painted = paintedPage(detected, bubbles)
-        val establishing = if (painted != null && painted.size > 1) listOf(Stop(wholePage, wholePage, floating = true, opening = true)) else emptyList()
         val base = withoutTinyInsets(painted ?: detected.ifEmpty { listOf(wholePage) })
-        val minimum = minimumWindow(base)
-        val frames = base.mapNotNull { panel -> frameOf(panel, base, bubbles) }
-        val assignment = assign(bubbles, frames)
-        val splash = frames.size == 1 && establishing.isEmpty()
-        val panelStops = frames.flatMap { frame -> frameStops(frame, assignment.owned[frame].orEmpty(), splash, bubbles, minimum) }
-        val shown = if (splash) emptyList() else panelStops.filter { !it.floating }.map { it.view }
-        val orphanClusters = cluster(assignment.orphans).filter { orphan -> shown.none { it.encloses(orphan) } }
-        val stops = establishing + panelStops + mergeOverlapping(orphanClusters.map { windowStop(it, homeOf(it, frames), bubbles, minimum) })
+        val frames = base.mapNotNull { panel -> frameOf(panel, base, bubbles) }.ifEmpty { listOf(wholePage) }
+        val layout = layoutOf(frames, bubbles)
+        val assignment = assign(bubbles, frames, layout)
+        val opener = paintedOpener(painted)
+        val alone = frames.size == 1 && opener.isEmpty()
+        val panelStops = frames.flatMap { frame -> frameStops(frame, assignment.owned[frame].orEmpty(), layout, alone) }
+        val framed = panelStops.filter { !it.floating }.map { it.view }
+        val lost = recovered(layout.lost, framed, bubbles, opener.isNotEmpty())
+        val shown = if (alone) emptyList() else framed + lost.map { it.view }
+        val orphans = cluster(assignment.orphans).filter { orphan -> shown.none { it.encloses(orphan) } }
+        val minimum = minimumWindow(frames)
+        val orphanStops = mergeOverlapping(orphans.map { windowStop(it, layout.regionHolding(it.center).expandToInclude(it), bubbles, minimum) })
+        val stops = opener + panelStops + lost + orphanStops
         return withoutDeadTaps(dropRedundant(readingOrder(stops, direction)), bubbles).map { it.view }
     }
 
-    private fun homeOf(cluster: Rect, frames: List<Rect>): Rect =
-        frames.maxByOrNull { it.overlapArea(cluster) }?.takeIf { it.overlapArea(cluster) > 0f }?.expandToInclude(cluster) ?: wholePage
+    private fun recovered(lost: List<Rect>, framed: List<Rect>, bubbles: List<Rect>, painted: Boolean): List<Stop> =
+        lost.mapNotNull { region ->
+            val held = bubbles.filter { region.contains(it.center) }
+            if (painted && held.isEmpty()) return@mapNotNull null
+            held.fold(region, Rect::expandToInclude).takeIf { coveredFraction(it, framed) < DEAD_TAP_COVERAGE }
+        }.map { Stop(it, it) }
+
+    private fun paintedOpener(painted: List<Rect>?): List<Stop> =
+        if (painted != null && painted.size > 1) listOf(Stop(wholePage, wholePage, floating = true, opening = true)) else emptyList()
 
     private fun Rect.isBalloon(bubbles: List<Rect>) =
         area < BALLOON_PANEL_AREA && bubbles.sumOf { overlapArea(it).toDouble() } >= BALLOON_PANEL_COVER * area
@@ -97,7 +128,13 @@ object GuidedTour {
     private fun List<Rect>.median(extent: (Rect) -> Float): Float = map(extent).sorted()[size / 2]
 
     private fun withoutTinyInsets(panels: List<Rect>): List<Rect> =
-        panels.filter { panel -> panel.area >= MIN_INSET_AREA || panels.none { contains(it, panel) } }
+        panels.filter { panel -> panel.area >= MIN_INSET_AREA || absorbingHost(panel, panels) == null }
+
+    private fun absorbingHost(panel: Rect, panels: List<Rect>): Rect? =
+        panels.filter { it !== panel && contains(it, panel) && !isContainer(it, panels) }.minByOrNull { it.area }
+
+    private fun isContainer(panel: Rect, panels: List<Rect>) =
+        panels.any { it !== panel && it.area >= MIN_INSET_AREA && contains(panel, it) }
 
     private fun frameOf(panel: Rect, panels: List<Rect>, bubbles: List<Rect>): Rect? {
         val children = panels.filter { it !== panel && contains(panel, it) }
@@ -115,28 +152,68 @@ object GuidedTour {
         Rect(occupied.right, panel.top, panel.right, panel.bottom),
     ).filter { it.width > 0f && it.height > 0f }.maxByOrNull { it.area }?.takeIf { it.area >= MIN_REMAINDER_AREA }
 
-    private fun frameStops(frame: Rect, owned: List<Rect>, establishing: Boolean, bubbles: List<Rect>, minimum: Size): List<Stop> {
-        val whole = Stop(frame, fitted(frame, owned, bubbles), opening = establishing)
-        val clusters = cluster(owned)
-        val enough = clusters.size >= if (establishing) 1 else SPLIT_MIN_CLUSTERS
-        if (!enough || frame.area < LARGE_PANEL) return listOf(whole)
-        val windows = mergeOverlapping(clusters.map { windowStop(it, frame.expandToInclude(it), bubbles, minimum) })
-        return if (establishing) listOf(whole) + windows else windows
+    private fun layoutOf(frames: List<Rect>, bubbles: List<Rect>): Layout {
+        val cells = HashMap<Rect, Rect>()
+        val lost = ArrayList<Rect>()
+        subdivide(frames.reduce(Rect::expandToInclude), frames, bubbles, cells, lost)
+        return Layout(cells, lost)
     }
 
-    private fun fitted(frame: Rect, owned: List<Rect>, bubbles: List<Rect>): Rect {
-        val kept = owned.fold(Rect(frame.center, frame.center), Rect::expandToInclude)
-        var view = owned.fold(frame, Rect::expandToInclude)
-        repeat(bubbles.size) {
-            view = bubbles.asSequence().filter { view.slices(it) }.mapNotNull { unsliced(view, it, kept, frame) }.firstOrNull()
-                ?: return padded(frame, view)
+    private fun subdivide(region: Rect, frames: List<Rect>, bubbles: List<Rect>, cells: MutableMap<Rect, Rect>, lost: MutableList<Rect>) {
+        for (down in listOf(true, false)) {
+            val bands = bands(region, frames, down)
+            if (bands.size == 1) continue
+            lost += voidsBetween(region, bands, bubbles, down)
+            bands.forEach { band -> subdivide(banded(region, band, down), band, bubbles, cells, lost) }
+            return
         }
-        return padded(frame, view)
+        frames.forEach { cells[it] = region }
+        if (frames.size == 1) lost += listOf(true, false).flatMap { voidsBetween(region, listOf(frames), bubbles, it) }
     }
 
-    private fun unsliced(view: Rect, bubble: Rect, kept: Rect, frame: Rect): Rect? {
-        val shrunk = shrunkPast(view, bubble, kept)?.takeIf { it.area >= FRAME_SHRINK_KEEP * frame.area }
-        return shrunk ?: view.expandToInclude(bubble).takeIf { view.attaches(bubble) }
+    private fun bands(region: Rect, frames: List<Rect>, down: Boolean): List<List<Rect>> {
+        val cuts = frames.flatMap { listOf(it.start(down), it.end(down)) }.sorted().distinct()
+            .filter { it > region.start(down) + CUT_TOLERANCE && it < region.end(down) - CUT_TOLERANCE }
+            .filter { cut -> frames.none { it.straddles(cut, down) } }
+        if (cuts.isEmpty()) return listOf(frames)
+        return frames.groupBy { frame -> cuts.count { cut -> !frame.endsBefore(cut, down) } }.toSortedMap().values.toList()
+    }
+
+    private fun banded(region: Rect, band: List<Rect>, down: Boolean): Rect {
+        val bounds = band.reduce(Rect::expandToInclude)
+        return if (down) region.copy(top = bounds.top, bottom = bounds.bottom) else region.copy(left = bounds.left, right = bounds.right)
+    }
+
+    private fun voidsBetween(region: Rect, bands: List<List<Rect>>, bubbles: List<Rect>, down: Boolean): List<Rect> {
+        val spans = bands.map { it.reduce(Rect::expandToInclude) }
+        val edges = listOf(region.start(down)) + spans.flatMap { listOf(it.start(down), it.end(down)) } + region.end(down)
+        return edges.chunked(2).mapIndexedNotNull { index, gap ->
+            val (from, to) = gap[0] to gap[1]
+            val bounds = if (down) region.copy(top = from, bottom = to) else region.copy(left = from, right = to)
+            val spoken = bubbles.any { bounds.contains(it.center) }
+            val outer = index == 0 || index == spans.size
+            val minimum = when {
+                spoken && outer -> SPOKEN_VOID_EDGE
+                spoken -> SPOKEN_VOID_GAP
+                outer -> LOST_PANEL_EDGE
+                else -> LOST_PANEL_GAP
+            }
+            bounds.takeIf { (spoken || !down) && to - from >= minimum && it.area >= MIN_INSET_AREA }
+        }
+    }
+
+    private fun frameStops(frame: Rect, owned: List<Rect>, layout: Layout, alone: Boolean): List<Stop> {
+        val view = viewOf(frame, owned, layout.cellOf(frame))
+        val clusters = cluster(owned)
+        val windows = if (clusters.size >= if (alone) 1 else SPLIT_MIN_CLUSTERS) tiles(view, clusters) else emptyList()
+        if (windows.isEmpty()) return listOf(Stop(frame, view))
+        return listOf(Stop(frame, view, opening = true)) + windows
+    }
+
+    private fun viewOf(frame: Rect, owned: List<Rect>, cell: Rect): Rect {
+        val grown = padded(frame, owned.fold(frame, Rect::expandToInclude))
+        val allowed = owned.fold(cell, Rect::expandToInclude).inflate(EDGE_GAP)
+        return grown.intersect(allowed).intersect(wholePage)
     }
 
     private fun padded(frame: Rect, fitted: Rect): Rect {
@@ -149,29 +226,65 @@ object GuidedTour {
         )
     }
 
-    private fun Rect.attaches(bubble: Rect) = overlapArea(bubble) >= BUBBLE_ATTACH_OVERLAP * bubble.area
+    private fun tiles(view: Rect, clusters: List<Rect>): List<Stop> {
+        if (view.area < LARGE_PANEL) return emptyList()
+        val across = view.width >= view.height * PAGE_ASPECT
+        val counts = if (view.area >= SPLASH_PANEL && clusters.size >= 3) listOf(3, 2) else listOf(2, 3)
+        val tilings = listOf(across, !across).flatMap { axis -> counts.map { axis to it } }
+            .mapNotNull { (axis, parts) -> tiling(view, clusters, axis, parts) }
+        return tilings.firstOrNull { it.size > 1 } ?: tilings.firstOrNull().orEmpty()
+    }
 
-    private fun Rect.slices(bubble: Rect) = overlapArea(bubble) >= BUBBLE_SLICE_OVERLAP * bubble.area && !encloses(bubble)
+    private fun tiling(view: Rect, clusters: List<Rect>, across: Boolean, parts: Int): List<Stop>? {
+        val down = !across
+        val from = view.start(down)
+        val extent = view.end(down) - from
+        val taken = clusters.map { it.start(down) to it.end(down) }
+        val cuts = (1 until parts).map { step -> freeCut(from + extent * step / parts, view, taken, down) ?: return null }
+        val edges = (listOf(from) + cuts + view.end(down)).distinct()
+        if (edges.size != parts + 1 || edges.zipWithNext { a, b -> b - a }.any { it < TILE_MIN_SHARE * extent }) return null
+        val kept = edges.zipWithNext { a, b -> sliceOf(view, a, b, down) }
+            .mapNotNull { tile -> clusters.filter { tile.contains(it.center) }.takeIf { it.isNotEmpty() }?.let { tile to it } }
+        if (kept.isEmpty() || kept.any { it.first.area > TILE_MAX_SHARE * view.area }) return null
+        return kept.map { (tile, held) -> Stop(held.reduce(Rect::expandToInclude), tile, floating = true) }
+    }
+
+    private fun freeCut(ideal: Float, view: Rect, taken: List<Pair<Float, Float>>, down: Boolean): Float? {
+        if (taken.none { ideal > it.first && ideal < it.second }) return ideal
+        val edges = (listOf(view.start(down)) + taken.flatMap { listOf(it.first, it.second) } + view.end(down)).sorted()
+        return edges.zipWithNext()
+            .filter { (from, to) -> to > from && taken.none { (from + to) / 2f > it.first && (from + to) / 2f < it.second } }
+            .map { (from, to) -> ideal.coerceIn(from + minOf(EDGE_GAP, (to - from) / 2f), to - minOf(EDGE_GAP, (to - from) / 2f)) }
+            .minByOrNull { kotlin.math.abs(it - ideal) }
+    }
+
+    private fun sliceOf(view: Rect, from: Float, to: Float, down: Boolean): Rect =
+        if (down) view.copy(top = from, bottom = to) else view.copy(left = from, right = to)
 
     private class Assignment(val owned: Map<Rect, List<Rect>>, val orphans: List<Rect>)
 
-    private fun assign(bubbles: List<Rect>, frames: List<Rect>): Assignment {
+    private fun assign(bubbles: List<Rect>, frames: List<Rect>, layout: Layout): Assignment {
         val owned = HashMap<Rect, MutableList<Rect>>()
         val orphans = ArrayList<Rect>()
         for (bubble in bubbles) {
-            val host = hostOf(bubble, frames)
+            val host = hostOf(bubble, frames, layout)
             if (host == null) orphans.add(bubble) else owned.getOrPut(host) { ArrayList() }.add(bubble)
         }
         return Assignment(owned, orphans)
     }
 
-    private fun hostOf(bubble: Rect, frames: List<Rect>): Rect? {
+    private fun hostOf(bubble: Rect, frames: List<Rect>, layout: Layout): Rect? {
         frames.filter { it.contains(bubble.center) }.minByOrNull { it.area }?.let { return it }
         val best = frames.maxByOrNull { it.overlapArea(bubble) } ?: return null
         if (best.attaches(bubble)) return best
         if (best.slices(bubble)) return null
-        return frames.filter { it.hostsAcrossTheGutter(bubble) }.minByOrNull { it.gutterTo(bubble) }
+        return frames.filter { it.hostsAcrossTheGutter(bubble) && !layout.claimedElsewhere(bubble.center, it) }
+            .minByOrNull { it.gutterTo(bubble) }
     }
+
+    private fun Rect.attaches(bubble: Rect) = overlapArea(bubble) >= BUBBLE_ATTACH_OVERLAP * bubble.area
+
+    private fun Rect.slices(bubble: Rect) = overlapArea(bubble) >= BUBBLE_SLICE_OVERLAP * bubble.area && !encloses(bubble)
 
     private fun Rect.hostsAcrossTheGutter(bubble: Rect): Boolean {
         val column = (minOf(right, bubble.right) - maxOf(left, bubble.left)).coerceAtLeast(0f)
@@ -261,19 +374,25 @@ object GuidedTour {
 
     private fun withoutDeadTaps(stops: List<Stop>, bubbles: List<Rect>): List<Stop> {
         val kept = stops.toMutableList()
+        val speech = bubbles.filter { it.area >= TINY_BUBBLE }
         while (kept.size > 1) {
-            val opener = kept.firstOrNull { it.opening }
-            val dead = kept.firstOrNull { stop -> stop !== opener && deadTap(stop, kept.filter { it !== stop && it !== opener }, bubbles) }
+            val openers = kept.filter { it.opening }
+            val dead = kept.firstOrNull { stop ->
+                stop !in openers && (deadTap(stop, kept.filter { it !== stop && it !in openers }, speech) || wordlessInsideOpener(stop, openers, speech))
+            }
             kept.remove(dead ?: return kept)
         }
         return kept
     }
 
-    private fun deadTap(stop: Stop, others: List<Stop>, bubbles: List<Rect>): Boolean {
-        val shown = bubbles.filter { stop.view.encloses(it) }
+    private fun deadTap(stop: Stop, others: List<Stop>, speech: List<Rect>): Boolean {
+        val shown = speech.filter { stop.view.encloses(it) }
         return shown.isNotEmpty() && shown.all { balloon -> others.any { it.view.encloses(balloon) } } &&
             coveredFraction(stop.view, others.map { it.view }) >= DEAD_TAP_COVERAGE
     }
+
+    private fun wordlessInsideOpener(stop: Stop, openers: List<Stop>, speech: List<Rect>) =
+        stop.floating && speech.none { stop.view.encloses(it) } && openers.any { it.view.encloses(stop.view) }
 
     private fun coveredFraction(target: Rect, covers: List<Rect>): Float {
         val parts = covers.map { it.intersect(target) }.filter { it.width > 0f && it.height > 0f }
@@ -308,6 +427,7 @@ object GuidedTour {
     }
 
     private fun redundant(previous: Stop, stop: Stop): Boolean {
+        if (previous.opening && stop.floating) return false
         val a = previous.view
         val b = stop.view
         val smaller = minOf(a.area, b.area)
@@ -405,6 +525,19 @@ object GuidedTour {
     private fun contains(host: Rect, box: Rect) = box.area < host.area && host.overlapArea(box) >= CONTAINMENT * box.area
 
     private val Rect.area: Float get() = width * height
+
+    private fun Rect.start(down: Boolean) = if (down) top else left
+
+    private fun Rect.end(down: Boolean) = if (down) bottom else right
+
+    private fun Rect.straddles(cut: Float, down: Boolean): Boolean {
+        val slack = intrusionOf(end(down) - start(down))
+        return start(down) < cut - slack && end(down) > cut + slack
+    }
+
+    private fun Rect.endsBefore(cut: Float, down: Boolean) = end(down) <= cut + intrusionOf(end(down) - start(down))
+
+    private fun intrusionOf(extent: Float) = maxOf(CUT_TOLERANCE, PANEL_CUT_INTRUSION * extent)
 
     private fun Rect.overlapArea(other: Rect): Float {
         val w = (minOf(right, other.right) - maxOf(left, other.left)).coerceAtLeast(0f)

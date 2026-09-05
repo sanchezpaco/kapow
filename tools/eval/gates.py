@@ -4,6 +4,8 @@ import sys
 
 NEAR_DUPLICATE_OVERLAP = 0.85
 NEAR_DUPLICATE_SIZE_RATIO = 0.5
+ZOOM_SHARE = 0.7
+ZOOM_CONTAINMENT = 0.999
 MAX_STOPS = 12
 COVERAGE_EPSILON = 0.005
 
@@ -21,8 +23,15 @@ def centre_inside(box, stop):
     return stop[0] - COVERAGE_EPSILON <= cx <= stop[2] + COVERAGE_EPSILON and stop[1] - COVERAGE_EPSILON <= cy <= stop[3] + COVERAGE_EPSILON
 
 
+def zoom_into(a, b):
+    """b is a deliberate zoom into the establishing stop a, not a repeat of it."""
+    return area(b) <= ZOOM_SHARE * area(a) and overlap(a, b) >= ZOOM_CONTAINMENT * area(b)
+
+
 def near_duplicate(a, b):
     smaller, larger = min(area(a), area(b)), max(area(a), area(b))
+    if zoom_into(a, b):
+        return False
     return smaller >= NEAR_DUPLICATE_SIZE_RATIO * larger and overlap(a, b) >= NEAR_DUPLICATE_OVERLAP * smaller
 
 
