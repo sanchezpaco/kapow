@@ -1104,3 +1104,68 @@ legible on the phone unsplit. Five rules followed:
 Gates stay 398/398. 320 of the 398 pages differ from the frozen baseline — the
 legibility gate turns many splashes into a single whole-page stop, and dropping the pad
 past a swallowed balloon moves almost every grown stop by 0.01 of the page.
+
+### Round three: the four fixes, and what geometry cannot reach (2026-09-05)
+
+Round two measured 3.29 → 1.75 cost per page on the twelve calibration pages and
+2.10 → 1.00 on a twenty-page sample of changed pages, with pages carrying a `bad`
+falling 8 → 2. Four pages were named; three had geometric fixes.
+
+- **Aliens 026** — `cutBackAtAlignedRow` only looked forward. It is symmetric now (all
+  four directions), and the alignment tolerance is `ROW_ALIGNMENT` 0.025 of the page,
+  because the two panels above that tier end at 0.357 and 0.377. The middle tier now
+  starts at 0.377 instead of 0.324.
+- **Venomverse 007a** — one painted box ending at 62 % of the page height, so the layout
+  root was that box and nothing below it existed. A page with a **single** frame now
+  also recovers the page edge the box never reaches, when that strip is at least
+  `LOST_PANEL_EDGE` across. The Venom figure and credits are a second stop. Ben Reilly
+  007, Spiderman 003 and Ruinas 023 are unchanged (their boxes reach the page edges).
+- **Vader Down 011b** — the splash opener is a container's *remainder*, not a detected
+  edge, so it now stops short of a balloon it would slice that belongs to a child panel
+  below (0.584 → 0.553). Growing over it was the other option, but the balloon belongs
+  to the tier below and its owner already delivers it whole.
+
+#### Arkham 035 is not the row-band merge
+
+The band merge (`asRowBands`) does not fire on that page at all: the detector returns
+three boxes there and no two of them overlap. Its two offending stops are
+
+- **stop 2**, the detector's *single* box over the top-right tier — the two tilted tarot
+  cards come back as one box, so no geometry in `GuidedTour` can tell there are two; and
+- **stop 4**, a recovered hole spanning the two undetected bottom-right panels.
+
+Both are the same problem from opposite ends: a region whose interior seam is invisible
+to the box list. Tiling the hole by its balloon clusters was tried on paper and rejected
+— the hole is 0.68 × 0.49, so the long axis is vertical under `PAGE_ASPECT` and the
+split would run *across* both panels rather than along the seam between them. A
+regression test pins the case the merge rule must never take (two tilted panels whose
+boxes overlap at the gutter stay two stops); the pair overlaps well under
+`ROW_BAND_OVERLAP`, so the current threshold already protects them.
+
+#### Design note: probing the seam between touching boxes
+
+Four pages share one detector failure — a single panel returned as two adjacent boxes
+with no gutter between them (Superman 013's bottom tier, Sonic 016's top tier, Ruinas
+028's red wall, Titanes 034's top tier), and Arkham 035 is its mirror image, one box over
+two panels. Halving such a panel leaves a speaker outside; merging two halves of one
+panel is what `asRowBands` approximates from geometry alone.
+
+The decisive evidence is in the pixels, and both callers already have them:
+`PanelDetector` (app) and `GuidedTourVisualizer` (eval) each build `PixelClasses` before
+calling `GuidedTour`. The probe is small — for two boxes that touch or overlap slightly
+along a shared edge, walk the seam column (or row) at analysis resolution and ask what
+fraction of it is `white` or `border`. A real gutter is a near-uniform light or dark
+strip over ≥ 80 % of the seam; art crossing the seam is `art` for most of it. No strip →
+one panel, and the boxes merge; a strip → two panels, and no merge rule may touch them.
+The same walk, applied to the interior of one wide box at each candidate column, would
+split Arkham 035's tarot tier — `PanelFrames.split` already implements exactly that
+search over `separator ∪ ink` for the heuristic detector, and could be pointed at ML
+boxes.
+
+It was **not** done in this round. It is not the ≤ 60-line change it looks like: the
+probe has to live in a new domain object called from `PanelDetector`, which changes what
+every reader persists, so `DETECTIONS_VERSION` has to bump and every cached page is
+re-detected; and it needs its own ground truth (the panel F1 corpus in
+`tools/training/`), because a wrong merge is far more damaging than a wrong split — it
+un-does the panel-is-the-unit guarantee. That is a panel-detection change with a
+panel-detection measurement, not a `GuidedTour` change, and it should be scoped as one.

@@ -50,12 +50,15 @@ turns the panel boxes plus the speech-bubble boxes into the final stop list:
   and span guards are what keep a full-width top band from swallowing the row
   under it and a legitimately overlapping tall panel from joining its column
   (LOK 013b).
-- A box that **overshoots into an aligned row** is cut back at it: when two or
-  more panels beyond its edge start within a hair of each other, face it across
-  that edge, and the intrusion is under 30 % of both their extent and the box's
-  own, the box is a detector overshoot and its edge moves to the shared one. A
-  panel genuinely spanning two rows intrudes far more than 30 % and is left
-  alone.
+- A box that **overshoots into an aligned row** is cut back at it, in all four
+  directions: when two or more panels beyond one of its edges start (or end)
+  within 2.5 % of the page of each other, face it across that edge, and the
+  intrusion is under 30 % of both their extent and the box's own, the box is a
+  detector overshoot and its edge moves to the shared one. A panel genuinely
+  spanning two rows intrudes far more than 30 % and is left alone. The upward
+  and leftward directions matter as much as the others: Aliens 026's middle
+  tier begins 5 % of the page *above* the two panels of the tier over it, and
+  used to band across their bottom strip.
 - A page whose largest box covers at least 80 % of it, with the remaining
   boxes adding under 20 % of the page outside it and covering under half of
   it, is a **painted page**: one image the model broke up. It opens with a
@@ -129,6 +132,14 @@ turns the panel boxes plus the speech-bubble boxes into the final stop list:
   020's full-height blue hand and Arkham 035's whole bottom-right region. A
   hole the panel stops already cover by 90 % is dropped, and a painted page
   keeps only the holes that hold dialogue — a painting has no missing panels.
+  A page with a **single** detected box also recovers the page edge that box
+  never reaches, when the strip is at least a quarter of the page across:
+  Venomverse 007a is one painted box ending at 62 % of the height, and the Venom
+  figure and the credits block under it were never lit at all.
+- A container's **remainder** is not a detected edge, so it stops short of any
+  balloon it would slice that belongs to one of the children below it — the
+  splash opener of Vader Down 011b used to cut through a balloon hanging into
+  the tier under it, which the panel that owns it delivers whole.
 - An orphan cluster that some panel stop already shows whole gets no window of
   its own (a caption caught between two grown panels was being read three
   times).

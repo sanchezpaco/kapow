@@ -55,6 +55,7 @@ private const val SPOKEN_VOID_GAP = 0.10f
 private const val LOST_PANEL_EDGE = 0.25f
 private const val LOST_PANEL_GAP = 0.15f
 private const val ROW_OVERSHOOT = 0.3f
+private const val ROW_ALIGNMENT = 0.025f
 private const val ROW_BAND_OVERLAP = 0.25f
 private const val ROW_BAND_COMPANY = 0.5f
 private const val ROW_BAND_SPAN = 0.8f
@@ -137,17 +138,25 @@ object GuidedTour {
             !contains(a, b) && !contains(b, a)
     }
 
-    private fun withoutOvershoot(frames: List<Rect>): List<Rect> =
-        frames.map { frame -> listOf(true, false).fold(frame) { box, down -> cutBackAtAlignedRow(box, frames, down) } }
+    private fun withoutOvershoot(frames: List<Rect>): List<Rect> = frames.map { frame ->
+        listOf(true, false).fold(frame) { box, down ->
+            listOf(true, false).fold(box) { trimmed, ahead -> cutBackAtAlignedRow(trimmed, frames, down, ahead) }
+        }
+    }
 
-    private fun cutBackAtAlignedRow(box: Rect, frames: List<Rect>, down: Boolean): Rect {
+    private fun cutBackAtAlignedRow(box: Rect, frames: List<Rect>, down: Boolean, ahead: Boolean): Rect {
         val beyond = frames.filter { it !== box && it.facesAcross(box, down) }
-        val edge = beyond.map { it.start(down) }
-            .filter { it > box.start(down) + CUT_TOLERANCE && it < box.end(down) }
-            .sorted()
-            .firstOrNull { candidate -> alignedRow(beyond, candidate, down).overshotBy(box, candidate, down) }
+        val inside = beyond.map { if (ahead) it.start(down) else it.end(down) }
+            .filter { it > box.start(down) + CUT_TOLERANCE && it < box.end(down) - CUT_TOLERANCE }
+        val edge = (if (ahead) inside.sorted() else inside.sortedDescending())
+            .firstOrNull { candidate -> alignedRow(beyond, candidate, down, ahead).overshotBy(box, candidate, down, ahead) }
             ?: return box
-        return if (down) box.copy(bottom = edge) else box.copy(right = edge)
+        return when {
+            ahead && down -> box.copy(bottom = edge)
+            ahead -> box.copy(right = edge)
+            down -> box.copy(top = edge)
+            else -> box.copy(left = edge)
+        }
     }
 
     private fun Rect.facesAcross(box: Rect, down: Boolean): Boolean {
@@ -155,11 +164,11 @@ object GuidedTour {
         return together >= ROW_BAND_COMPANY * minOf(end(!down) - start(!down), box.end(!down) - box.start(!down))
     }
 
-    private fun alignedRow(beyond: List<Rect>, edge: Float, down: Boolean) =
-        beyond.filter { kotlin.math.abs(it.start(down) - edge) <= CUT_TOLERANCE }
+    private fun alignedRow(beyond: List<Rect>, edge: Float, down: Boolean, ahead: Boolean) =
+        beyond.filter { kotlin.math.abs((if (ahead) it.start(down) else it.end(down)) - edge) <= ROW_ALIGNMENT }
 
-    private fun List<Rect>.overshotBy(box: Rect, edge: Float, down: Boolean): Boolean {
-        val intrusion = box.end(down) - edge
+    private fun List<Rect>.overshotBy(box: Rect, edge: Float, down: Boolean, ahead: Boolean): Boolean {
+        val intrusion = if (ahead) box.end(down) - edge else edge - box.start(down)
         return size >= SPANNED_COLUMN_MIN &&
             intrusion < ROW_OVERSHOOT * median { it.end(down) - it.start(down) } &&
             intrusion < ROW_OVERSHOOT * (box.end(down) - box.start(down))
@@ -195,11 +204,21 @@ object GuidedTour {
     private fun frameOf(panel: Rect, panels: List<Rect>, bubbles: List<Rect>): Rect? {
         val children = panels.filter { it !== panel && contains(panel, it) }
         if (children.isEmpty()) return panel
-        val remainder = remainderOf(panel, children.reduce(Rect::expandToInclude)) ?: return null
+        val remainder = clearOfForeignBalloons(remainderOf(panel, children.reduce(Rect::expandToInclude)) ?: return null, bubbles)
         val buried = panels.any { it !== panel && !contains(it, panel) && it.overlapArea(remainder) >= REMAINDER_BURIED * remainder.area }
         val wordlessSliver = remainder.minDimension < MIN_REMAINDER_SIDE && bubbles.none { remainder.contains(it.center) }
-        return remainder.takeUnless { buried || wordlessSliver }
+        return remainder.takeUnless { buried || wordlessSliver || remainder.area < MIN_REMAINDER_AREA }
     }
+
+    private fun clearOfForeignBalloons(remainder: Rect, bubbles: List<Rect>): Rect =
+        bubbles.filter { remainder.slices(it) && !remainder.contains(it.center) }.fold(remainder) { box, bubble ->
+            when {
+                bubble.center.y >= box.bottom -> box.copy(bottom = bubble.top - EDGE_GAP)
+                bubble.center.y <= box.top -> box.copy(top = bubble.bottom + EDGE_GAP)
+                bubble.center.x >= box.right -> box.copy(right = bubble.left - EDGE_GAP)
+                else -> box.copy(left = bubble.right + EDGE_GAP)
+            }
+        }
 
     private fun remainderOf(panel: Rect, occupied: Rect): Rect? = listOf(
         Rect(panel.left, panel.top, panel.right, occupied.top),
@@ -211,7 +230,9 @@ object GuidedTour {
     private fun layoutOf(frames: List<Rect>, bubbles: List<Rect>): Layout {
         val cells = HashMap<Rect, Rect>()
         val lost = ArrayList<Rect>()
-        subdivide(frames.reduce(Rect::expandToInclude), frames, bubbles, cells, lost)
+        val content = frames.reduce(Rect::expandToInclude)
+        subdivide(content, frames, bubbles, cells, lost)
+        if (frames.size == 1) lost += offThePanels(content)
         return Layout(cells, lost)
     }
 
@@ -226,6 +247,13 @@ object GuidedTour {
         frames.forEach { cells[it] = region }
         if (frames.size == 1) lost += listOf(true, false).flatMap { voidsBetween(region, listOf(frames), bubbles, it) }
     }
+
+    private fun offThePanels(content: Rect): List<Rect> = listOf(
+        wholePage.copy(bottom = content.top),
+        wholePage.copy(top = content.bottom),
+        wholePage.copy(right = content.left),
+        wholePage.copy(left = content.right),
+    ).filter { it.minDimension >= LOST_PANEL_EDGE && it.area >= MIN_INSET_AREA }
 
     private fun bands(region: Rect, frames: List<Rect>, down: Boolean): List<List<Rect>> {
         val cuts = frames.flatMap { listOf(it.start(down), it.end(down)) }.sorted().distinct()

@@ -54,13 +54,13 @@ class GuidedTourTest {
 
     @Test
     fun oversizedPanelWithSpreadBubblesSplitsIntoSubStopsAfterAnEstablishingStop() {
-        val big = Rect(0.0f, 0.0f, 1.0f, 0.6f)
+        val big = Rect(0.0f, 0.0f, 1.0f, 1.0f)
         val left = Rect(0.05f, 0.10f, 0.30f, 0.13f)
-        val right = Rect(0.70f, 0.40f, 0.95f, 0.43f)
+        val right = Rect(0.70f, 0.70f, 0.95f, 0.73f)
         val stops = GuidedTour.stops(listOf(big), listOf(left, right), ltr)
         assertEquals(listOf(big), stops.take(1))
-        assertEquals(3, stops.size)
-        assertTrue(stops[1].center.x < stops[2].center.x)
+        assertEquals(stops.toString(), 3, stops.size)
+        assertTrue(stops.toString(), stops[1].bottom <= stops[2].top)
         assertTrue(stops.toString(), stops.drop(1).all { it.top >= big.top && it.bottom <= big.bottom && it.left >= big.left && it.right <= big.right })
     }
 
@@ -163,7 +163,7 @@ class GuidedTourTest {
 
     @Test
     fun adjacentBubblesOnASplashShareOneWindowAfterTheOpener() {
-        val big = Rect(0.0f, 0.0f, 1.0f, 0.6f)
+        val big = Rect(0.0f, 0.0f, 1.0f, 1.0f)
         val first = Rect(0.33f, 0.10f, 0.52f, 0.13f)
         val second = Rect(0.54f, 0.10f, 0.73f, 0.13f)
         val stops = GuidedTour.stops(listOf(big), listOf(first, second), ltr)
@@ -280,8 +280,8 @@ class GuidedTourTest {
 
     @Test
     fun balloonBarelyTouchingAPanelIsAnOrphan() {
-        val panel = topRight
-        val touching = Rect(0.40f, 0.42f, 0.60f, 0.56f)
+        val panel = Rect(0.02f, 0.02f, 0.98f, 0.80f)
+        val touching = Rect(0.30f, 0.78f, 0.50f, 0.92f)
         val stops = GuidedTour.stops(listOf(panel), listOf(touching), ltr)
         assertEquals(stops.toString(), 2, stops.size)
         assertEquals(panel, stops[0])
@@ -367,7 +367,8 @@ class GuidedTourTest {
         val tallRight = Rect(0.39f, 0.32f, 1.00f, 0.99f)
         val topRow = listOf(Rect(0.02f, 0.02f, 0.28f, 0.36f), Rect(0.24f, 0.02f, 0.51f, 0.35f), Rect(0.48f, 0.02f, 0.73f, 0.34f), Rect(0.71f, 0.02f, 0.98f, 0.33f))
         val stops = GuidedTour.stops(listOf(tallRight, bottomMid, bottomLeft, midLeft) + topRow, emptyList(), ltr)
-        assertEquals(topRow + listOf(midLeft, bottomLeft, bottomMid, tallRight), stops)
+        val clearOfTheRowAbove = listOf(midLeft.copy(top = 0.36f), bottomLeft, bottomMid, tallRight.copy(top = 0.34f))
+        assertEquals(topRow + clearOfTheRowAbove, stops)
         val mirrored = GuidedTour.stops(listOf(tallRight, bottomMid, bottomLeft, midLeft), emptyList(), rtl)
         assertEquals(mirrored.toString(), tallRight, mirrored.first())
     }
@@ -465,8 +466,9 @@ class GuidedTourTest {
         val right = Rect(0.48f, 0.47f, 1.00f, 0.96f)
         val onTheLeft = Rect(0.35f, 0.50f, 0.45f, 0.56f)
         val onTheRight = Rect(0.55f, 0.50f, 0.70f, 0.56f)
-        val stops = GuidedTour.stops(listOf(left, middle, right), listOf(onTheLeft, onTheRight), ltr)
-        assertEquals(listOf(Rect(0.00f, 0.38f, 1.00f, 0.96f)), stops)
+        val above = Rect(0.00f, 0.02f, 1.00f, 0.34f)
+        val stops = GuidedTour.stops(listOf(above, left, middle, right), listOf(onTheLeft, onTheRight), ltr)
+        assertEquals(listOf(above, Rect(0.00f, 0.38f, 1.00f, 0.96f)), stops)
     }
 
     @Test
@@ -492,8 +494,8 @@ class GuidedTourTest {
 
     @Test
     fun aLargePanelWhoseBalloonsReadWholeIsNotSplit() {
-        val splash = Rect(0f, 0f, 1f, 0.5f)
-        val bubbles = listOf(Rect(0.05f, 0.05f, 0.35f, 0.15f), Rect(0.65f, 0.30f, 0.95f, 0.40f))
+        val splash = Rect(0f, 0f, 1f, 1f)
+        val bubbles = listOf(Rect(0.05f, 0.05f, 0.35f, 0.15f), Rect(0.65f, 0.60f, 0.95f, 0.70f))
         assertEquals(listOf(splash), GuidedTour.stops(listOf(splash), bubbles, ltr))
     }
 
@@ -536,6 +538,46 @@ class GuidedTourTest {
         val rightish = Rect(0.58f, 0.32f, 0.98f, 0.60f)
         val stops = GuidedTour.stops(listOf(top, leftish, middle, rightish), emptyList(), ltr)
         assertEquals(listOf(top, Rect(0.02f, 0.32f, 0.98f, 0.62f)), stops)
+    }
+
+    @Test
+    fun tiltedPanelsWhoseBoxesOverlapAtTheGutterStayTwoStops() {
+        val top = Rect(0.02f, 0.02f, 0.98f, 0.24f)
+        val leftCard = Rect(0.02f, 0.28f, 0.52f, 0.96f)
+        val rightCard = Rect(0.46f, 0.28f, 0.98f, 0.96f)
+        val stops = GuidedTour.stops(listOf(top, leftCard, rightCard), emptyList(), ltr)
+        assertEquals(listOf(top, leftCard, rightCard), stops)
+    }
+
+    @Test
+    fun aBoxOvershootingUpwardIntoTheRowAboveIsCutBackAtIt() {
+        val left = Rect(0.02f, 0.02f, 0.48f, 0.36f)
+        val right = Rect(0.52f, 0.02f, 0.98f, 0.38f)
+        val tier = Rect(0.02f, 0.33f, 0.98f, 0.72f)
+        val bottom = Rect(0.02f, 0.76f, 0.98f, 0.98f)
+        val stops = GuidedTour.stops(listOf(left, right, tier, bottom), emptyList(), ltr)
+        assertEquals(listOf(left, right, Rect(0.02f, 0.38f, 0.98f, 0.72f), bottom), stops)
+    }
+
+    @Test
+    fun aPageEdgeThePanelsNeverReachIsStillToured() {
+        val painted = Rect(0.03f, 0.00f, 1.00f, 0.62f)
+        val bubble = Rect(0.40f, 0.10f, 0.90f, 0.18f)
+        val stops = GuidedTour.stops(listOf(painted), listOf(bubble), ltr)
+        assertEquals(stops.toString(), 2, stops.size)
+        assertEquals(painted, stops[0])
+        assertEquals(Rect(0f, 0.62f, 1f, 1f), stops[1])
+    }
+
+    @Test
+    fun aDerivedRemainderStopsShortOfABalloonItWouldSlice() {
+        val host = Rect(0f, 0f, 1f, 0.76f)
+        val leftInset = Rect(0.06f, 0.58f, 0.48f, 0.76f)
+        val rightInset = Rect(0.52f, 0.58f, 0.94f, 0.76f)
+        val overhanging = Rect(0.08f, 0.56f, 0.24f, 0.64f)
+        val stops = GuidedTour.stops(listOf(host, leftInset, rightInset), listOf(overhanging), ltr)
+        assertTrue(stops.toString(), stops[0].bottom <= overhanging.top)
+        assertTrue(stops.toString(), stops.any { it.contains(overhanging.topLeft) && it.contains(overhanging.bottomRight) })
     }
 
     @Test
