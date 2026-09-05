@@ -42,6 +42,20 @@ turns the panel boxes plus the speech-bubble boxes into the final stop list:
   overlapping halves stops being toured as one giant region (Sueñan los
   Androides 023). A box properly contained in another is left alone — insets
   are real, and so is a tall panel that merely overlaps the column beside it.
+- Boxes that **share a row** — pairwise overlapping by a quarter of the smaller,
+  covering half of each other's height, and of comparable height — and whose
+  union spans 80 % of the page's content width are **one tier the detector cut
+  into overlapping pieces**, and merge into a band (Sonic 016's middle tier,
+  whose three boxes became three overlapping balloon-only stops). The height
+  and span guards are what keep a full-width top band from swallowing the row
+  under it and a legitimately overlapping tall panel from joining its column
+  (LOK 013b).
+- A box that **overshoots into an aligned row** is cut back at it: when two or
+  more panels beyond its edge start within a hair of each other, face it across
+  that edge, and the intrusion is under 30 % of both their extent and the box's
+  own, the box is a detector overshoot and its edge moves to the shared one. A
+  panel genuinely spanning two rows intrudes far more than 30 % and is left
+  alone.
 - A page whose largest box covers at least 80 % of it, with the remaining
   boxes adding under 20 % of the page outside it and covering under half of
   it, is a **painted page**: one image the model broke up. It opens with a
@@ -93,7 +107,13 @@ turns the panel boxes plus the speech-bubble boxes into the final stop list:
   the gutter (Defensores 049's three yellow captions) but never a balloon that
   belongs to the tier below. A bubble that matches none of the three is an
   **orphan** and still becomes a stop, so dialogue on a region the panel model
-  missed is never lost. (Owning a balloon merely because it *touches* one panel
+  missed is never lost. Before that, a balloon whose centre falls in exactly one
+  panel's **cell** belongs to that panel: a caption floating in the gutter under
+  an inset is swallowed by the inset, which grows down to show it whole, instead
+  of getting a window that crosses the border of the panel below (Arkham 024's
+  "Tras un par de horas"). Growth stops **at the balloon**, with no extra
+  padding beyond the cell, so swallowing a caption never bleeds a band of the
+  neighbouring panel into the stop (Zombillenium 014). (Owning a balloon merely because it *touches* one panel
   was tried and rejected — it contradicts the quarter-overlap rule; the gutter
   rule is narrower and does not.)
 - **A hole in the grid is a panel the detector missed.** The parts of a region
@@ -126,6 +146,17 @@ turns the panel boxes plus the speech-bubble boxes into the final stop list:
 - A page with no balloon at all whose one or two boxes cover under half of it
   (a painted chapter title the detector cut into fragments, Androides 012b)
   is shown whole rather than as arbitrary slices of one image.
+- **Splitting a panel is a last resort.** A large panel is toured whole unless
+  its own text would be unreadable that way: fit the panel into the Fold cover
+  (904 × 2316, page aspect 1.5) and measure the **smallest balloon it owns**
+  that is not a false positive (under 0.5 % of the page). At 56 px tall or more
+  on that screen the words can be transcribed and the panel stays whole
+  (Superman 013's splash 61 px, Blacksad 026's cemetery 57 px, One Piece 019
+  243 px, Titanes 034 401 px); below it the panel is tiled (Sueñan los
+  Androides 029's twelve caption blocks, 48 px). Windows that light a balloon
+  while leaving its speaker in the dimmed half are the failure this prevents —
+  Superman 013 lit Luthor's three balloons with Luthor in the other half, One
+  Piece 019 lit the shout without the man shouting it.
 - Only a **large** panel (≥ 45 % of the page: a splash or full-art page) is
   toured by **reading windows**, and its windows **tile it**: two or three
   slices along its long axis, each spanning its full short axis, so a window is
@@ -134,10 +165,13 @@ turns the panel boxes plus the speech-bubble boxes into the final stop list:
   they hold, stay a single stop. Balloons within 7 % of the page cluster
   together while the cluster stays within a readable height (30 % of the page),
   and **no cut may slice a cluster**: a cut that lands inside one moves to the
-  nearest gap between clusters. A tiling is used only when every slice is at
-  least a fifth of the panel's long axis; slices holding no cluster are
-  dropped, and a tiling whose surviving slice is more than 70 % of the panel is
-  rejected — that is not a zoom. Two slices are preferred; three only when two
+  nearest gap between clusters, and stops **15 % of the panel's long axis clear
+  of the cluster** where the gap allows, so the balloon keeps the strip of
+  panel its speaker stands in. Every kept slice must hold a cluster **whole**
+  and no cluster may fall outside the kept slices. A tiling is used only when
+  every slice is at least a fifth of the panel's long axis; slices holding no
+  cluster are dropped, and a tiling whose surviving slice is more than 70 % of
+  the panel is rejected — that is not a zoom. Two slices are preferred; three only when two
   do not split the clusters, or on a **splash** (≥ 70 % of the page) with three
   or more clusters, where halves are still too coarse to read. The long axis is
   measured in page pixels, not in normalized coordinates — a comic page is

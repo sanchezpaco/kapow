@@ -1063,3 +1063,44 @@ contained in the earlier one at no more than 70 % of its area is a **zoom**, not
 duplicate. Without it every establishing stop followed by a half of itself failed the
 gate. Gates stay 398/398 over the eighteen comics; 174 of the 398 pages changed.
 Judging comes next — this section records the rules, not results.
+
+### Round two: legibility decides the split (2026-09-05)
+
+The judges scored the rewrite on the maintainer's twelve pages: cost per page **3.29 →
+2.42**, with Spiderman 2099 008 all good and Arkham 035, Titanes 034 and Defensores 049
+cleared. Two pages regressed to `framing: bad` for the same reason — a window lit the
+balloons and left the speaker in the dimmed half (Superman 013's Luthor, One Piece 019's
+shouting man) — and the judges' ideal on both was the whole panel, because its text is
+legible on the phone unsplit. Five rules followed:
+
+1. **A legibility gate on splitting.** Fit the panel into the Fold cover
+   (`COVER_WIDTH` 904 × `COVER_HEIGHT` 2316, page aspect 1.5) and take the smallest
+   balloon it owns above `TINY_BUBBLE`; at `LEGIBLE_BALLOON` (56 px) or more the panel
+   is toured whole. Calibrated on Superman 013 (61 px), Blacksad 026 (57), One Piece 019
+   (243), Titanes 034 (401) — all whole — against Sueñan los Androides 029 (48), which
+   still gets its three bands. The phone crops confirm the proxy: Ben Reilly 007 at
+   89 px reads whole, Androides 029 at 48 px does not. The **median** balloon does not
+   separate these pages (Androides 029's median is 95 px, above Superman 013's 87); the
+   smallest does, which is also what "transcribe every word" means.
+2. **Speaker-safe cuts.** A cut moved off a balloon now clears it by
+   `TILE_SPEAKER_MARGIN` (15 % of the panel's long axis) where the gap allows, every
+   kept slice must hold a cluster **whole**, and no cluster may fall outside the kept
+   slices.
+3. **A floating caption never crosses a panel border.** A balloon whose centre lies in
+   exactly one panel's cell now belongs to that panel, which grows to swallow it, rather
+   than becoming a window sized to the page (Arkham 024's caption used to cross the
+   middle inset's bottom border and light half of it). A balloon inside a recovered hole
+   still stays with the hole.
+4. **Same-row overlapping boxes merge into a band** (`ROW_BAND_OVERLAP` 0.25,
+   `ROW_BAND_COMPANY` 0.5 for both the shared height and the height ratio,
+   `ROW_BAND_SPAN` 0.8 of the content width) — Sonic 016's middle tier is one stop
+   again. LOK 013b's tall overlapping panel does not merge (its union spans 61 % of the
+   page), which was the guard the round-three duplicate-merge work asked for.
+5. **Overshoot into an aligned row is cut back** (`ROW_OVERSHOOT` 0.3 of both the row's
+   extent and the box's own), and **caption growth no longer pads past the balloon**, so
+   Ruinas 028's middle tier ends at its own gutter and Zombillenium 014's stops stop
+   bleeding a 30–50 px band into the panel next door.
+
+Gates stay 398/398. 320 of the 398 pages differ from the frozen baseline — the
+legibility gate turns many splashes into a single whole-page stop, and dropping the pad
+past a swallowed balloon moves almost every grown stop by 0.01 of the page.
