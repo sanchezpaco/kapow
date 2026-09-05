@@ -980,3 +980,36 @@ change**. The first tuning round under the new rubric needs a new baseline: eith
 re-judge the whole gate set once (≈370 judges) or compare only deltas measured entirely
 under the new rubric. Which one is the maintainer's call; the human calibration set
 (next in the ROADMAP) is the natural moment to spend the judges.
+
+## Fable against Opus on the calibration pages (2026-09-05)
+
+The model question was always "measure, don't assume". The same twelve pages were judged
+with the new rubric by Fable — one complete pass and a second that reached eleven pages
+before the session limit closed it (`eval/_variance_fable/run{1,2}/`; the Fable runs are
+the only thing in this file that will not be repeated: Fable judges spend the session
+limit that the Opus tuning rounds need, so the judge stays **Opus**).
+
+| | Fable self-agreement (2 runs, 11 pages) | Opus self-agreement (3 runs, same 11) | Fable vs Opus (every pair) |
+|---|---|---|---|
+| order | 1.00 | 0.88 | 0.94 |
+| framing | 0.91 | 0.88 | 0.93 |
+| harmony | 0.73 | 0.82 | 0.74 |
+
+Cost per page over the twelve: Fable 1.87, Opus 2.17 — Fable is the kinder judge, and
+almost all of the difference is `harmony` (`spiderman-2099-01:008` `bad/minor` where Opus
+says `bad`, `zombillenium:014` and `androides-1:018` `good` where Opus finds a dead tap).
+On `order` and `framing` the two models are interchangeable; on `harmony` neither is
+consistent and they do not agree with each other either. Two Fable runs on eleven pages
+is a small sample — read it as "no evidence Fable is better", not as a ranking — and it
+settles the practical question: **Opus judges, and the next boundary to write down is
+`harmony`'s** (what counts as one re-read versus repeated re-reads, and whether a
+wordless establishing panel is a dead tap or a beat).
+
+### The maintainer's turn
+
+The human calibration set is ready as a page to grade blind: the twelve pages with
+their annotated tour and every phone/tablet crop, three pills per criterion, the new
+rubric in the header, and a "reveal" that shows Opus ×3, Fable ×2 and the corpus verdict
+next to your own with the agreement computed. Grades stay in the browser and export as
+JSON; drop the export at `eval/_calibration/maintainer.json` and compare with the runs
+above. Until that file exists the judge is calibrated against itself only.

@@ -232,9 +232,16 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       minimum believable move is now ≈ 0.68·√(2k). The corpus verdicts are
       old-rubric and no longer comparable: the next round needs a new baseline.
       See `docs/guided-view-eval.md` → "Tightening the framing rubric"
-- [ ] Guided View eval, next: human calibration set (~10 pages, judge vs
+- [~] Guided View eval, next: human calibration set (~10 pages, judge vs
       maintainer, Fable vs Opus), then the full-corpus sweep as the regression
-      gate; only then revisit the reading-order model.
+      gate; only then revisit the reading-order model. **Fable vs Opus measured
+      2026-09-05** on the twelve variance pages: interchangeable on `order` and
+      `framing` (0.94 / 0.93 cross-model agreement), both noisy on `harmony`
+      (0.74), Fable kinder by 0.3 cost/page; Fable judges burn the session limit
+      the tuning rounds need, so the judge is Opus. The calibration page for
+      the maintainer is built (blind grading, reveal, JSON export to
+      `eval/_calibration/maintainer.json`); the maintainer's grades are the
+      missing half. See `docs/guided-view-eval.md`
 
 ## Phase 5 — Polish
 
