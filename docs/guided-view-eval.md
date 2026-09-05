@@ -1119,3 +1119,25 @@ whole; the next round's first item. Sample after round 3: cost/page **0.80**, pa
 
 The before/after gallery of all 32 pages with every verdict, for the maintainer to grade
 the new tours: <https://claude.ai/code/artifact/ca4f38f1-9f52-4f81-ac2b-2d97f77fb74f>.
+
+### The maintainer's verdict on the gallery (2026-09-05, night)
+
+Two regressions the judges did not flag, and the branch is **reverted out of `main`**
+(`e8161a0`; the work stays on `guided/panel-unit` at `9464101`):
+
+- `androides-1:018` stop 2 is still the textless brick-wall panel — *"eso no tiene sentido,
+  sigue estando mal un enfoque en una pared"*. The rule "a stop with no balloon is never
+  dead, that is art" is wrong for the maintainer: a wordless panel with no subject (a
+  texture, a wall, a sky) is not a stop; it belongs to the neighbouring stop or to nothing.
+- `ben-reilly-01:004` — *"eso estaba mucho mejor antes"*: the big bottom panel (two thirds
+  of the page, eight captions and a balloon) is now one whole stop because its smallest
+  balloon measures ≥ 56 px on the cover; the judge itself wrote that its text is only
+  transcribable on the tablet crop. The legibility proxy is too permissive: balloon height
+  is not text height, and the threshold must be set so that this page still gets its
+  establishing stop plus windows. The windows it had before (caption stack, couch/TV,
+  Ben at the window, closing captions) were the right tour.
+
+So the round's own metric moved a lot, and the maintainer still rejected it on two pages
+out of the thirty-two shown. Both are policy the rubric does not yet state (wordless
+panels; how much text a whole-panel stop may carry), so both go into the rubric first and
+into `GuidedTour` second, on the branch.

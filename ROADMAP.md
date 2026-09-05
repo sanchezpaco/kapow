@@ -261,8 +261,13 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       the panel is the unit, windows need their speaker, big panels need an
       establishing stop. Rubric v3 (`961bf5e`) encodes that; framing agreement
       with the maintainer 0.39 → 0.62, judge cost/page 2.2 → 3.3 ≈ the
-      maintainer's 3.1. **Composition rounds 1–3 done the same day**
-      (`guided/panel-unit`, merged `3a46e6a`): gutter grid, panel = stop, tiles
+      maintainer's 3.1. **Composition rounds 1–3 done the same day on
+      `guided/panel-unit` (`9464101`) — merged, then reverted out of `main`
+      (`e8161a0`) after the maintainer reviewed the gallery: regressions
+      (androides 018 still stops on a textless wall panel; ben-reilly 004's
+      two-thirds-page panel became one whole stop where the old windows read
+      better — the 56 px legibility proxy is too permissive). The branch keeps
+      everything.** Rules: gutter grid, panel = stop, tiles
       only when the whole panel is not legible on the phone (smallest balloon
       ≥ 56 px on the cover), establishing stop, holes as missed panels,
       overshoot cut-back in every direction. Judged under v3: the twelve

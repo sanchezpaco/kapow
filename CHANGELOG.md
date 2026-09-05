@@ -12,14 +12,6 @@ All notable user-facing changes to Kapow. The format follows
   blue, ink, red, violet or mixed comic page; the home screen shows the new
   icon a moment after you choose it.
 
-### Changed
-- Guided View tours whole panels. A stop is the panel itself, grown only to
-  take in a balloon that overhangs its gutter; it no longer bands across a row
-  or spills into the next tier. Large panels are shown whole first and split
-  into halves or thirds only when their text would not be readable on the
-  phone, always with the character who speaks. Panels the detector missed
-  along a row still get their stop.
-
 ### Fixed
 - Enlarged bubbles keep up with page turns the first time through a comic.
   Every page was being decoded twice — once for the bubble detector and again
