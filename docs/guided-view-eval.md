@@ -1013,3 +1013,51 @@ rubric in the header, and a "reveal" that shows Opus ×3, Fable ×2 and the corp
 next to your own with the agreement computed. Grades stay in the browser and export as
 JSON; drop the export at `eval/_calibration/maintainer.json` and compare with the runs
 above. Until that file exists the judge is calibrated against itself only.
+
+## The maintainer's grades, and rubric v3 (2026-09-05)
+
+The maintainer graded the twelve calibration pages (`eval/_calibration/maintainer.json`):
+cost per page **3.08** against the judge's 2.17, `framing: bad` on eight of twelve where
+the judge said `minor`. Agreement with the maintainer, majority over the three Opus runs:
+order 8/10, **framing 4/12**, harmony 6/10. The notes say the same thing on every page:
+
+- *"el frame 3 no tiene sentido que coja las viñetas de abajo"*, *"2 podría ser también
+  2, o al menos no coger parte de abajo"*, *"4 y 5 podrían ser perfectamente la viñeta
+  rectangular"* — a stop that is not a panel is wrong, not "minor".
+- *"la 2 coge bocadillos y no al personaje que habla"*, *"no tiene sentido que solo se
+  vea el bocadillo y no al personaje… renta no partir"* — a window without its speaker
+  is wrong; when in doubt, do not split.
+- *"la última viñeta es importante que se vea que está en un cementerio… visión global y
+  luego ir a 3 y 4"*, *"vista general de la viñeta y luego centrarse en cada zona"* — a
+  large panel toured by windows wants an establishing stop.
+- *"2 coge bocadillos que se ven en 3"* — overlapping windows are wrong.
+- *"no entiendo estas regresiones, antes no pasaba"* — the balloon-driven reading windows
+  of the sample rounds are the regression.
+
+**Rubric v3** (`judge_prompt.md`, commit `961bf5e`) writes that policy down: *the panel is
+the unit*; a stop crossing a panel border, or cutting its own panel so a figure or subject
+is lost, is `framing: bad`; a window without its speaker is `bad`; overlapping windows on
+one panel are `bad`; windows only on large panels, tiled, after an establishing stop
+(missing establishing → `minor`); the legibility test and the sliced-balloon rule stay.
+
+Judged twice on the snapshot `rounds/v3-base` (`eval/_variance_v3/run{1,2}`):
+
+| | self-agreement (2 runs) | agreement with the maintainer, per run |
+|---|---|---|
+| order | 1.00 | 0.80 |
+| framing | 0.83 | **0.62** (was 0.39) |
+| harmony | 0.83 | 0.60 |
+
+Cost per page 3.33 / 3.25 — the judge is now as strict as the maintainer. The remaining
+framing disagreements are single-step and explainable: `blacksad-1:026` (the maintainer
+says `bad` for the missing establishing stop, the rule says `minor`), `zombillenium:014`
+(stop 8 loses art because the wide panel beside it is undetected — the judge charges
+`harmony`), `androides-1:018` (the maintainer's `bad` is the wordless brick-wall panel
+having a stop) and `one-piece-ace-01:019` (the judge is now harsher than the maintainer).
+Two of the maintainer's `order: bad` are not policy: one is the same brick-wall stop, the
+other an RTL doubt the note itself withdraws.
+
+**Consequence for tuning:** the corpus verdicts are two rubrics old. Rounds from here judge
+the changed pages' *old* tour from `rounds/v3-base` and their *new* tour side by side under
+v3, and the twelve calibration pages are the primary signal because the maintainer graded
+them. The composition target is the maintainer's policy, not the judge's taste.

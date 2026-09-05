@@ -256,8 +256,13 @@ Toggle in the reader HUD. See `docs/guided-view.md`.
       (0.74), Fable kinder by 0.3 cost/page; Fable judges burn the session limit
       the tuning rounds need, so the judge is Opus. The calibration page for
       the maintainer is built (blind grading, reveal, JSON export to
-      `eval/_calibration/maintainer.json`); the maintainer's grades are the
-      missing half. See `docs/guided-view-eval.md`
+      `eval/_calibration/maintainer.json`). **Graded 2026-09-05**: the
+      maintainer scores framing `bad` on 8/12 where the judge said `minor` —
+      the panel is the unit, windows need their speaker, big panels need an
+      establishing stop. Rubric v3 (`961bf5e`) encodes that; framing agreement
+      with the maintainer 0.39 → 0.62, judge cost/page 2.2 → 3.3 ≈ the
+      maintainer's 3.1. Composition round `guided/panel-unit` follows. See
+      `docs/guided-view-eval.md`
 
 ## Phase 5 — Polish
 
