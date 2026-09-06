@@ -140,6 +140,7 @@ fun KapowRoot(initialUri: Uri? = null) {
                             onToggleFavorite = viewModel::onToggleFavorite,
                             onDeleteComic = viewModel::onDeleteComic,
                             onQueryChanged = viewModel::onQueryChanged,
+                            onPresetQuery = viewModel::onPresetQuery,
                             onSortSelected = viewModel::onSortSelected,
                             onOpenSeries = viewModel::onOpenSeries,
                         )

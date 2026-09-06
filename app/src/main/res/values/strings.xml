@@ -45,7 +45,13 @@
     <string name="library_series_publisher_read">%1$s · %2$s</string>
     <string name="library_unshelve">Remove from continue reading</string>
     <string name="library_search">Search</string>
-    <string name="library_search_hint">Title or series</string>
+    <string name="library_search_hint">Title, series, writer…</string>
+    <string name="library_search_help">Try writer:Ewing or year&gt;2015</string>
+    <string name="library_search_empty">No comics match that search.</string>
+    <string name="library_preset_reading">In progress</string>
+    <string name="library_preset_reading_query" translatable="false">is:reading</string>
+    <string name="library_preset_recent">Recently added</string>
+    <string name="library_preset_recent_query" translatable="false">added:30d</string>
     <string name="library_close_search">Close search</string>
     <string name="library_sort_recent">Recent</string>
     <string name="library_unshelved">Removed from continue reading</string>

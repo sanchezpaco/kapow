@@ -31,12 +31,10 @@ object LibraryCatalog {
         return comics.sortedWith(comparator)
     }
 
-    fun search(comics: List<LibraryComic>, query: String): List<LibraryComic> {
-        val needle = query.trim()
-        if (needle.isEmpty()) return comics
-        return comics.filter { comic ->
-            listOfNotNull(comic.title, comic.series, comic.storyTitle).any { it.contains(needle, ignoreCase = true) }
-        }
+    fun search(comics: List<LibraryComic>, query: String, now: Long = System.currentTimeMillis()): List<LibraryComic> {
+        if (query.isBlank()) return comics
+        val parsed = SearchQuery.parse(query)
+        return comics.filter { parsed.matches(it, now) }
     }
 
     fun sorted(comics: List<LibraryComic>, sort: LibrarySort): List<LibraryComic> =

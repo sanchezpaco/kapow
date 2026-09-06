@@ -256,8 +256,8 @@ re-shelves it, so a comic reappears as soon as it is read again.
   `shrinkVertically` — and it shares a single grid item with the header, so
   switching filters slides the shelf header down rather than yanking the chip
   row ~185 dp up from under the user's finger.
-- **Search**: the magnifier in the toolbar reveals a field that filters by title
-  or series, case-insensitive (`LibraryCatalog.search`).
+- **Search**: the magnifier in the toolbar reveals a field that filters the shelf
+  (`LibraryCatalog.search` → `SearchQuery`). See "Search syntax" below.
 - **Long-pressing a cover** opens a menu headed by the comic's title: reading
   settings, mark read/unread, favorite, delete. **Long-pressing a series stack**
   opens the series menu: series settings, mark the whole series read/unread,
@@ -282,6 +282,58 @@ re-shelves it, so a comic reappears as soon as it is read again.
 - The opened series is ViewModel state (`openedSeries`), so returning from the
   settings screen lands back inside the series.
 - Entries are naturally sorted by series, then issue number, then title.
+
+### Search syntax
+
+`SearchQuery.parse` turns the field's text into a list of terms; every term must
+match (they are ANDed). Parsing and matching are pure and unit-tested
+(`SearchQueryTest`) — there is no Room `LIKE` query, because the library list is
+already in memory. Tokens split on whitespace, and double quotes keep a phrase
+together (`writer:"al ewing"`).
+
+A **bare word** matches, case- and accent-insensitively (NFD, combining marks
+stripped, so `pena` finds `Peña`), a substring of the title, series, story
+title, writer, penciller, inker, colorist, publisher or file name. The summary is
+deliberately not searched: it is prose, and every common word would match half
+the library.
+
+A token with a recognised `key:` prefix narrows to one field. Keys have Spanish
+aliases, because the keys are the one piece of syntax a Spanish user has to
+guess; accents are folded, so `año` and `ano` are the same key.
+
+| term | alias | matches |
+| --- | --- | --- |
+| `series:hulk` | `serie:` | the series |
+| `title:descent` | `titulo:` | the ComicInfo story title |
+| `writer:ewing` | `guionista:` | the writer |
+| `penciller:bennett` | `dibujante:` | the penciller |
+| `inker:jose` | `entintador:` | the inker |
+| `colorist:mounts` | `color:` | the colorist |
+| `publisher:marvel` | `editorial:` | the publisher |
+| `year:2018` | `año:` | the year exactly |
+| `year>2015`, `year>=2015`, `year<2000`, `year<=2000` | `año>` | year comparisons |
+| `added:30d` | — | added within the last N days (`d` only) |
+| `is:reading` | — | started and unfinished (`pageIndex > 0 && !completed`) |
+| `is:unread`, `is:read` | — | accepted, but the filter chips already own them |
+
+Rules that keep the field forgiving — it never shows a syntax error:
+
+- An **unrecognised key** (`foo:bar`) is not an error. The whole token becomes a
+  bare word, so a colon inside a title still searches. So does a recognised key
+  with a value that will not parse (`year:soon`).
+- An **empty value** (`writer:`) is dropped.
+- A comic with a **null field never matches** a field term.
+
+Under the empty field sit two preset chips — **In progress** (`is:reading`) and
+**Recently added** (`added:30d`) — and one hint line. A preset types its literal
+query into the field, so the syntax is learned by seeing it, and resets the
+filter chip to **All** (`LibraryViewModel.onPresetQuery`) so a chip and a query
+can never contradict each other. Otherwise chip and query AND together. Presets
+and the hint render only while the field is blank and collapse with the same
+fade + `shrinkVertically` "Continue reading" uses, so the grid does not jump.
+
+When a query is active and nothing matches, the grid area shows
+`library_search_empty` instead of the plain `library_filter_empty`.
 
 ## Per-comic reading settings
 
@@ -382,8 +434,8 @@ text — `DocumentBuilder`, no IO, unit-tested — returning a `ComicInfo`. It r
 The display title stays `LibraryCatalog.title` — `"$series #$issueNumber"` —
 so it silently becomes the real one. `displayName` always keeps the file name
 and is never overwritten: it is the row shown last in the Details section, so
-the user can always see what the metadata replaced. Search
-(`LibraryCatalog.search`) matches the story title as well as title and series.
+the user can always see what the metadata replaced. Every column here is
+searchable, by bare word or by `key:value` — see "Search syntax".
 
 ### When it is read
 

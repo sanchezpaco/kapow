@@ -22,6 +22,8 @@ data class LibraryComic(
     val inker: String? = null,
     val colorist: String? = null,
     val summary: String? = null,
+    val year: Int? = null,
+    val addedAt: Long = 0L,
 ) {
     val hasComicInfo: Boolean
         get() = listOfNotNull(storyTitle, publisher, writer, penciller, inker, colorist, summary).isNotEmpty()

@@ -352,6 +352,8 @@ class LibraryRepositoryImpl @Inject constructor(
             inker = inker,
             colorist = colorist,
             summary = summary,
+            year = year,
+            addedAt = addedAt,
         )
 }
 
