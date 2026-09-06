@@ -650,9 +650,40 @@ width, no page-turn effect — not Cinematic Flow, which cropped to panels and w
 rejected; this one has no detector in its path, see `docs/product-ideas.md`),
 tip jar under Settings → About as a one-off Play Billing
 product (an external Ko-fi / Buy Me a Coffee link risks a Play payments-policy
-rejection; decided 2026-08-29), reading stats / recently read, home-screen widget, automatic
+rejection; decided 2026-08-29), home-screen widget, automatic
 day/night theme, ComicVine metadata, panel-level posture transition,
-outliner idea 3b.
+outliner idea 3b. Reading stats and `ComicInfo.xml` moved to the 1.1 section
+below on 2026-09-06.
+
+---
+
+## 1.1 — Metadata and reading stats
+
+Scope chosen 2026-09-06: what the archive already knows about a comic, and what
+the reader can measure. Each item went through an HTML playground, a senior
+design review that trimmed it, and its own `feature/*` branch.
+
+- [x] `ComicInfo.xml` metadata: series, number and year from the XML win over
+      the file-name parse; story title, credits, publisher and summary are
+      stored with the comic and shown in the per-comic sheet's "Details"
+      section (long-press → Details); the story title headlines "Continue
+      reading" and sits under each issue in a series; `Manga` sets the default
+      reading direction. Read in the cover pass, `METADATA_VERSION` re-reads on
+      parser changes. Cut after review: credits in the hero, a second line on
+      grid cards, a reader title card, a "prefer the file name" switch. See
+      `docs/library.md` → Metadata
+- [x] Reading stats: a `reading_session` table filled while the reader is
+      open, a Stats screen from the library toolbar (pages in 30 days, time,
+      pace, days read, 30-day chart, pace per series, finished this month), and
+      the shelf's "time left" following the measured pace per series and mode.
+      Cut after review: streaks, period chips, a session log, generated prose.
+      See `docs/stats.md`
+- [ ] `ComicInfo.xml` `<Pages>` (`DoublePage`, `FrontCover`) driving
+      `splitWidePages` and `coverAlone` per comic instead of heuristics
+- [ ] Non-integer issue numbers ("1.MU", "Annual 1") — today they fall back to
+      the file-name parse
+- [ ] Verify the CBR path with a real `ComicInfo.xml` inside a RAR (no RAR
+      with one in the test corpus yet)
 
 ---
 
