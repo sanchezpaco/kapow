@@ -645,6 +645,7 @@ private fun SearchField(
 @Composable
 private fun SearchPresets(onPresetQuery: (String) -> Unit) {
     val readingQuery = stringResource(R.string.library_preset_reading_query)
+    val ratedQuery = stringResource(R.string.library_preset_rated_query)
     val recentQuery = stringResource(R.string.library_preset_recent_query)
     Column(
         modifier = Modifier.padding(top = SearchPresetGap),
@@ -655,6 +656,7 @@ private fun SearchPresets(onPresetQuery: (String) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             FilterPill(R.string.library_preset_reading, selected = false) { onPresetQuery(readingQuery) }
+            FilterPill(R.string.library_preset_rated, selected = false) { onPresetQuery(ratedQuery) }
             FilterPill(R.string.library_preset_recent, selected = false) { onPresetQuery(recentQuery) }
         }
         Text(

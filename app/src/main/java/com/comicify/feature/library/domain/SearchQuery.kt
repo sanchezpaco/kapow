@@ -30,6 +30,10 @@ private class YearTerm(private val comparison: Comparison, private val year: Int
         comic.year?.let { comparison.holds(it, year) } == true
 }
 
+private class RatingTerm(private val comparison: Comparison, private val rating: Int) : SearchTerm {
+    override fun matches(comic: LibraryComic, now: Long): Boolean = comparison.holds(comic.rating, rating)
+}
+
 private class AddedTerm(private val days: Int) : SearchTerm {
     override fun matches(comic: LibraryComic, now: Long): Boolean =
         comic.addedAt >= now - days * MILLIS_PER_DAY
@@ -73,6 +77,9 @@ private enum class ReadState(val key: String, val holds: (LibraryComic) -> Boole
 
 private const val YEAR_KEY = "year"
 private const val YEAR_ALIAS = "ano"
+private const val RATING_KEY = "rating"
+private const val RATING_ALIAS = "valoracion"
+private const val AT_LEAST_SUFFIX = '+'
 private const val ADDED_KEY = "added"
 private const val STATE_KEY = "is"
 private const val DAY_SUFFIX = 'd'
@@ -111,16 +118,24 @@ private fun parseTerm(token: String): SearchTerm? {
 }
 
 private fun isFieldKey(key: String): Boolean =
-    key == YEAR_KEY || key == YEAR_ALIAS || key == ADDED_KEY || key == STATE_KEY || textField(key) != null
+    key == YEAR_KEY || key == YEAR_ALIAS || key == RATING_KEY || key == RATING_ALIAS ||
+        key == ADDED_KEY || key == STATE_KEY || textField(key) != null
 
 private fun textField(key: String): TextField? = TextField.entries.firstOrNull { key in it.keys }
 
 private fun fieldTerm(key: String, comparison: Comparison, value: String): SearchTerm? = when {
     key == YEAR_KEY || key == YEAR_ALIAS -> value.toIntOrNull()?.let { YearTerm(comparison, it) }
+    key == RATING_KEY || key == RATING_ALIAS -> ratingTerm(comparison, value)
     comparison != Comparison.EQUAL -> null
     key == ADDED_KEY -> daysWithin(value)?.let(::AddedTerm)
     key == STATE_KEY -> ReadState.entries.firstOrNull { it.key == fold(value) }?.let(::StateTerm)
     else -> textField(key)?.let { TextTerm(it, fold(value)) }
+}
+
+private fun ratingTerm(comparison: Comparison, value: String): SearchTerm? {
+    val atLeast = comparison == Comparison.EQUAL && value.last() == AT_LEAST_SUFFIX
+    val rating = (if (atLeast) value.dropLast(1) else value).toIntOrNull() ?: return null
+    return RatingTerm(if (atLeast) Comparison.GREATER_OR_EQUAL else comparison, rating)
 }
 
 private fun daysWithin(value: String): Int? =

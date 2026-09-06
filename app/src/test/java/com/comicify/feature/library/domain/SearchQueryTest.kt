@@ -23,6 +23,7 @@ class SearchQueryTest {
         addedAt: Long = 0L,
         pageIndex: Int = 0,
         completed: Boolean = false,
+        rating: Int = 0,
     ) = LibraryComic(
         id = 1,
         documentUri = "uri",
@@ -46,6 +47,7 @@ class SearchQueryTest {
         colorist = colorist,
         year = year,
         addedAt = addedAt,
+        rating = rating,
     )
 
     private fun matches(query: String, comic: LibraryComic): Boolean =
@@ -227,5 +229,28 @@ class SearchQueryTest {
         val bennett = comic(writer = "Joe Bennett").copy(id = 2)
         val found = LibraryCatalog.search(listOf(ewing, bennett), "writer:ewing", now)
         assertTrue(found == listOf(ewing))
+    }
+
+    @Test
+    fun ratingAtLeastWithPlusSugar() {
+        assertTrue(matches("rating:4+", comic(rating = 5)))
+        assertTrue(matches("rating:4+", comic(rating = 4)))
+        assertFalse(matches("rating:4+", comic(rating = 3)))
+        assertFalse(matches("rating:4+", comic()))
+    }
+
+    @Test
+    fun ratingComparisonsAndExactValue() {
+        assertTrue(matches("rating>=4", comic(rating = 4)))
+        assertTrue(matches("rating:3", comic(rating = 3)))
+        assertFalse(matches("rating:3", comic(rating = 4)))
+        assertTrue(matches("rating<2", comic()))
+        assertTrue(matches("valoración:5", comic(rating = 5)))
+    }
+
+    @Test
+    fun unparseableRatingFallsBackToText() {
+        assertTrue(matches("rating:great", comic(displayName = "rating:great")))
+        assertFalse(matches("rating:great", comic(rating = 5)))
     }
 }

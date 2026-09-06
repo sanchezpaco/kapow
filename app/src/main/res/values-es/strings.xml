@@ -49,6 +49,7 @@
     <string name="library_search_help">Prueba guionista:Ewing o año&gt;2015</string>
     <string name="library_search_empty">Ningún cómic coincide con esa búsqueda.</string>
     <string name="library_preset_reading">Empezados</string>
+    <string name="library_preset_rated">Mejor valorados</string>
     <string name="library_preset_recent">Añadidos hace poco</string>
     <string name="library_close_search">Cerrar búsqueda</string>
     <string name="library_sort_recent">Recientes</string>
@@ -83,7 +84,6 @@
     <string name="detail_edit_save">Guardar</string>
     <string name="detail_edit_cancel">Cancelar</string>
     <string name="detail_edit_reset">Restaurar del archivo</string>
-    <string name="library_filter_rated">Mejor valorados</string>
     <string name="detail_info_writer">Guion</string>
     <string name="detail_info_pencils">Dibujo</string>
     <string name="detail_info_inks">Tinta</string>

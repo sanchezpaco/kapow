@@ -50,6 +50,8 @@
     <string name="library_search_empty">No comics match that search.</string>
     <string name="library_preset_reading">In progress</string>
     <string name="library_preset_reading_query" translatable="false">is:reading</string>
+    <string name="library_preset_rated">Highly rated</string>
+    <string name="library_preset_rated_query" translatable="false">rating:4+</string>
     <string name="library_preset_recent">Recently added</string>
     <string name="library_preset_recent_query" translatable="false">added:30d</string>
     <string name="library_close_search">Close search</string>
@@ -85,7 +87,6 @@
     <string name="detail_edit_save">Save</string>
     <string name="detail_edit_cancel">Cancel</string>
     <string name="detail_edit_reset">Reset to file</string>
-    <string name="library_filter_rated">Highly rated</string>
     <string name="detail_info_writer">Writer</string>
     <string name="detail_info_pencils">Pencils</string>
     <string name="detail_info_inks">Inks</string>

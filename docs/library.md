@@ -320,6 +320,8 @@ guess; accents are folded, so `año` and `ano` are the same key.
 | `publisher:marvel` | `editorial:` | the publisher |
 | `year:2018` | `año:` | the year exactly |
 | `year>2015`, `year>=2015`, `year<2000`, `year<=2000` | `año>` | year comparisons |
+| `rating:4+` | `valoración:` | rated at least N stars (`+` is sugar for `>=`) |
+| `rating:3`, `rating>=4`, `rating<2` | `valoración>` | rating exactly, or compared; unrated is 0 |
 | `added:30d` | — | added within the last N days (`d` only) |
 | `is:reading` | — | started and unfinished (`pageIndex > 0 && !completed`) |
 | `is:unread`, `is:read` | — | accepted, but the filter chips already own them |
@@ -332,8 +334,9 @@ Rules that keep the field forgiving — it never shows a syntax error:
 - An **empty value** (`writer:`) is dropped.
 - A comic with a **null field never matches** a field term.
 
-Under the empty field sit two preset chips — **In progress** (`is:reading`) and
-**Recently added** (`added:30d`) — and one hint line. A preset types its literal
+Under the empty field sit three preset chips — **In progress** (`is:reading`),
+**Highly rated** (`rating:4+`) and **Recently added** (`added:30d`) — and one
+hint line. A preset types its literal
 query into the field, so the syntax is learned by seeing it, and resets the
 filter chip to **All** (`LibraryViewModel.onPresetQuery`) so a chip and a query
 can never contradict each other. Otherwise chip and query AND together. Presets

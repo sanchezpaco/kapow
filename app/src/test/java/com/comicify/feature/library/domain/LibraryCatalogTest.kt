@@ -202,9 +202,4 @@ class LibraryCatalogTest {
         assertEquals(0, LibraryCatalog.ratingAfterTap(rating = 1, star = 1))
     }
 
-    @Test
-    fun highlyRatedKeepsFourStarsAndUp() {
-        val comics = listOf(comic(1, rating = 5), comic(2, rating = 4), comic(3, rating = 3), comic(4))
-        assertEquals(listOf(1L, 2L), LibraryCatalog.highlyRated(comics).map { it.id })
-    }
 }
