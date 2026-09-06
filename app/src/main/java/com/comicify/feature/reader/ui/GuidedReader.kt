@@ -58,6 +58,7 @@ import com.comicify.feature.reader.domain.Cut
 import com.comicify.feature.reader.domain.DirectorCut
 import com.comicify.feature.reader.domain.FullPagePanel
 import com.comicify.feature.reader.domain.GuidedFocus
+import com.comicify.feature.reader.domain.PageLook
 import com.comicify.feature.reader.domain.PageOrder
 import com.comicify.feature.reader.domain.PanSlop
 import com.comicify.feature.reader.domain.TapZone
@@ -93,6 +94,7 @@ private const val AUTO_PAN_MIN_SIDE = 0.45f
 fun GuidedReader(
     loader: PageLoader,
     spread: Boolean,
+    pageLook: PageLook,
     direction: ReadingDirection,
     coverAlone: Boolean,
     initialPage: Int,
@@ -166,7 +168,7 @@ fun GuidedReader(
     val resetKey = listOf(page, panelIndex, panelView, settled)
 
     if (!spread) {
-        GuidedPanel(arts[page], page, advancing, settled, panelView, autoPan, resetKey, direction, ::goPrevious, ::goNext, onTap, Modifier.fillMaxSize())
+        GuidedPanel(arts[page], page, advancing, settled, panelView, autoPan, resetKey, pageLook, direction, ::goPrevious, ::goNext, onTap, Modifier.fillMaxSize())
         return
     }
     val firstPage = spreadStart(page, coverAlone)
@@ -174,8 +176,8 @@ fun GuidedReader(
     val screenLeftPage = PageOrder.leftPage(direction, firstPage, secondPage)
     val screenRightPage = PageOrder.rightPage(direction, firstPage, secondPage)
     Row(modifier = Modifier.fillMaxSize()) {
-        SpreadHalf(screenLeftPage, page, advancing, settled, arts[screenLeftPage], panelView, autoPan, resetKey, direction, ::goPrevious, ::goNext, onTap)
-        SpreadHalf(screenRightPage, page, advancing, settled, arts[screenRightPage], panelView, autoPan, resetKey, direction, ::goPrevious, ::goNext, onTap)
+        SpreadHalf(screenLeftPage, page, advancing, settled, arts[screenLeftPage], panelView, autoPan, resetKey, pageLook, direction, ::goPrevious, ::goNext, onTap)
+        SpreadHalf(screenRightPage, page, advancing, settled, arts[screenRightPage], panelView, autoPan, resetKey, pageLook, direction, ::goPrevious, ::goNext, onTap)
     }
 }
 
@@ -203,6 +205,7 @@ private fun RowScope.SpreadHalf(
     panelView: Rect,
     autoPan: Boolean,
     resetKey: Any,
+    pageLook: PageLook,
     direction: ReadingDirection,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
@@ -210,7 +213,7 @@ private fun RowScope.SpreadHalf(
 ) {
     val modifier = Modifier.weight(1f).fillMaxSize()
     if (index == activePage) {
-        GuidedPanel(art, activePage, advancing, settled, panelView, autoPan, resetKey, direction, onPrevious, onNext, onTap, modifier)
+        GuidedPanel(art, activePage, advancing, settled, panelView, autoPan, resetKey, pageLook, direction, onPrevious, onNext, onTap, modifier)
         return
     }
     val image = art?.image
@@ -220,7 +223,7 @@ private fun RowScope.SpreadHalf(
         },
         contentAlignment = Alignment.Center,
     ) {
-        if (image != null) GuidedPage(image, FullPagePanel, Offset.Zero)
+        if (image != null) GuidedPage(image, FullPagePanel, Offset.Zero, pageLook)
     }
 }
 
@@ -233,6 +236,7 @@ private fun GuidedPanel(
     panelView: Rect,
     autoPan: Boolean,
     resetKey: Any,
+    pageLook: PageLook,
     direction: ReadingDirection,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
@@ -423,7 +427,7 @@ private fun GuidedPanel(
         } else {
             val displayView = dragView ?: view.value
             val displayOverscroll = if (dragView != null) dragOverscroll else overscroll.value
-            GuidedPage(image, displayView, displayOverscroll)
+            GuidedPage(image, displayView, displayOverscroll, pageLook)
         }
         val veil = if (page != shownPage) 1f else cover.value
         if (veil > 0f) {
@@ -486,8 +490,8 @@ private fun ImageBitmap.size() = Size(width.toFloat(), height.toFloat())
 private fun IntSize.toSize() = Size(width.toFloat(), height.toFloat())
 
 @Composable
-private fun GuidedPage(image: ImageBitmap, view: Rect, overscroll: Offset) {
-    Canvas(modifier = Modifier.fillMaxSize()) {
+private fun GuidedPage(image: ImageBitmap, view: Rect, overscroll: Offset, pageLook: PageLook) {
+    Canvas(modifier = Modifier.fillMaxSize().pageLook(pageLook)) {
         val source = view
         val drawn = GuidedFocus.fit(source, image.size(), size).translate(overscroll.x, overscroll.y)
         val scale = drawn.width / (source.width * image.width)

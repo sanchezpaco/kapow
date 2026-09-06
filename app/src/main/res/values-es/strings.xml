@@ -116,6 +116,8 @@
     <string name="detail_setting_cover_alone">Portada sola</string>
     <string name="detail_setting_split_wide_pages">Dividir páginas dobles</string>
     <string name="detail_setting_bubbles">Bocadillos ampliados al abrir</string>
+    <string name="detail_setting_page_look">Aspecto de página</string>
+    <string name="detail_setting_page_fit">Ajuste de página</string>
     <string name="detail_setting_guided">Vista guiada al abrir</string>
     <string name="detail_option_ltr">Izquierda a derecha</string>
     <string name="detail_option_rtl">Derecha a izquierda</string>
@@ -240,6 +242,14 @@
     <string name="reader_mode_bubbles">Bocadillos ampliados</string>
     <string name="reader_bubble_scale_smaller">Bocadillos más pequeños</string>
     <string name="reader_bubble_scale_bigger">Bocadillos más grandes</string>
+    <string name="reader_page_fit">Ajuste de página</string>
+    <string name="reader_page_fit_screen">Pantalla</string>
+    <string name="reader_page_fit_width">Ancho</string>
+    <string name="reader_page_look">Aspecto de página</string>
+    <string name="reader_page_look_original">Original</string>
+    <string name="reader_page_look_brighter">Más claro</string>
+    <string name="reader_page_look_contrast">Más contraste</string>
+    <string name="reader_page_look_paper">Papel</string>
     <string name="reader_setting_direction">Sentido de lectura</string>
     <string name="reader_direction_ltr">Izquierda a derecha</string>
     <string name="reader_direction_rtl">Derecha a izquierda</string>

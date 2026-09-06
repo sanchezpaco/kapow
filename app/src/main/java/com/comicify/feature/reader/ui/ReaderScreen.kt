@@ -46,7 +46,9 @@ import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material.icons.filled.CropPortrait
+import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.NightsStay
@@ -124,6 +126,7 @@ import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_STEP
 import com.comicify.feature.reader.domain.Bookmarks
 import com.comicify.feature.reader.domain.ComicOpenError
+import com.comicify.feature.reader.domain.PageLook
 import com.comicify.feature.reader.domain.ReaderViewMode
 import com.comicify.feature.reader.domain.TapZone
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -263,6 +266,8 @@ fun ReaderScreen(
                         },
                         onStripScrolled = viewModel::hideChrome,
                         bubbleScale = state.bubbleScale.takeIf { state.bubblesEnlarged },
+                        pageLook = state.pageLook,
+                        fitWidth = state.fitWidth,
                         direction = state.direction,
                         coverAlone = state.coverAlone,
                         initialPage = state.position.pageIndex,
@@ -295,14 +300,18 @@ fun ReaderScreen(
             guidedFullScreen = state.guidedFullScreen,
             bubblesEnlarged = state.bubblesEnlarged,
             bubbleScale = state.bubbleScale,
+            fitWidth = state.fitWidth,
             nightTintEnabled = state.nightTintEnabled,
+            pageLook = state.pageLook,
             direction = state.direction,
             splitWidePages = state.splitWidePages,
             onViewMode = viewModel::setViewMode,
             onToggleBubblesEnlarged = viewModel::toggleBubblesEnlarged,
+            onToggleFitWidth = viewModel::toggleFitWidth,
             onBubbleScale = viewModel::setBubbleScale,
             onToggleGuidedFullScreen = viewModel::toggleGuidedFullScreen,
             onToggleNightTint = viewModel::toggleNightTint,
+            onCyclePageLook = viewModel::cyclePageLook,
             onToggleDirection = viewModel::toggleReadingDirection,
             onToggleSplitWidePages = viewModel::toggleSplitWidePages,
             onSharePage = { (activeLoader ?: viewModel.pageLoader)?.let { viewModel.sharePage(it, posture, guidedStop) } },
@@ -459,14 +468,18 @@ private fun TopChrome(
     guidedFullScreen: Boolean,
     bubblesEnlarged: Boolean,
     bubbleScale: Float,
+    fitWidth: Boolean,
     nightTintEnabled: Boolean,
+    pageLook: PageLook,
     direction: ReadingDirection,
     splitWidePages: Boolean,
     onViewMode: (ReaderViewMode) -> Unit,
     onToggleBubblesEnlarged: () -> Unit,
+    onToggleFitWidth: () -> Unit,
     onBubbleScale: (Float) -> Unit,
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
+    onCyclePageLook: () -> Unit,
     onToggleDirection: () -> Unit,
     onToggleSplitWidePages: () -> Unit,
     onSharePage: () -> Unit,
@@ -500,7 +513,7 @@ private fun TopChrome(
                     CircleControl(
                         icon = Icons.Filled.Visibility,
                         open = openPanel == HudPanelKind.ViewMode,
-                        marked = viewMode != ReaderViewMode.Pages || bubblesEnlarged,
+                        marked = viewMode != ReaderViewMode.Pages || bubblesEnlarged || fitWidth,
                         contentDescription = stringResource(R.string.reader_action_view_mode),
                         onClick = { openPanel = openPanel.toggled(HudPanelKind.ViewMode) },
                     )
@@ -508,7 +521,8 @@ private fun TopChrome(
                     CircleControl(
                         icon = Icons.Filled.Settings,
                         open = openPanel == HudPanelKind.Settings,
-                        marked = nightTintEnabled || direction == ReadingDirection.RightToLeft || splitWidePages,
+                        marked = nightTintEnabled || pageLook != PageLook.Original ||
+                            direction == ReadingDirection.RightToLeft || splitWidePages,
                         contentDescription = stringResource(R.string.reader_action_settings),
                         onClick = { openPanel = openPanel.toggled(HudPanelKind.Settings) },
                     )
@@ -518,8 +532,10 @@ private fun TopChrome(
                         mode = viewMode,
                         bubblesEnlarged = bubblesEnlarged,
                         bubbleScale = bubbleScale,
+                        fitWidth = fitWidth,
                         onMode = { openPanel = null; onViewMode(it) },
                         onToggleBubbles = onToggleBubblesEnlarged,
+                        onToggleFitWidth = onToggleFitWidth,
                         onBubbleScale = onBubbleScale,
                     )
                 }
@@ -529,10 +545,12 @@ private fun TopChrome(
                         guided = viewMode == ReaderViewMode.Guided,
                         guidedFullScreen = guidedFullScreen,
                         nightTintEnabled = nightTintEnabled,
+                        pageLook = pageLook,
                         direction = direction,
                         splitWidePages = splitWidePages,
                         onToggleGuidedFullScreen = onToggleGuidedFullScreen,
                         onToggleNightTint = onToggleNightTint,
+                        onCyclePageLook = onCyclePageLook,
                         onToggleDirection = onToggleDirection,
                         onToggleSplitWidePages = onToggleSplitWidePages,
                         onSharePage = { openPanel = null; onSharePage() },
@@ -542,6 +560,13 @@ private fun TopChrome(
             }
         }
     }
+}
+
+private fun PageLook.labelRes(): Int = when (this) {
+    PageLook.Original -> R.string.reader_page_look_original
+    PageLook.Brighter -> R.string.reader_page_look_brighter
+    PageLook.MoreContrast -> R.string.reader_page_look_contrast
+    PageLook.Paper -> R.string.reader_page_look_paper
 }
 
 private enum class HudPanelKind { ViewMode, Settings }
@@ -622,8 +647,10 @@ private fun ViewModePanel(
     mode: ReaderViewMode,
     bubblesEnlarged: Boolean,
     bubbleScale: Float,
+    fitWidth: Boolean,
     onMode: (ReaderViewMode) -> Unit,
     onToggleBubbles: () -> Unit,
+    onToggleFitWidth: () -> Unit,
     onBubbleScale: (Float) -> Unit,
 ) {
     HudPanel {
@@ -638,6 +665,21 @@ private fun ViewModePanel(
         }
         if (mode.allowsBubbles()) {
             PanelDivider()
+            if (mode == ReaderViewMode.Pages) {
+                PanelRow(
+                    icon = Icons.Filled.FitScreen,
+                    label = stringResource(R.string.reader_page_fit),
+                    onClick = onToggleFitWidth,
+                ) {
+                    Text(
+                        text = stringResource(
+                            if (fitWidth) R.string.reader_page_fit_width else R.string.reader_page_fit_screen,
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
             PanelRow(
                 icon = Icons.Filled.ChatBubbleOutline,
                 label = stringResource(R.string.reader_mode_bubbles),
@@ -730,10 +772,12 @@ private fun ReaderSettingsPanel(
     guided: Boolean,
     guidedFullScreen: Boolean,
     nightTintEnabled: Boolean,
+    pageLook: PageLook,
     direction: ReadingDirection,
     splitWidePages: Boolean,
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
+    onCyclePageLook: () -> Unit,
     onToggleDirection: () -> Unit,
     onToggleSplitWidePages: () -> Unit,
     onSharePage: () -> Unit,
@@ -746,6 +790,17 @@ private fun ReaderSettingsPanel(
             onClick = onToggleNightTint,
         ) {
             Switch(checked = nightTintEnabled, onCheckedChange = null)
+        }
+        PanelRow(
+            icon = Icons.Filled.Contrast,
+            label = stringResource(R.string.reader_page_look),
+            onClick = onCyclePageLook,
+        ) {
+            Text(
+                text = stringResource(pageLook.labelRes()),
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.labelLarge,
+            )
         }
         PanelRow(
             icon = Icons.Filled.SwapHoriz,

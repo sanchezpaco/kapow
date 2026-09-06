@@ -119,6 +119,8 @@
     <string name="detail_setting_cover_alone">Cover on its own page</string>
     <string name="detail_setting_split_wide_pages">Split wide pages</string>
     <string name="detail_setting_bubbles">Enlarged bubbles on open</string>
+    <string name="detail_setting_page_look">Page look</string>
+    <string name="detail_setting_page_fit">Page fit</string>
     <string name="detail_setting_guided">Guided view on open</string>
     <string name="detail_option_ltr">Left to right</string>
     <string name="detail_option_rtl">Right to left</string>
@@ -243,6 +245,14 @@
     <string name="reader_mode_bubbles">Enlarged bubbles</string>
     <string name="reader_bubble_scale_smaller">Smaller bubbles</string>
     <string name="reader_bubble_scale_bigger">Bigger bubbles</string>
+    <string name="reader_page_fit">Page fit</string>
+    <string name="reader_page_fit_screen">Screen</string>
+    <string name="reader_page_fit_width">Width</string>
+    <string name="reader_page_look">Page look</string>
+    <string name="reader_page_look_original">Original</string>
+    <string name="reader_page_look_brighter">Brighter</string>
+    <string name="reader_page_look_contrast">More contrast</string>
+    <string name="reader_page_look_paper">Paper</string>
     <string name="reader_setting_direction">Reading direction</string>
     <string name="reader_direction_ltr">Left to right</string>
     <string name="reader_direction_rtl">Right to left</string>

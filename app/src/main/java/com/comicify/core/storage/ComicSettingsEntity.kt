@@ -2,6 +2,7 @@ package com.comicify.core.storage
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.comicify.feature.reader.domain.PageLook
 
 @Entity(tableName = "comic_settings")
 data class ComicSettingsEntity(
@@ -14,4 +15,6 @@ data class ComicSettingsEntity(
     val splitWidePages: Boolean = false,
     val splitSuggested: Boolean = false,
     val verticalScroll: Boolean = false,
+    val pageLook: String = PageLook.Original.name,
+    val fitWidth: Boolean = false,
 )

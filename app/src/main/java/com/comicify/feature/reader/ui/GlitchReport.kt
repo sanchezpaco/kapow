@@ -22,6 +22,7 @@ import com.comicify.core.window.ReadingPosture
 import com.comicify.feature.reader.data.DETECTIONS_VERSION
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.domain.PageDetectionCodec
+import com.comicify.feature.reader.domain.PageLook
 import com.comicify.feature.reader.ui.BubbleOverlay.drawBubbles
 import java.io.File
 import org.json.JSONObject
@@ -39,6 +40,7 @@ data class GlitchReportRequest(
     val guided: Boolean,
     val bubbleScale: Float?,
     val posture: ReadingPosture,
+    val pageLook: PageLook,
 )
 
 class GlitchReport(private val context: Context) {
@@ -70,6 +72,7 @@ class GlitchReport(private val context: Context) {
         .put("bubblesEnlarged", request.bubbleScale != null)
         .put("bubbleScale", request.bubbleScale?.toDouble() ?: JSONObject.NULL)
         .put("posture", request.posture.name)
+        .put("pageLook", request.pageLook.name)
         .put("device", "${Build.MANUFACTURER} ${Build.MODEL}")
         .put("androidSdk", Build.VERSION.SDK_INT)
         .put("appVersion", BuildConfig.VERSION_NAME)
