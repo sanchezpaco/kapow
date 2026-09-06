@@ -33,6 +33,8 @@
                 <data android:mimeType="application/x-cbr" />
                 <data android:mimeType="application/zip" />
                 <data android:mimeType="application/vnd.rar" />
+                <data android:mimeType="application/x-7z-compressed" />
+                <data android:mimeType="application/x-tar" />
                 <data android:mimeType="application/pdf" />
                 <data android:mimeType="application/octet-stream" />
             </intent-filter>

@@ -42,7 +42,8 @@ object ComicSourceFactory {
         try {
             when (detectFormat(FileInputStream(descriptor.fileDescriptor).channel)) {
                 ComicFileFormat.Pdf -> PdfComicSource.fromDescriptor(descriptor)
-                ComicFileFormat.Rar -> CbrComicSource.fromDescriptor(descriptor, freshExtractDir(context), startPage)
+                ComicFileFormat.Rar, ComicFileFormat.SevenZip, ComicFileFormat.Tar ->
+                    CbrComicSource.fromDescriptor(descriptor, freshExtractDir(context), startPage)
                 ComicFileFormat.Zip -> CbzComicSource.fromFile(copyToCacheFile(context, descriptor))
                 ComicFileFormat.Unsupported -> throw ComicSourceException.UnsupportedFormat()
             }

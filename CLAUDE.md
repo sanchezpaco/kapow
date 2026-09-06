@@ -53,7 +53,7 @@ These are hard rules. Do not relax them without being asked.
 - Images: Coil
 - Persistence: Room (library, progress) + DataStore (preferences)
 - DI: Hilt
-- Archives: `java.util.zip` (CBZ), 7-Zip-JBinding (CBR, RAR4+RAR5), `PdfRenderer` (PDF)
+- Archives: `java.util.zip` (CBZ), 7-Zip-JBinding (CBR RAR4+RAR5, CB7, CBT), `PdfRenderer` (PDF)
 - Panel detection (later phase): OpenCV / custom edge detection
 
 ## Working conventions

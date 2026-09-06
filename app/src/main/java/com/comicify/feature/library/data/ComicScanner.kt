@@ -9,7 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
-private val comicExtensions = setOf("cbz", "cbr", "pdf")
+private val comicExtensions = setOf("cbz", "cbr", "cb7", "cbt", "7z", "tar", "pdf")
 
 private val comicMimeTypes = setOf(
     "application/vnd.comicbook+zip",
@@ -19,6 +19,8 @@ private val comicMimeTypes = setOf(
     "application/zip",
     "application/x-rar-compressed",
     "application/vnd.rar",
+    "application/x-7z-compressed",
+    "application/x-tar",
     "application/pdf",
 )
 
