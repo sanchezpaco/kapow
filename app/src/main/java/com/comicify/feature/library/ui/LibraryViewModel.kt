@@ -10,8 +10,11 @@ import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.domain.LibraryFilter
 import com.comicify.feature.library.domain.LibraryScanError
 import com.comicify.feature.library.domain.LibrarySort
+import com.comicify.feature.stats.data.ReadingStatsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,15 +22,20 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 private const val LIBRARY_TAG = "Library"
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     private val repository: LibraryRepository,
+    private val stats: ReadingStatsRepository,
 ) : ViewModel() {
 
     private val scanning = MutableStateFlow(false)
@@ -39,7 +47,7 @@ class LibraryViewModel @Inject constructor(
     private val openedSeries = MutableStateFlow<String?>(null)
     private var foregroundScan: Job? = null
 
-    val state: StateFlow<LibraryUiState> =
+    private val shelf: Flow<LibraryUiState> =
         combine(
             repository.library,
             repository.folderUri,
@@ -69,7 +77,16 @@ class LibraryViewModel @Inject constructor(
                 continueReadingVisible = selectedFilter == LibraryFilter.ALL && searchQuery.isBlank(),
                 totalCount = comics.size,
             )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState())
+        }
+
+    val state: StateFlow<LibraryUiState> = shelf
+        .flatMapLatest { shelf -> shelf.withHeroPace() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState())
+
+    private fun LibraryUiState.withHeroPace(): Flow<LibraryUiState> {
+        val hero = continueReading.firstOrNull() ?: return flowOf(this)
+        return stats.secondsPerPage(hero.documentUri, hero.series).map { copy(heroSecondsPerPage = it) }
+    }
 
     init {
         viewModelScope.launch {

@@ -86,10 +86,16 @@ class LibraryCatalogTest {
 
     @Test
     fun minutesLeftRoundsUpRemainingPages() {
-        assertEquals(0, LibraryCatalog.minutesLeft(pageIndex = 19, pageCount = 20))
-        assertEquals(1, LibraryCatalog.minutesLeft(pageIndex = 18, pageCount = 20))
-        assertEquals(15, LibraryCatalog.minutesLeft(pageIndex = 0, pageCount = 20))
-        assertEquals(0, LibraryCatalog.minutesLeft(pageIndex = 5, pageCount = 0))
+        assertEquals(0, LibraryCatalog.minutesLeft(pageIndex = 19, pageCount = 20, secondsPerPage = 45))
+        assertEquals(1, LibraryCatalog.minutesLeft(pageIndex = 18, pageCount = 20, secondsPerPage = 45))
+        assertEquals(15, LibraryCatalog.minutesLeft(pageIndex = 0, pageCount = 20, secondsPerPage = 45))
+        assertEquals(0, LibraryCatalog.minutesLeft(pageIndex = 5, pageCount = 0, secondsPerPage = 45))
+    }
+
+    @Test
+    fun minutesLeftFollowsTheMeasuredPace() {
+        assertEquals(6, LibraryCatalog.minutesLeft(pageIndex = 0, pageCount = 20, secondsPerPage = 18))
+        assertEquals(38, LibraryCatalog.minutesLeft(pageIndex = 0, pageCount = 20, secondsPerPage = 120))
     }
 
     @Test

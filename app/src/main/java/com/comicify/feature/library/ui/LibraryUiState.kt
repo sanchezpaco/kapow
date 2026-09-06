@@ -5,6 +5,7 @@ import com.comicify.feature.library.domain.LibraryEntry
 import com.comicify.feature.library.domain.LibraryFilter
 import com.comicify.feature.library.domain.LibraryScanError
 import com.comicify.feature.library.domain.LibrarySort
+import com.comicify.feature.stats.domain.ReadingPace
 
 data class LibraryUiState(
     val loading: Boolean = true,
@@ -22,4 +23,5 @@ data class LibraryUiState(
     val continueReading: List<LibraryComic> = emptyList(),
     val continueReadingVisible: Boolean = false,
     val totalCount: Int = 0,
+    val heroSecondsPerPage: Int = ReadingPace.FALLBACK_SECONDS_PER_PAGE,
 )
