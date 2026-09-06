@@ -78,7 +78,7 @@ detections) and the DataStore files (`files/datastore/`: folder Uri,
 preferences, theme, onboarding flag). Covers, the sample comic, the copied
 model files and the cache are left out; they are regenerated. After a restore
 the document grants are gone, so the library reports `AccessLost` until the
-folder is chosen again, and `generateMissingCovers` also regenerates covers
+folder is chosen again, and `fillMissingDetails` also regenerates covers
 whose file no longer exists.
 
 Everything is stored in `ReaderPreferencesRepository` (DataStore

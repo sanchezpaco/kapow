@@ -7,22 +7,27 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Log
 import androidx.core.net.toUri
+import androidx.room.withTransaction
 import com.comicify.R
 import com.comicify.core.storage.ComicDao
 import com.comicify.core.storage.ComicEntity
 import com.comicify.core.storage.ComicSettingsDao
 import com.comicify.core.storage.ComicSettingsEntity
+import com.comicify.core.storage.KapowDatabase
 import com.comicify.core.storage.LibraryPreferences
 import com.comicify.core.storage.PageDetectionDao
 import com.comicify.core.storage.ReadingStateDao
 import com.comicify.core.storage.ReadingStateEntity
 import com.comicify.domain.model.ReadingDirection
+import com.comicify.feature.library.domain.ArrivingComic
 import com.comicify.feature.library.domain.ComicInfoParser
 import com.comicify.feature.library.domain.ComicNameParser
 import com.comicify.feature.library.domain.ComicSettings
 import com.comicify.feature.library.domain.METADATA_VERSION
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
+import com.comicify.feature.library.domain.LibraryReconciler
+import com.comicify.feature.library.domain.MissingComic
 import com.comicify.feature.library.domain.ParsedComicName
 import com.comicify.feature.library.domain.mergeComicMetadata
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -41,12 +46,14 @@ private const val SAMPLE_DIRECTORY = "sample"
 @Singleton
 class LibraryRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val database: KapowDatabase,
     private val comicDao: ComicDao,
     private val readingStateDao: ReadingStateDao,
     private val comicSettingsDao: ComicSettingsDao,
     private val pageDetectionDao: PageDetectionDao,
     private val preferences: LibraryPreferences,
     private val scanner: ComicScanner,
+    private val hasher: ComicHasher,
     private val coverGenerator: CoverGenerator,
 ) : LibraryRepository {
 
@@ -104,34 +111,87 @@ class LibraryRepositoryImpl @Inject constructor(
     override suspend fun refresh() {
         val treeUri = preferences.folderUri.first()?.toUri() ?: return
         val discovered = scanner.scan(treeUri)
-        pruneMissing(discovered.map { it.documentUri }.toSet())
-        discovered.forEach { discovered ->
-            if (comicDao.findByDocumentUri(discovered.documentUri) != null) return@forEach
-            val parsed = ComicNameParser.parse(discovered.displayName)
-            val series = parsed.series.ifBlank { discovered.folderName }.ifBlank { discovered.displayName }
-            comicDao.insert(
-                ComicEntity(
-                    documentUri = discovered.documentUri,
-                    displayName = discovered.displayName.substringBeforeLast('.', discovered.displayName),
-                    series = series,
-                    issueNumber = parsed.issueNumber,
-                    year = parsed.year,
-                    pageCount = null,
-                    coverPath = null,
-                    addedAt = System.currentTimeMillis(),
-                ),
+        val known = comicDao.getAll()
+        val knownById = known.associateBy(ComicEntity::id)
+        val reconciliation = LibraryReconciler.reconcile(arrivals(discovered, known), missing(discovered, known))
+        reconciliation.relinks.forEach { relink -> relinkComic(knownById.getValue(relink.comicId), relink.comic) }
+        reconciliation.additions.forEach { addComic(it) }
+        reconciliation.removals.forEach { removeComic(knownById.getValue(it)) }
+    }
+
+    private suspend fun arrivals(discovered: List<DiscoveredComic>, known: List<ComicEntity>): List<ArrivingComic> {
+        val registered = known.mapTo(mutableSetOf(), ComicEntity::documentUri)
+        return discovered.filterNot { it.documentUri in registered }.map { comic ->
+            ArrivingComic(
+                documentUri = comic.documentUri,
+                displayName = comic.displayName,
+                folderName = comic.folderName,
+                contentHash = hasher.hash(comic.documentUri.toUri()),
             )
         }
     }
 
-    override suspend fun generateMissingCovers() {
-        comicDao.getAll().filter { it.needsCoverOrMetadata() }.forEach { comic ->
+    private fun missing(discovered: List<DiscoveredComic>, known: List<ComicEntity>): List<MissingComic> {
+        val present = discovered.mapTo(mutableSetOf(), DiscoveredComic::documentUri)
+        return known.filterNot { isManagedLocally(it) || it.documentUri in present }
+            .map { MissingComic(it.id, it.contentHash) }
+    }
+
+    private suspend fun addComic(arrival: ArrivingComic) {
+        val parsed = ComicNameParser.parse(arrival.displayName)
+        comicDao.insert(
+            ComicEntity(
+                documentUri = arrival.documentUri,
+                displayName = arrival.title(),
+                series = arrival.series(parsed),
+                issueNumber = parsed.issueNumber,
+                year = parsed.year,
+                pageCount = null,
+                coverPath = null,
+                addedAt = System.currentTimeMillis(),
+                contentHash = arrival.contentHash,
+            ),
+        )
+    }
+
+    private suspend fun relinkComic(comic: ComicEntity, arrival: ArrivingComic) {
+        val parsed = ComicNameParser.parse(arrival.displayName)
+        database.withTransaction {
+            comicDao.relink(
+                id = comic.id,
+                documentUri = arrival.documentUri,
+                displayName = arrival.title(),
+                series = arrival.series(parsed),
+                issueNumber = parsed.issueNumber,
+                year = parsed.year,
+            )
+            comicSettingsDao.relink(comic.documentUri, arrival.documentUri)
+            pageDetectionDao.relink(comic.documentUri, arrival.documentUri)
+        }
+        Log.i(LIBRARY_TAG, "Relinked comic ${comic.id} to ${arrival.documentUri}")
+    }
+
+    private fun ArrivingComic.title(): String = displayName.substringBeforeLast('.', displayName)
+
+    private fun ArrivingComic.series(parsed: ParsedComicName): String =
+        parsed.series.ifBlank { folderName }.ifBlank { displayName }
+
+    override suspend fun fillMissingDetails() {
+        comicDao.getAll().forEach { comic ->
+            backfillContentHash(comic)
+            if (!comic.needsCoverOrMetadata()) return@forEach
             runCatching { coverGenerator.generate(comic.id, comic.documentUri.toUri()) }
                 .onSuccess { generated ->
                     comicDao.updateCover(comic.id, generated.pageCount, generated.coverPath, generated.ambient)
                     saveMetadata(comic, generated.comicInfoXml)
                 }
         }
+    }
+
+    private suspend fun backfillContentHash(comic: ComicEntity) {
+        if (comic.contentHash != null) return
+        val hash = hasher.hash(comic.documentUri.toUri()) ?: return
+        comicDao.setContentHash(comic.id, hash)
     }
 
     private suspend fun saveMetadata(comic: ComicEntity, comicInfoXml: String?) {
@@ -256,13 +316,6 @@ class LibraryRepositoryImpl @Inject constructor(
         val path = uri.path ?: return false
         val file = File(path)
         return !file.exists() || file.delete()
-    }
-
-    private suspend fun pruneMissing(presentUris: Set<String>) {
-        comicDao.getAll().forEach { comic ->
-            if (isManagedLocally(comic)) return@forEach
-            if (comic.documentUri !in presentUris) removeComic(comic)
-        }
     }
 
     private fun isManagedLocally(comic: ComicEntity): Boolean =

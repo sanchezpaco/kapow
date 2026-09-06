@@ -17,6 +17,9 @@ interface ComicSettingsDao {
     @Upsert
     suspend fun upsert(settings: ComicSettingsEntity)
 
+    @Query("UPDATE OR REPLACE comic_settings SET documentUri = :documentUri WHERE documentUri = :previousUri")
+    suspend fun relink(previousUri: String, documentUri: String)
+
     @Query("DELETE FROM comic_settings WHERE documentUri = :documentUri")
     suspend fun delete(documentUri: String)
 }

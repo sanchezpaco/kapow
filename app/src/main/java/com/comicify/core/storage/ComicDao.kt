@@ -48,6 +48,22 @@ interface ComicDao {
         metadataVersion: Int,
     )
 
+    @Query("UPDATE comics SET contentHash = :contentHash WHERE id = :id")
+    suspend fun setContentHash(id: Long, contentHash: String)
+
+    @Query(
+        "UPDATE comics SET documentUri = :documentUri, displayName = :displayName, series = :series, " +
+            "issueNumber = :issueNumber, year = :year, metadataVersion = 0 WHERE id = :id",
+    )
+    suspend fun relink(
+        id: Long,
+        documentUri: String,
+        displayName: String,
+        series: String,
+        issueNumber: Int?,
+        year: Int?,
+    )
+
     @Query("UPDATE comics SET favorite = :favorite WHERE id = :id")
     suspend fun setFavorite(id: Long, favorite: Boolean)
 

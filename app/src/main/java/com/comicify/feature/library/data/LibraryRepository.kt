@@ -13,7 +13,7 @@ interface LibraryRepository {
     suspend fun setGrouped(grouped: Boolean)
     suspend fun seedSampleIfNeeded()
     suspend fun refresh()
-    suspend fun generateMissingCovers()
+    suspend fun fillMissingDetails()
     suspend fun saveProgress(comicId: Long, pageIndex: Int, pageCount: Int): Boolean
     suspend fun unshelve(comicId: Long)
     suspend fun reshelve(comicId: Long)

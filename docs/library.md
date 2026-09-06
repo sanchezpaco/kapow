@@ -25,7 +25,8 @@ The home of the collection: import comics, browse covers, resume reading.
   removed (their cover and reading state deleted with them). Deleting a comic
   from the folder and refreshing makes it disappear instead of lingering as a
   broken entry. The folder Uri is taken with read **and** write permission so
-  the app can also delete the underlying file itself (below).
+  the app can also delete the underlying file itself (below). A file that only
+  moved or was renamed is **relinked**, not re-added: see *Identity* below.
 - Scanning stays responsive: each discovered comic is inserted immediately with
   `pageCount`/`coverPath` left null, and covers fill in afterwards (below).
 
@@ -96,6 +97,9 @@ ReadingSession(
 ```
 
 - `documentUri` is unique; re-scans ignore comics already registered.
+- `contentHash` is the comic's real identity (below). It was added in schema
+  **v13** (migration `12→13`), nullable and indexed, so an upgraded library
+  keeps every row and fills the hashes in lazily.
 - `ReadingSession` records one row per reading session and feeds the stats
   screen and the hero's estimate. It cascades on the comic and is pruned after
   400 days; see `docs/stats.md`.
@@ -123,6 +127,53 @@ ReadingSession(
   library upgraded in place keeps its covers and reading positions.
 - Detected panels are cached in-memory per session by the reader's `PageLoader`;
   a persistent panel cache is deferred to a later phase.
+
+## Identity
+
+Every table keys a comic by its `documentUri` (`comics`, `comic_settings`,
+`page_detections`; `reading_states` and `reading_session` hang off the comic
+`id`). A document Uri encodes the file's path, so renaming or moving a file —
+or re-picking the folder after a lost grant — hands the scan a Uri it has never
+seen and would strand progress, favourites, per-comic settings, cached
+detections and the cover on a row whose file is gone.
+
+The **content hash** is what actually identifies a comic, the same rule
+YACReader uses: `SHA-1(first 512 KB of the file + the file size)`
+(`ComicIdentity.hash`, pure; `ComicHasher` does the reading). The prefix keeps
+it cheap on a 70 MB archive, and the size makes two files that share an opening
+block distinct.
+
+### Relinking
+
+`documentUri` stays the row key; the scan reconciles by hash instead
+(`LibraryReconciler.reconcile`, pure domain, given the arrivals and the rows
+whose file is gone):
+
+- Only Uris **not already in the database** are hashed, on `Dispatchers.IO`. A
+  rescan of a library with no new files reads no bytes at all, so the automatic
+  foreground rescan stays as cheap as it was.
+- An arrival whose hash matches a missing row is that comic, moved or renamed:
+  `LibraryRepositoryImpl.relinkComic` rewrites the Uri on the comic, its
+  settings and its detections in one Room transaction, and re-derives the
+  name-based fields (`displayName`, `series`, `issueNumber`, `year`) from the
+  new file name, resetting `metadataVersion` so the next pass re-reads
+  `ComicInfo.xml` over them. The row id never changes, so progress, favourite,
+  sessions and the cover file follow for free.
+- Duplicates are handled one for one: two identical files consume two missing
+  rows, and a third copy is added as a new comic.
+- Only what is left after that is removed. Ordering the scan
+  *relink → add → remove* is what makes a rename survive: pruning first would
+  delete the row before its file could be recognised under the new name.
+- A scan that throws (`AccessLost`, i.e. the grant vanished) still prunes
+  nothing, so rows survive until a folder is picked again and the hashes can
+  match the files back to them. Only a **successful** scan that lists the folder
+  and finds no file with a row's hash removes it.
+- Rows that predate the feature, or whose hash could not be read, simply do not
+  relink; they are added and removed by Uri exactly as before.
+
+Hashes are backfilled lazily by `fillMissingDetails` (the cover pass), which
+already walks every comic after a scan: a row with no hash gets one there, while
+its file is still where the library expects it. Nothing hashes a comic twice.
 
 ## Grouping by series
 
@@ -337,7 +388,7 @@ the user can always see what the metadata replaced. Search
 ### When it is read
 
 Not at scan time. The scan stays instant; the cover pass
-(`generateMissingCovers`) already opens every archive once, and reads the XML
+(`fillMissingDetails`) already opens every archive once, and reads the XML
 through that same `ComicSource`, so metadata lands a moment after the covers.
 `METADATA_VERSION` (next to the parser, same idea as `DETECTIONS_VERSION` in
 `ml-runtime.md`) is stored per comic: bumping the constant makes the next pass
