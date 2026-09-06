@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import android.util.Log
+import com.comicify.feature.library.domain.ComicCover
 import com.comicify.feature.reader.data.ComicSource
 import com.comicify.feature.reader.data.ComicSourceException
 import com.comicify.feature.reader.data.ComicSourceFactory
@@ -16,26 +17,41 @@ import java.io.IOException
 import javax.inject.Inject
 
 private const val COVER_TAG = "CoverGenerator"
-private const val COVER_WIDTH_PX = 360
+internal const val COVER_WIDTH_PX = 360
 private const val COVER_QUALITY = 85
+private const val COVER_DIRECTORY = "covers"
 
-data class GeneratedCover(val pageCount: Int, val coverPath: String, val ambient: Int, val comicInfoXml: String?)
+data class GeneratedCover(
+    val pageCount: Int,
+    val coverPage: Int,
+    val coverPath: String,
+    val ambient: Int,
+    val comicInfoXml: String?,
+)
 
 class CoverGenerator @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    suspend fun generate(comicId: Long, documentUri: Uri): GeneratedCover = withContext(Dispatchers.IO) {
-        val source = ComicSourceFactory.open(context, documentUri, startPage = 0)
+    suspend fun generate(comicId: Long, documentUri: Uri, chosenPage: Int): GeneratedCover = withContext(Dispatchers.IO) {
+        val source = ComicSourceFactory.open(context, documentUri, startPage = chosenPage)
         try {
-            val bitmap = source.decodePage(0, COVER_WIDTH_PX)
+            val page = ComicCover.page(chosenPage, source.pageCount)
+            val bitmap = source.decodePage(page, COVER_WIDTH_PX)
             GeneratedCover(
                 pageCount = source.pageCount,
-                coverPath = writeCover(comicId, bitmap).absolutePath,
+                coverPage = page,
+                coverPath = writeCover(comicId, page, bitmap).absolutePath,
                 ambient = bitmap.ambientColorInt(),
                 comicInfoXml = readComicInfoXml(source),
             )
         } finally {
             source.close()
+        }
+    }
+
+    fun deleteCovers(comicId: Long) {
+        coverDirectory().listFiles()?.forEach { file ->
+            if (ComicCover.belongsTo(file.name, comicId)) file.delete()
         }
     }
 
@@ -50,10 +66,11 @@ class CoverGenerator @Inject constructor(
             null
         }
 
-    private fun writeCover(comicId: Long, bitmap: Bitmap): File {
-        val directory = File(context.filesDir, "covers").apply { mkdirs() }
-        val file = File(directory, "$comicId.jpg")
+    private fun writeCover(comicId: Long, page: Int, bitmap: Bitmap): File {
+        val file = File(coverDirectory().apply { mkdirs() }, ComicCover.fileName(comicId, page))
         file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, COVER_QUALITY, it) }
         return file
     }
+
+    private fun coverDirectory(): File = File(context.filesDir, COVER_DIRECTORY)
 }

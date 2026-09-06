@@ -30,4 +30,5 @@ data class ComicEntity(
     val readsRightToLeft: Boolean? = null,
     val metadataVersion: Int = 0,
     val contentHash: String? = null,
+    val coverPage: Int = 0,
 )

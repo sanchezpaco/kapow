@@ -29,6 +29,7 @@
     <string name="library_filter_read">Leídos</string>
     <string name="library_filter_favorites">Favoritos</string>
     <string name="library_filter_empty">Aquí no hay nada todavía.</string>
+    <string name="library_choose_cover">Elegir portada</string>
     <string name="library_mark_read">Marcar como leído</string>
     <string name="library_mark_unread">Marcar como no leído</string>
     <string name="library_add_favorite">Añadir a favoritos</string>
@@ -237,4 +238,10 @@
     <string name="posture_tabletop">Sobremesa</string>
 
     <string name="sample_comic_title">AURA: El perfecto crimen</string>
+    <string name="cover_picker_eyebrow">Este cómic</string>
+    <string name="cover_picker_title">Elegir portada</string>
+    <string name="cover_picker_reset">Usar la primera página</string>
+    <string name="cover_picker_page">Página %1$d</string>
+    <string name="cover_picker_current">Portada actual</string>
+    <string name="cover_picker_failed">No se pudo leer esa página</string>
 </resources>

@@ -8,6 +8,7 @@ data class LibraryComic(
     val series: String,
     val issueNumber: Int?,
     val coverPath: String?,
+    val coverPage: Int = FIRST_PAGE,
     val coverAmbient: Int?,
     val pageCount: Int?,
     val pageIndex: Int,

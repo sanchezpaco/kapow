@@ -35,6 +35,7 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.ui.ComicSettingsScreen
+import com.comicify.feature.library.ui.CoverPickerScreen
 import com.comicify.feature.library.ui.LibraryScreen
 import com.comicify.feature.library.ui.LibraryViewModel
 import com.comicify.feature.library.ui.LocalAnimatedVisibilityScope
@@ -61,6 +62,7 @@ private sealed interface Screen {
     data object Onboarding : Screen
     data object Library : Screen
     data class Settings(val request: SettingsRequest) : Screen
+    data class CoverPicker(val comic: LibraryComic) : Screen
     data object Stats : Screen
     data object AppSettings : Screen
     data object Licences : Screen
@@ -83,6 +85,7 @@ fun KapowRoot(initialUri: Uri? = null) {
         mutableStateOf(initialUri?.let { OpenRequest(uri = it, comicId = null, initialPage = 0, ambient = null) })
     }
     var settingsOf by remember { mutableStateOf<SettingsRequest?>(null) }
+    var coverPickerOf by remember { mutableStateOf<Long?>(null) }
     var statsOpen by remember { mutableStateOf(false) }
     var appSettingsOpen by remember { mutableStateOf(false) }
     var licencesOpen by remember { mutableStateOf(false) }
@@ -91,6 +94,7 @@ fun KapowRoot(initialUri: Uri? = null) {
     val screen: Screen = open?.let { Screen.Reader(it) }
         ?: if (!seen) Screen.Onboarding
         else settingsOf?.let { Screen.Settings(it) }
+        ?: coverPickerOf?.let { id -> state.allComics.firstOrNull { it.id == id } }?.let { Screen.CoverPicker(it) }
         ?: if (statsOpen) Screen.Stats
         else if (licencesOpen) Screen.Licences
         else if (appSettingsOpen) Screen.AppSettings else Screen.Library
@@ -126,6 +130,7 @@ fun KapowRoot(initialUri: Uri? = null) {
                             onOpenComic = { open = it.toOpenRequest() },
                             onOpenSettings = { settingsOf = SettingsRequest(comics = it, showDetails = false) },
                             onOpenDetails = { settingsOf = SettingsRequest(comics = listOf(it), showDetails = true) },
+                            onChooseCover = { coverPickerOf = it.id },
                             onOpenStats = { statsOpen = true },
                             onOpenAppSettings = { appSettingsOpen = true },
                             onOpenFile = { open = OpenRequest(uri = it, comicId = null, initialPage = 0, ambient = null) },
@@ -147,6 +152,10 @@ fun KapowRoot(initialUri: Uri? = null) {
                             comics = target.request.comics,
                             showDetails = target.request.showDetails,
                             onBack = { settingsOf = null },
+                        )
+                        is Screen.CoverPicker -> CoverPickerScreen(
+                            comic = target.comic,
+                            onBack = { coverPickerOf = null },
                         )
                         Screen.Stats -> StatsScreen(
                             onBack = { statsOpen = false },
@@ -196,6 +205,7 @@ private fun Screen.key(): Any = when (this) {
     Screen.Onboarding -> "onboarding"
     Screen.Library -> "library"
     is Screen.Settings -> "settings-${request.comics.first().id}"
+    is Screen.CoverPicker -> "cover-picker-${comic.id}"
     Screen.Stats -> "stats"
     Screen.AppSettings -> "app-settings"
     Screen.Licences -> "licences"

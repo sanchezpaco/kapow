@@ -77,7 +77,7 @@ Uri (below); page detections are documented in `docs/ml-runtime.md`.
 Comic(
     id, documentUri, displayName,
     series, issueNumber, year,
-    pageCount?, coverPath?, coverAmbient?, addedAt, favorite,
+    pageCount?, coverPath?, coverPage, coverAmbient?, addedAt, favorite,
     storyTitle?, publisher?, writer?, penciller?, inker?, colorist?,
     summary?, readsRightToLeft?, metadataVersion,
 )
@@ -196,9 +196,10 @@ its file is still where the library expects it. Nothing hashes a comic twice.
 
 ## Covers
 
-- `CoverGenerator` decodes the first page through `ComicSourceFactory` at grid
-  resolution and writes a JPEG to internal storage (`filesDir/covers/{id}.jpg`),
-  recording `coverPath`, `pageCount` and `coverAmbient`: the cover's ambient
+- `CoverGenerator` decodes the comic's `coverPage` through `ComicSourceFactory` at
+  grid resolution and writes a JPEG to internal storage
+  (`filesDir/covers/{id}_{coverPage}.jpg`), recording `coverPath`, `coverPage`,
+  `pageCount` and `coverAmbient`: the cover's ambient
   colour (same Palette rule as the reader's `ambientColorInt`), stored as an
   ARGB int so the library can tint the hero without decoding the cover again.
 - The same pass reads `ComicInfo.xml` (below): the archive is already open, so
@@ -210,6 +211,24 @@ its file is still where the library expects it. Nothing hashes a comic twice.
   decoded) shows a **procedural cover** instead of an empty box: a gradient keyed
   to the series name, a large faded monogram, a comic halftone-dot overlay and the
   title — so PDFs and freshly-scanned comics still read as cover art.
+- **Any page can be the cover.** "Choose cover" in the long-press menu opens
+  `CoverPickerScreen`, a grid of every page (thumbnails decoded lazily at half the
+  cover width through `PageThumbnails`, which keeps one `ComicSource` open for the
+  screen's lifetime). Tapping a page writes `coverPage`, regenerates the cover
+  through the same `CoverGenerator` and returns to the library; "Use first page"
+  resets to page 0 and stays. `coverPage` is a **pre-split** page index, so
+  splitting wide pages never shifts it, and it is clamped to the page count on
+  every generation (`ComicCover.page`).
+- The file name carries the page (`{id}_{page}.jpg`) so a new choice is a new
+  `coverPath`: that is what invalidates Coil, which keys its memory cache on the
+  model. The previous file is deleted after the new one is written, and deleting a
+  comic removes every `covers/{id}_*.jpg` (`CoverGenerator.deleteCovers`).
+  Regeneration recomputes `coverAmbient`, so the hero wash, the settings header and
+  the reader's `initialAmbient` follow the new cover for free — and a series stack,
+  which renders its first issue's cover, follows that issue's choice.
+- The menu row is hidden while `pageCount` is still null (the cover pass has not
+  run yet); a page that cannot be decoded leaves `coverPath`/`coverPage` untouched
+  and reports it in a snackbar rather than falling back to page 0.
 
 ## Visual identity
 
@@ -258,8 +277,8 @@ re-shelves it, so a comic reappears as soon as it is read again.
   row ~185 dp up from under the user's finger.
 - **Search**: the magnifier in the toolbar reveals a field that filters by title
   or series, case-insensitive (`LibraryCatalog.search`).
-- **Long-pressing a cover** opens a menu headed by the comic's title: reading
-  settings, mark read/unread, favorite, delete. **Long-pressing a series stack**
+- **Long-pressing a cover** opens a menu headed by the comic's title: details,
+  choose cover, reading settings, mark read/unread, favorite, delete. **Long-pressing a series stack**
   opens the series menu: series settings, mark the whole series read/unread,
   add/remove every issue from favorites and delete the series (confirmation
   dialog, deletes every file); the same menu sits behind "⋮" in the series
@@ -338,8 +357,10 @@ out to all targets; it also exposes the global reading direction for the
 
 ### Navigation and transitions
 
-`KapowRoot` derives a typed `Screen` (Library / Settings / AppSettings /
+`KapowRoot` derives a typed `Screen` (Library / Settings / CoverPicker / AppSettings /
 Reader) from its state slots and renders it inside `SharedTransitionLayout` + `AnimatedContent`.
+The cover picker keeps only the comic id in that slot and resolves the row on every
+composition, so the picker sees the `coverPage` it has just written.
 Screens cross-fade; the reader additionally scales in from 94 %. The cover is a
 shared element between the grid card (or series stack) and the settings header:
 `Modifier.sharedCover(comicId)` (`SharedCover.kt`) reads the transition and

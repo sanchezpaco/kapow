@@ -180,12 +180,22 @@ class LibraryRepositoryImpl @Inject constructor(
         comicDao.getAll().forEach { comic ->
             backfillContentHash(comic)
             if (!comic.needsCoverOrMetadata()) return@forEach
-            runCatching { coverGenerator.generate(comic.id, comic.documentUri.toUri()) }
+            runCatching { coverGenerator.generate(comic.id, comic.documentUri.toUri(), comic.coverPage) }
                 .onSuccess { generated ->
-                    comicDao.updateCover(comic.id, generated.pageCount, generated.coverPath, generated.ambient)
+                    comicDao.updateCover(comic.id, generated.pageCount, generated.coverPage, generated.coverPath, generated.ambient)
                     saveMetadata(comic, generated.comicInfoXml)
                 }
         }
+    }
+
+    override suspend fun setCoverPage(comicId: Long, page: Int): Boolean {
+        val comic = comicDao.findById(comicId) ?: return false
+        val generated = runCatching { coverGenerator.generate(comic.id, comic.documentUri.toUri(), page) }
+            .onFailure { Log.e(LIBRARY_TAG, "Page $page could not become the cover of ${comic.documentUri}", it) }
+            .getOrNull() ?: return false
+        comicDao.updateCover(comic.id, generated.pageCount, generated.coverPage, generated.coverPath, generated.ambient)
+        comic.coverPath?.takeIf { it != generated.coverPath }?.let { File(it).delete() }
+        return true
     }
 
     private suspend fun backfillContentHash(comic: ComicEntity) {
@@ -322,7 +332,7 @@ class LibraryRepositoryImpl @Inject constructor(
         comic.documentUri.toUri().scheme == ContentResolver.SCHEME_FILE
 
     private suspend fun removeComic(comic: ComicEntity) {
-        comic.coverPath?.let { File(it).delete() }
+        coverGenerator.deleteCovers(comic.id)
         readingStateDao.delete(comic.id)
         comicSettingsDao.delete(comic.documentUri)
         pageDetectionDao.deleteAll(comic.documentUri)
@@ -338,6 +348,7 @@ class LibraryRepositoryImpl @Inject constructor(
             series = series,
             issueNumber = issueNumber,
             coverPath = coverPath,
+            coverPage = coverPage,
             coverAmbient = coverAmbient,
             pageCount = pageCount,
             pageIndex = state?.pageIndex ?: 0,

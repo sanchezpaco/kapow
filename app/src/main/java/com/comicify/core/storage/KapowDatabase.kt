@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [ComicEntity::class, ReadingStateEntity::class, PageDetectionEntity::class, ComicSettingsEntity::class, ReadingSessionEntity::class],
-    version = 13,
+    version = 14,
     exportSchema = false,
 )
 abstract class KapowDatabase : RoomDatabase() {
