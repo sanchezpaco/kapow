@@ -227,6 +227,9 @@
     <string name="reader_direction_rtl">Right to left</string>
     <string name="reader_strip_finished">Finished · %1$s</string>
     <string name="reader_strip_next">Next · %1$s</string>
+    <string name="reader_action_share_page">Share this page</string>
+    <string name="reader_action_share_panel">Share this panel</string>
+    <string name="reader_share_title">%1$s · page %2$d</string>
     <string name="reader_action_report_glitch">Report a visual glitch</string>
     <string name="glitch_report_title">Report a visual glitch?</string>
     <string name="glitch_report_body">An image of this page as it is shown and technical data (page, reading mode, device, app version, detected panels and bubbles) will be attached to an email. No personal data is included. You can review everything in your mail app before sending.</string>

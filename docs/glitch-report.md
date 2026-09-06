@@ -42,6 +42,11 @@ than mail apps only: a `mailto:` selector does not resolve on every device
 (the emulator's Gmail does not answer it), and any mail app picked from the
 plain chooser still prefills recipient and subject.
 
+Sharing a page with someone is a different action with its own file and no
+email: see "Sharing a page" in `reading-modes.md`. It reuses this file's
+`FileProvider`, `ClipData` and `shareRequests` plumbing, but sends the page at
+full decoded resolution rather than the analysis bitmap.
+
 ## Verifying
 
 Share from the emulator to any mail app, then inspect

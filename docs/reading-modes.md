@@ -268,6 +268,44 @@ that matters — a strip keeps more pages resident than the pager, and it was
 thrashing the HWUI texture cache that caused the original 78 %-jank bug
 (`performance.md`).
 
+## Sharing a page
+
+The gear panel's action zone carries "Share this page" (labelled "Share this
+panel" in Guided View) above "Report a visual glitch". It hands the page to the
+Android share sheet as one full-resolution JPEG (quality 90) and closes the
+panel; there is no confirmation dialog, because the chooser is the confirmation
+and the image never leaves the device until a target is picked.
+
+The image is what the reader is showing:
+
+- the page at its decoded resolution (2160 px wide), not the ≤ 1000 px
+  `PageArt.analysis` the glitch report attaches;
+- the enlarged-bubble overlay drawn in when it is on, through the same
+  `BubbleOverlay.drawBubbles` the reader uses;
+- no HUD, no night tint, no ambient backdrop, no margin outside the page.
+
+Posture and mode decide the framing (`sharedPages`, pure and unit-tested):
+a single page on every posture but the spread; in `UnfoldedSpread` **both pages
+joined into one image**, scaled to a common height and placed in the order they
+are drawn (`joinedSlots`, so right-to-left swaps the sides); in Guided View the
+current panel crop (`panelCrop` of the stop rect `GuidedReader` reports through
+`onGuidedStop`), which is why the row is relabelled there; in the strip the page
+under the top of the viewport, the one the counter names. Split halves and PDF
+pages are ordinary pages here.
+
+`SharePage` (`feature/reader/ui`) composes every page into one canvas on
+`Dispatchers.IO` and writes a single JPEG into `cache/share/`, wiping the
+previous one first. The page look filter, when it lands, belongs on the one
+`drawImage` call in `SharePage.drawPages` as a `colorFilter`. The file is named
+from `reader_share_title` ("<comic title> · page N", sanitised), which is also
+`EXTRA_TITLE` so the sheet previews something meaningful; there is no
+`EXTRA_TEXT`, which makes several targets drop the image, and no watermark. The
+`Intent` is shared with `FileProvider` (`${applicationId}.fileprovider`,
+`res/xml/file_paths.xml`), `ACTION_SEND`, `image/jpeg`,
+`FLAG_GRANT_READ_URI_PERMISSION` and the URI as `ClipData` so the sheet renders
+a preview, and it is emitted on the same `ReaderViewModel.shareRequests` flow
+the glitch report already uses — `ReaderScreen` starts whatever arrives there.
+
 ## Per-comic settings
 
 `ReaderViewModel` reads the comic's `comic_settings` row (`ComicSettingsDao`)

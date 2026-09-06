@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import androidx.compose.ui.geometry.Rect
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -18,6 +19,7 @@ import com.comicify.core.storage.ReaderPreferencesRepository
 import com.comicify.core.window.ReadingPosture
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.domain.model.ReadingPosition
+import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.reader.data.ComicSource
 import com.comicify.feature.reader.data.ComicSourceException
 import com.comicify.feature.reader.data.ComicSourceFactory
@@ -339,6 +341,32 @@ class ReaderViewModel(
         if (!current.rebuiltBy(mode)) return
         sourceMode = mode
         reopenComic(mode)
+    }
+
+    fun sharePage(loader: PageLoader, posture: ReadingPosture, panelView: Rect?) {
+        val current = _state.value
+        viewModelScope.launch {
+            val request = SharePageRequest(
+                title = comicTitle(),
+                pageIndex = current.position.pageIndex,
+                pages = sharedPages(
+                    pageIndex = current.position.pageIndex,
+                    pageCount = loader.pageCount,
+                    spread = posture == ReadingPosture.UnfoldedSpread && !current.guided && !current.verticalScroll,
+                    coverAlone = current.coverAlone,
+                    direction = current.direction,
+                ),
+                panelView = panelView.takeIf { current.guided },
+                bubbleScale = current.bubbleScale.takeIf { current.bubblesEnlarged && !current.guided },
+            )
+            val intent = withContext(Dispatchers.IO) { SharePage(getApplication()).compose(loader, request) }
+            _shareRequests.emit(intent)
+        }
+    }
+
+    private suspend fun comicTitle(): String {
+        val comic = comicDao.findByDocumentUri(uri.toString()) ?: return comicNameOfPath(uri.lastPathSegment.orEmpty())
+        return LibraryCatalog.title(comic.series, comic.issueNumber)
     }
 
     fun reportGlitch(posture: ReadingPosture) {

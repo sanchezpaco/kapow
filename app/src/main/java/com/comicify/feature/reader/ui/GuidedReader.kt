@@ -98,7 +98,7 @@ fun GuidedReader(
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
     onPageChanged: (Int) -> Unit,
-    onGuidedStop: (Int, Int) -> Unit,
+    onGuidedStop: (Int, Int, Rect) -> Unit,
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
@@ -156,11 +156,12 @@ fun GuidedReader(
         }
     }
 
-    LaunchedEffect(panelIndex, panels.size) { onGuidedStop(panelIndex, panels.size) }
-
     val currentStop = panels.getOrElse(panelIndex) { FullPagePanel }
     val autoPan = AUTO_PAN_ENABLED && isLargeStop(currentStop)
     val panelView = GuidedFocus.frame(currentStop, PANEL_PADDING)
+
+    LaunchedEffect(panelIndex, panels.size, panelView) { onGuidedStop(panelIndex, panels.size, panelView) }
+
     val settled = stopsPage == page
     val resetKey = listOf(page, panelIndex, panelView, settled)
 
