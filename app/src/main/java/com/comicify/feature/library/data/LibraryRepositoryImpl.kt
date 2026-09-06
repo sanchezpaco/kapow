@@ -16,6 +16,9 @@ import com.comicify.core.storage.ComicSettingsEntity
 import com.comicify.core.storage.KapowDatabase
 import com.comicify.core.storage.LibraryPreferences
 import com.comicify.core.storage.PageDetectionDao
+import com.comicify.core.storage.ReadingListDao
+import com.comicify.core.storage.ReadingListEntity
+import com.comicify.core.storage.ReadingListEntryEntity
 import com.comicify.core.storage.ReadingStateDao
 import com.comicify.core.storage.ReadingStateEntity
 import com.comicify.domain.model.ReadingDirection
@@ -29,6 +32,7 @@ import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.domain.LibraryReconciler
 import com.comicify.feature.library.domain.MissingComic
 import com.comicify.feature.library.domain.ParsedComicName
+import com.comicify.feature.library.domain.ReadingList
 import com.comicify.feature.library.domain.mergeComicMetadata
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -51,6 +55,7 @@ class LibraryRepositoryImpl @Inject constructor(
     private val readingStateDao: ReadingStateDao,
     private val comicSettingsDao: ComicSettingsDao,
     private val pageDetectionDao: PageDetectionDao,
+    private val readingListDao: ReadingListDao,
     private val preferences: LibraryPreferences,
     private val scanner: ComicScanner,
     private val hasher: ComicHasher,
@@ -67,9 +72,58 @@ class LibraryRepositoryImpl @Inject constructor(
 
     override val grouped: Flow<Boolean> = preferences.grouped
 
+    override val readingLists: Flow<List<ReadingList>> =
+        combine(readingListDao.observeLists(), readingListDao.observeEntries()) { lists, entries ->
+            val byList = entries.sortedBy { it.ordering }.groupBy { it.listId }
+            lists.map { list ->
+                ReadingList(
+                    id = list.id,
+                    name = list.name,
+                    createdAt = list.createdAt,
+                    comicIds = byList[list.id].orEmpty().map { it.comicId },
+                )
+            }
+        }
+
     override suspend fun setGrouped(grouped: Boolean) {
         preferences.setGrouped(grouped)
     }
+
+    override suspend fun createList(name: String): Long =
+        readingListDao.insertList(ReadingListEntity(name = name, createdAt = System.currentTimeMillis()))
+
+    override suspend fun renameList(listId: Long, name: String) {
+        readingListDao.renameList(listId, name)
+    }
+
+    override suspend fun deleteList(listId: Long) {
+        readingListDao.deleteList(listId)
+    }
+
+    override suspend fun restoreList(list: ReadingList) {
+        database.withTransaction {
+            readingListDao.insertList(ReadingListEntity(id = list.id, name = list.name, createdAt = list.createdAt))
+            readingListDao.insertEntries(list.comicIds.toEntries(list.id))
+        }
+    }
+
+    override suspend fun addToList(listId: Long, comicId: Long, ordering: Int?) {
+        val position = ordering ?: ((readingListDao.maxOrdering(listId) ?: -1) + 1)
+        readingListDao.insertEntry(ReadingListEntryEntity(listId = listId, comicId = comicId, ordering = position))
+    }
+
+    override suspend fun removeFromList(listId: Long, comicId: Long): Int? {
+        val ordering = readingListDao.findEntry(listId, comicId)?.ordering ?: return null
+        readingListDao.deleteEntry(listId, comicId)
+        return ordering
+    }
+
+    override suspend fun reorderList(listId: Long, comicIds: List<Long>) {
+        readingListDao.updateEntries(comicIds.toEntries(listId))
+    }
+
+    private fun List<Long>.toEntries(listId: Long): List<ReadingListEntryEntity> =
+        mapIndexed { index, comicId -> ReadingListEntryEntity(listId = listId, comicId = comicId, ordering = index) }
 
     override suspend fun seedSampleIfNeeded() {
         if (preferences.sampleSeeded.first()) return
