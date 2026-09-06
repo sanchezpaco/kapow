@@ -682,8 +682,8 @@ design review that trimmed it, and its own `feature/*` branch.
       `splitWidePages` and `coverAlone` per comic instead of heuristics
 - [ ] Non-integer issue numbers ("1.MU", "Annual 1") — today they fall back to
       the file-name parse
-- [ ] Verify the CBR path with a real `ComicInfo.xml` inside a RAR (no RAR
-      with one in the test corpus yet)
+- [x] Verify the CBR path with a real `ComicInfo.xml` inside a RAR: solid and
+      non-solid RAR5 archives built with `rar` 7.23 both read it (2026-09-06)
 
 ---
 

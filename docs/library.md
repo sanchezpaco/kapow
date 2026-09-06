@@ -347,7 +347,8 @@ gets enriched without a re-scan.
 ### Where it shows
 
 - Cover cards and the reader's resume hero read `"$series #$issueNumber"`; when
-  a story title exists the hero headlines it and the series line moves above.
+  a story title exists both headline it instead (the hero keeps the series line
+  above; the card's `#12` badge still carries the number).
 - Inside a series screen each card keeps its `#12` label and gains the story
   title underneath.
 - The series header line becomes `"Marvel Comics · 1/12 read"` (the publisher is

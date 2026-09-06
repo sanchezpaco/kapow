@@ -25,6 +25,7 @@ All notable user-facing changes to Kapow. The format follows
   follows your real pace, and the history can be deleted from Settings.
 
 ### Fixed
+- Library search no longer drops or reorders letters when you type fast.
 - Enlarged bubbles keep up with page turns the first time through a comic.
   Every page was being decoded twice — once for the bubble detector and again
   for the layout that runs after it — so on a comic the app had not seen

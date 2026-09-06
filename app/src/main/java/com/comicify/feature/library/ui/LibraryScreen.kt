@@ -577,6 +577,7 @@ private fun LibraryHeader(
 @Composable
 private fun SearchField(query: String, onQueryChanged: (String) -> Unit, onClose: () -> Unit) {
     val focus = remember { FocusRequester() }
+    var text by remember { mutableStateOf(query) }
     LaunchedEffect(Unit) { focus.requestFocus() }
     Row(
         modifier = Modifier
@@ -590,12 +591,12 @@ private fun SearchField(query: String, onQueryChanged: (String) -> Unit, onClose
     ) {
         Icon(imageVector = Icons.Filled.Search, contentDescription = null, tint = InkFaint, modifier = Modifier.size(18.dp))
         Box(modifier = Modifier.weight(1f)) {
-            if (query.isEmpty()) {
+            if (text.isEmpty()) {
                 Text(text = stringResource(R.string.library_search_hint), style = MaterialTheme.typography.bodyLarge, color = InkFaint)
             }
             BasicTextField(
-                value = query,
-                onValueChange = onQueryChanged,
+                value = text,
+                onValueChange = { text = it; onQueryChanged(it) },
                 singleLine = true,
                 textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontSize = MaterialTheme.typography.bodyLarge.fontSize),
                 cursorBrush = SolidColor(Accent),
@@ -844,14 +845,14 @@ private fun ContinueReadingCard(comic: LibraryComic, onOpenComic: (LibraryComic)
             }
             Column(modifier = Modifier.fillMaxWidth().padding(end = UnshelveButtonSize)) {
                 Text(
-                    text = comic.series,
+                    text = if (comic.storyTitle != null) comic.title else comic.series,
                     style = MaterialTheme.typography.labelSmall,
                     color = InkFaint,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = comic.title,
+                    text = comic.storyTitle ?: comic.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -902,7 +903,7 @@ internal fun ResumePill() {
 private fun ComicCard(
     comic: LibraryComic,
     onOpenComic: (LibraryComic) -> Unit,
-    title: String = comic.title,
+    title: String = comic.storyTitle ?: comic.title,
     subtitle: String? = null,
     onOpenSettings: (List<LibraryComic>) -> Unit,
     onOpenDetails: (LibraryComic) -> Unit,
