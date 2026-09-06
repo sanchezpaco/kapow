@@ -133,6 +133,9 @@
     <string name="stats_value_minutes">%1$s min</string>
     <string name="stats_value_pace">%1$s s/pág</string>
     <string name="stats_value_days">%1$s/%2$s</string>
+    <string name="stats_unit_hours">h</string>
+    <string name="stats_unit_minutes">min</string>
+    <string name="stats_unit_pace">s/pág</string>
     <string name="stats_pace_eyebrow">Ritmo</string>
     <string name="stats_pace_section">Páginas por día</string>
     <string name="stats_chart_average">media %1$s pág/día</string>

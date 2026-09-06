@@ -133,6 +133,9 @@
     <string name="stats_value_minutes">%1$s min</string>
     <string name="stats_value_pace">%1$s s/page</string>
     <string name="stats_value_days">%1$s/%2$s</string>
+    <string name="stats_unit_hours">h</string>
+    <string name="stats_unit_minutes">min</string>
+    <string name="stats_unit_pace">s/page</string>
     <string name="stats_pace_eyebrow">Pace</string>
     <string name="stats_pace_section">Pages per day</string>
     <string name="stats_chart_average">avg %1$s pages/day</string>

@@ -24,15 +24,18 @@ private fun numberFormat(): NumberFormat {
 @Composable
 fun figure(value: Int): String = numberFormat().format(value)
 
+data class HoursMinutes(val hours: Int, val minutes: Int)
+
+fun hoursAndMinutes(millis: Long): HoursMinutes {
+    val total = (millis / MILLIS_PER_MINUTE).toInt()
+    return HoursMinutes(hours = total / MINUTES_PER_HOUR, minutes = total % MINUTES_PER_HOUR)
+}
+
 @Composable
 fun duration(millis: Long): String {
-    val minutes = (millis / MILLIS_PER_MINUTE).toInt()
-    if (minutes < MINUTES_PER_HOUR) return stringResource(R.string.stats_value_minutes, figure(minutes))
-    return stringResource(
-        R.string.stats_value_hours_minutes,
-        figure(minutes / MINUTES_PER_HOUR),
-        figure(minutes % MINUTES_PER_HOUR),
-    )
+    val (hours, minutes) = hoursAndMinutes(millis)
+    if (hours == 0) return stringResource(R.string.stats_value_minutes, figure(minutes))
+    return stringResource(R.string.stats_value_hours_minutes, figure(hours), figure(minutes))
 }
 
 @Composable

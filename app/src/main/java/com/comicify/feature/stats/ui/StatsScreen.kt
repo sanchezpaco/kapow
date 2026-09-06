@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -70,6 +71,7 @@ private val ColumnGap = 20.dp
 private val TwoColumnMinWidth = 840.dp
 private val ContentMaxWidth = 1040.dp
 private val TileGap = 10.dp
+private val TileUnitGap = 3.dp
 private val TileCorner = 16.dp
 private val TilePadding = 14.dp
 private val ChartHeightFolded = 96.dp
@@ -201,35 +203,47 @@ private fun HeroFigure(pages: Int) {
 private fun TileGrid(stats: ReadingStats, finished: Int) {
     Column(verticalArrangement = Arrangement.spacedBy(TileGap)) {
         Row(horizontalArrangement = Arrangement.spacedBy(TileGap)) {
-            Tile(
-                label = stringResource(R.string.stats_tile_time),
-                value = duration(stats.millis),
-                modifier = Modifier.weight(1f),
-            )
-            Tile(
-                label = stringResource(R.string.stats_tile_pace),
-                value = stringResource(R.string.stats_value_pace, figure(stats.secondsPerPage)),
-                modifier = Modifier.weight(1f),
-            )
+            Tile(label = stringResource(R.string.stats_tile_time), modifier = Modifier.weight(1f)) {
+                TimeValue(millis = stats.millis)
+            }
+            Tile(label = stringResource(R.string.stats_tile_pace), modifier = Modifier.weight(1f)) {
+                TileFigure(figure(stats.secondsPerPage))
+                TileUnit(stringResource(R.string.stats_unit_pace))
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(TileGap)) {
             Tile(
                 label = stringResource(R.string.stats_tile_finished),
-                value = figure(finished),
+                modifier = Modifier.weight(1f),
                 sub = stringResource(R.string.stats_tile_finished_sub),
-                modifier = Modifier.weight(1f),
-            )
-            Tile(
-                label = stringResource(R.string.stats_tile_days),
-                value = stringResource(R.string.stats_value_days, figure(stats.daysRead), figure(STATS_WINDOW_DAYS)),
-                modifier = Modifier.weight(1f),
-            )
+            ) {
+                TileFigure(figure(finished))
+            }
+            Tile(label = stringResource(R.string.stats_tile_days), modifier = Modifier.weight(1f)) {
+                TileFigure(stringResource(R.string.stats_value_days, figure(stats.daysRead), figure(STATS_WINDOW_DAYS)))
+            }
         }
     }
 }
 
 @Composable
-private fun Tile(label: String, value: String, modifier: Modifier = Modifier, sub: String? = null) {
+private fun RowScope.TimeValue(millis: Long) {
+    val (hours, minutes) = hoursAndMinutes(millis)
+    if (hours > 0) {
+        TileFigure(figure(hours))
+        TileUnit(stringResource(R.string.stats_unit_hours))
+    }
+    TileFigure(figure(minutes))
+    TileUnit(stringResource(R.string.stats_unit_minutes))
+}
+
+@Composable
+private fun Tile(
+    label: String,
+    modifier: Modifier = Modifier,
+    sub: String? = null,
+    value: @Composable RowScope.() -> Unit,
+) {
     val palette = KapowTheme.palette
     Column(
         modifier = modifier
@@ -238,18 +252,35 @@ private fun Tile(label: String, value: String, modifier: Modifier = Modifier, su
             .padding(TilePadding),
     ) {
         Text(text = label, fontSize = 11.sp, color = palette.inkFaint)
-        Text(
-            text = value,
-            fontSize = 28.sp,
-            lineHeight = 34.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = (-0.8).sp,
-            style = tabularFigures(),
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 1,
-        )
+        Row(horizontalArrangement = Arrangement.spacedBy(TileUnitGap), content = value)
         if (sub != null) Text(text = sub, fontSize = 13.sp, color = palette.inkDim)
     }
+}
+
+@Composable
+private fun RowScope.TileFigure(text: String) {
+    Text(
+        text = text,
+        fontSize = 28.sp,
+        lineHeight = 34.sp,
+        fontWeight = FontWeight.Black,
+        letterSpacing = (-0.8).sp,
+        style = tabularFigures(),
+        color = MaterialTheme.colorScheme.onBackground,
+        maxLines = 1,
+        modifier = Modifier.alignByBaseline(),
+    )
+}
+
+@Composable
+private fun RowScope.TileUnit(text: String) {
+    Text(
+        text = text,
+        fontSize = 13.sp,
+        color = KapowTheme.palette.inkDim,
+        maxLines = 1,
+        modifier = Modifier.alignByBaseline(),
+    )
 }
 
 @Composable
