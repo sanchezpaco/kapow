@@ -42,6 +42,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Check
@@ -55,6 +56,7 @@ import androidx.compose.material.icons.filled.VerticalSplit
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material.icons.filled.ViewDay
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -97,6 +99,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -116,6 +120,7 @@ import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_STEP
+import com.comicify.feature.reader.domain.Bookmarks
 import com.comicify.feature.reader.domain.ComicOpenError
 import com.comicify.feature.reader.domain.ReaderViewMode
 import com.comicify.feature.reader.domain.TapZone
@@ -146,6 +151,13 @@ private val MarkerDotInset = 3.dp
 private val BottomChromeScrim = Brush.verticalGradient(
     listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f)),
 )
+private val BookmarkChipHeight = 40.dp
+private val BookmarkSlotWidth = 56.dp
+private val BookmarkChipGap = 8.dp
+private val BookmarkChipPadding = 10.dp
+private val BookmarkChipIconSize = 18.dp
+private val BookmarkCountGap = 4.dp
+private const val BOOKMARK_COUNT_CAP = 9
 private val EndCardMinWidth = 280.dp
 private val EndCardMaxWidth = 360.dp
 
@@ -243,6 +255,7 @@ fun ReaderScreen(
                             activeComic = issue
                             activeLoader = issueLoader
                             activePageCount = pageCount
+                            viewModel.onStripIssueChanged(issue?.id)
                             viewModel.onPageChanged(pageIndex)
                         },
                         onStripScrolled = viewModel::hideChrome,
@@ -303,6 +316,11 @@ fun ReaderScreen(
             guided = state.guided,
             guidedStop = guidedIndex,
             guidedStopCount = guidedCount,
+            bookmarks = state.bookmarks,
+            bookmarksOnly = state.bookmarksOnly,
+            bookmarksAvailable = state.bookmarksAvailable,
+            onToggleBookmark = viewModel::toggleBookmark,
+            onToggleBookmarkFilter = viewModel::toggleBookmarkFilter,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
 
@@ -852,6 +870,11 @@ private fun BottomChrome(
     guided: Boolean,
     guidedStop: Int,
     guidedStopCount: Int,
+    bookmarks: Set<Int>,
+    bookmarksOnly: Boolean,
+    bookmarksAvailable: Boolean,
+    onToggleBookmark: () -> Unit,
+    onToggleBookmarkFilter: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxWidth()) {
@@ -872,15 +895,24 @@ private fun BottomChrome(
                             loader = scrubberLoader,
                             visible = visible,
                             currentPage = currentPage,
-                            pageCount = pageCount,
+                            pages = Bookmarks.scrubberPages(pageCount, bookmarks, bookmarksOnly),
+                            bookmarks = bookmarks,
+                            filtered = bookmarksOnly,
                             onSelect = onJumpToPage,
                             modifier = Modifier.padding(bottom = 12.dp),
                         )
                     }
                     if (pageCount > 0) {
-                        PageCounter(
-                            current = currentPage,
-                            total = pageCount,
+                        CounterRow(
+                            currentPage = currentPage,
+                            pageCount = pageCount,
+                            bookmarked = currentPage in bookmarks,
+                            bookmarkCount = bookmarks.size,
+                            showToggle = bookmarksAvailable,
+                            showFilter = bookmarksAvailable && bookmarks.isNotEmpty() && !guided,
+                            filtered = bookmarksOnly,
+                            onToggleBookmark = onToggleBookmark,
+                            onToggleBookmarkFilter = onToggleBookmarkFilter,
                             modifier = Modifier.padding(bottom = 12.dp),
                         )
                     }
@@ -899,6 +931,93 @@ private fun BottomChrome(
         }
     }
 }
+
+@Composable
+private fun CounterRow(
+    currentPage: Int,
+    pageCount: Int,
+    bookmarked: Boolean,
+    bookmarkCount: Int,
+    showToggle: Boolean,
+    showFilter: Boolean,
+    filtered: Boolean,
+    onToggleBookmark: () -> Unit,
+    onToggleBookmarkFilter: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(BookmarkChipGap),
+    ) {
+        BookmarkSlot {
+            if (showToggle) BookmarkToggle(bookmarked = bookmarked, onClick = onToggleBookmark)
+        }
+        PageCounter(current = currentPage, total = pageCount)
+        BookmarkSlot {
+            if (showFilter) BookmarkFilterChip(count = bookmarkCount, active = filtered, onClick = onToggleBookmarkFilter)
+        }
+    }
+}
+
+@Composable
+private fun BookmarkSlot(content: @Composable () -> Unit) {
+    Box(modifier = Modifier.width(BookmarkSlotWidth), contentAlignment = Alignment.Center, content = { content() })
+}
+
+@Composable
+private fun BookmarkToggle(bookmarked: Boolean, onClick: () -> Unit) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(BookmarkChipHeight).background(Color.White.copy(alpha = 0.12f), CircleShape),
+    ) {
+        Icon(
+            imageVector = if (bookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+            contentDescription = stringResource(
+                if (bookmarked) R.string.reader_bookmark_remove else R.string.reader_bookmark_add,
+            ),
+            tint = if (bookmarked) MaterialTheme.colorScheme.primary else Color.White,
+        )
+    }
+}
+
+@Composable
+private fun BookmarkFilterChip(count: Int, active: Boolean, onClick: () -> Unit) {
+    val description = stringResource(
+        if (active) R.string.reader_bookmarks_show_all else R.string.reader_bookmarks_show,
+    )
+    Row(
+        modifier = Modifier
+            .height(BookmarkChipHeight)
+            .clip(CircleShape)
+            .background(if (active) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.12f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = BookmarkChipPadding)
+            .semantics { contentDescription = description },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(BookmarkCountGap),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Bookmark,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(BookmarkChipIconSize),
+        )
+        Text(
+            text = bookmarkCountLabel(count),
+            color = Color.White,
+            style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = TabularFigures),
+        )
+    }
+}
+
+@Composable
+private fun bookmarkCountLabel(count: Int): String =
+    if (count > BOOKMARK_COUNT_CAP) {
+        stringResource(R.string.reader_bookmarks_count_capped, BOOKMARK_COUNT_CAP)
+    } else {
+        count.toString()
+    }
 
 @Composable
 private fun CenteredMessage(text: String, showSpinner: Boolean = false) {

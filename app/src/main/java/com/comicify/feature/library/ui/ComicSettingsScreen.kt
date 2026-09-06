@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -81,6 +82,7 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, showDetails: Boolean, onBack
     LaunchedEffect(comics) { viewModel.show(comics) }
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val defaults by viewModel.defaults.collectAsStateWithLifecycle()
+    val bookmarkCount by viewModel.bookmarkCount.collectAsStateWithLifecycle()
     val wholeSeries = comics.size > 1
     val scrollState = rememberScrollState()
     var detailsOffset by remember { mutableIntStateOf(0) }
@@ -159,7 +161,7 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, showDetails: Boolean, onBack
             }
             if (!wholeSeries) {
                 Box(modifier = Modifier.onGloballyPositioned { detailsOffset = it.positionInParent().y.roundToInt() }) {
-                    DetailsSection(comic = comics.first())
+                    DetailsSection(comic = comics.first(), bookmarkCount = bookmarkCount)
                 }
             }
         }
@@ -167,9 +169,10 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, showDetails: Boolean, onBack
 }
 
 @Composable
-private fun DetailsSection(comic: LibraryComic) {
+private fun DetailsSection(comic: LibraryComic, bookmarkCount: Int) {
     val paragraph = if (comic.hasComicInfo) comic.summary else stringResource(R.string.detail_info_none)
     val rows = listOfNotNull(
+        R.string.detail_bookmarks to bookmarksLabel(bookmarkCount),
         comic.writer?.let { R.string.detail_info_writer to it },
         comic.penciller?.let { R.string.detail_info_pencils to it },
         comic.inker?.let { R.string.detail_info_inks to it },
@@ -188,6 +191,14 @@ private fun DetailsSection(comic: LibraryComic) {
         }
     }
 }
+
+@Composable
+private fun bookmarksLabel(count: Int): String =
+    if (count == 0) {
+        stringResource(R.string.detail_bookmarks_none)
+    } else {
+        pluralStringResource(R.plurals.reader_bookmarks_count, count, count)
+    }
 
 @Composable
 private fun DetailParagraph(text: String) {

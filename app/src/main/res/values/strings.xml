@@ -75,6 +75,8 @@
     <string name="detail_info_colors">Colors</string>
     <string name="detail_info_publisher">Publisher</string>
     <string name="detail_info_file">File name</string>
+    <string name="detail_bookmarks">Bookmarks</string>
+    <string name="detail_bookmarks_none">No bookmarks yet</string>
     <string name="detail_info_none">This file has no ComicInfo.xml, so its details come from the file name.</string>
     <string name="detail_setting_direction">Reading direction</string>
     <string name="detail_setting_cover_alone">Cover on its own page</string>
@@ -225,6 +227,15 @@
     <string name="reader_error_password_protected">This PDF is password-protected. Kapow cannot open encrypted files.</string>
     <string name="reader_error_access_lost">Access to this file was lost. Choose the comics folder again from Settings.</string>
     <string name="reader_thumbnail_go_to_page">Go to page %1$d</string>
+    <string name="reader_bookmark_add">Bookmark this page</string>
+    <string name="reader_bookmark_remove">Remove bookmark</string>
+    <string name="reader_bookmarks_show">Show bookmarks</string>
+    <string name="reader_bookmarks_show_all">Show all pages</string>
+    <string name="reader_bookmarks_count_capped">%1$d+</string>
+    <plurals name="reader_bookmarks_count">
+        <item quantity="one">%1$d bookmark</item>
+        <item quantity="other">%1$d bookmarks</item>
+    </plurals>
     <string name="reader_page_load_failed">Page %1$d could not be decoded.</string>
     <string name="reader_end_title">You\'ve reached the end</string>
     <string name="reader_end_next">Next issue</string>

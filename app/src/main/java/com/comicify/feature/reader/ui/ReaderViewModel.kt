@@ -9,6 +9,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.comicify.core.storage.BookmarkDao
+import com.comicify.core.storage.BookmarkEntity
 import com.comicify.core.storage.ComicDao
 import com.comicify.core.storage.ComicSettingsDao
 import com.comicify.core.storage.ComicSettingsEntity
@@ -26,12 +28,14 @@ import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.data.PanelDetector
 import com.comicify.feature.reader.data.SplitPagesComicSource
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
+import com.comicify.feature.reader.domain.Bookmarks
 import com.comicify.feature.reader.domain.ComicOpenError
 import com.comicify.feature.reader.domain.ReaderViewMode
 import com.comicify.feature.reader.domain.SplitSuggestion
 import dagger.hilt.android.EntryPointAccessors
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -40,12 +44,15 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val READER_TAG = "Reader"
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ReaderViewModel(
     application: Application,
     private val uri: Uri,
@@ -61,7 +68,10 @@ class ReaderViewModel(
     private val databaseEntryPoint = EntryPointAccessors.fromApplication(application, DatabaseEntryPoint::class.java)
     private val comicSettingsDao: ComicSettingsDao = databaseEntryPoint.comicSettingsDao()
     private val comicDao: ComicDao = databaseEntryPoint.comicDao()
+    private val bookmarkDao: BookmarkDao = databaseEntryPoint.bookmarkDao()
     private val comicReadsRightToLeft = MutableStateFlow<Boolean?>(null)
+    private val bookmarkedComicId = MutableStateFlow<Long?>(null)
+    private var libraryComicId: Long? = null
     private var source: ComicSource? = null
     private val chainSources = mutableListOf<ComicSource>()
     private var sourceMode: SourceMode? = null
@@ -75,11 +85,15 @@ class ReaderViewModel(
         observeKeepScreenOn()
         observeBubbleScale()
         observeComicSettings()
+        observeBookmarks()
     }
 
     private fun openComic() {
         viewModelScope.launch {
-            comicReadsRightToLeft.value = comicDao.findByDocumentUri(uri.toString())?.readsRightToLeft
+            val comic = comicDao.findByDocumentUri(uri.toString())
+            comicReadsRightToLeft.value = comic?.readsRightToLeft
+            libraryComicId = comic?.id
+            bookmarkComic(comic?.id)
             val settings = comicSettingsDao.find(uri.toString())
             applyOpenDefaults(preferencesRepository.openDefaults.first(), settings)
             val mode = SourceMode(
@@ -118,6 +132,7 @@ class ReaderViewModel(
         viewModelScope.launch {
             _state.update { it.copy(loading = true) }
             loadSource(mode) { opened -> opened.pageOfSourcePage(sourcePage) }
+            source?.let { opened -> remapBookmarks { opened.pageOfSourcePage(previous.sourcePage(it)) } }
         }
     }
 
@@ -188,24 +203,73 @@ class ReaderViewModel(
     }
 
     fun hideChrome() {
-        _state.update { if (it.chromeVisible) it.copy(chromeVisible = false) else it }
+        _state.update { if (it.chromeVisible) it.copy(chromeVisible = false, bookmarksOnly = false) else it }
     }
 
     fun toggleChrome() {
-        _state.update { it.copy(chromeVisible = !it.chromeVisible) }
+        _state.update { it.copy(chromeVisible = !it.chromeVisible, bookmarksOnly = false) }
     }
 
     fun requestJump(pageIndex: Int) {
-        _state.update { it.copy(pendingJump = pageIndex) }
+        _state.update { it.copy(pendingJump = pageIndex, bookmarksOnly = false) }
     }
 
     fun onJumpApplied() {
         _state.update { it.copy(pendingJump = null) }
     }
 
+    private suspend fun remapBookmarks(pageInNewSource: (Int) -> Int) {
+        val comicId = libraryComicId ?: return
+        val bookmarks = bookmarkDao.find(comicId)
+        if (bookmarks.isEmpty()) return
+        val pages = Bookmarks.remappedPages(bookmarks.map { it.pageIndex }, pageInNewSource)
+        if (pages == bookmarks.map { it.pageIndex }) return
+        val createdAt = bookmarks.associate { pageInNewSource(it.pageIndex) to it.createdAt }
+        bookmarkDao.deleteAll(comicId)
+        bookmarkDao.upsertAll(pages.map { BookmarkEntity(comicId, it, createdAt.getValue(it)) })
+    }
+
+    private fun bookmarkComic(comicId: Long?) {
+        bookmarkedComicId.value = comicId
+        _state.update { it.copy(bookmarksAvailable = comicId != null) }
+    }
+
+    private fun observeBookmarks() {
+        viewModelScope.launch {
+            bookmarkedComicId
+                .flatMapLatest { comicId -> comicId?.let(bookmarkDao::observePages) ?: flowOf(emptyList()) }
+                .collect { pages ->
+                    _state.update {
+                        it.copy(bookmarks = pages.toSet(), bookmarksOnly = it.bookmarksOnly && pages.isNotEmpty())
+                    }
+                }
+        }
+    }
+
+    fun toggleBookmark() {
+        val comicId = bookmarkedComicId.value ?: return
+        val page = state.value.position.pageIndex
+        viewModelScope.launch {
+            if (page in state.value.bookmarks) {
+                bookmarkDao.delete(comicId, page)
+            } else {
+                bookmarkDao.upsert(BookmarkEntity(comicId, page, System.currentTimeMillis()))
+            }
+        }
+    }
+
+    fun toggleBookmarkFilter() {
+        _state.update { it.copy(bookmarksOnly = !it.bookmarksOnly) }
+    }
+
+    fun onStripIssueChanged(comicId: Long?) {
+        bookmarkComic(comicId ?: libraryComicId)
+    }
+
     fun setViewMode(mode: ReaderViewMode) {
         _state.update { it.copy(guided = mode == ReaderViewMode.Guided) }
         val strip = mode == ReaderViewMode.Strip
+        if (!strip) bookmarkComic(libraryComicId)
         if (_state.value.verticalScroll != strip) updateSettings { it.copy(verticalScroll = strip) }
     }
 

@@ -3,6 +3,7 @@ package com.comicify.feature.library.ui
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.comicify.core.storage.BookmarkDao
 import com.comicify.core.storage.OpenDefaults
 import com.comicify.core.storage.ReaderPreferencesRepository
 import com.comicify.feature.library.data.LibraryRepository
@@ -24,9 +25,11 @@ import javax.inject.Inject
 class ComicSettingsViewModel @Inject constructor(
     application: Application,
     private val repository: LibraryRepository,
+    private val bookmarkDao: BookmarkDao,
 ) : ViewModel() {
 
     private val documentUris = MutableStateFlow<List<String>>(emptyList())
+    private val comicIds = MutableStateFlow<List<Long>>(emptyList())
 
     val defaults: StateFlow<OpenDefaults> = ReaderPreferencesRepository(application).openDefaults
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OpenDefaults())
@@ -35,8 +38,13 @@ class ComicSettingsViewModel @Inject constructor(
         .flatMapLatest { uris -> uris.firstOrNull()?.let(repository::settings) ?: flowOf(ComicSettings.Default) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ComicSettings.Default)
 
+    val bookmarkCount: StateFlow<Int> = comicIds
+        .flatMapLatest { ids -> ids.singleOrNull()?.let(bookmarkDao::observeCount) ?: flowOf(0) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
     fun show(comics: List<LibraryComic>) {
         documentUris.value = comics.map { it.documentUri }
+        comicIds.value = comics.map { it.id }
     }
 
     fun onSettingsChanged(settings: ComicSettings) {
