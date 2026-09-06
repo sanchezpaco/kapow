@@ -1,6 +1,7 @@
 package com.comicify.feature.library.domain
 
 import com.comicify.domain.model.ReadingDirection
+import com.comicify.feature.reader.domain.PageLook
 
 data class ComicSettings(
     val direction: ReadingDirection? = null,
@@ -10,6 +11,8 @@ data class ComicSettings(
     val bubbleScale: Float? = null,
     val splitWidePages: Boolean = false,
     val verticalScroll: Boolean = false,
+    val pageLook: PageLook = PageLook.Original,
+    val fitWidth: Boolean = false,
 ) {
     companion object {
         val Default = ComicSettings()

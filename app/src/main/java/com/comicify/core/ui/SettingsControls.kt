@@ -44,6 +44,7 @@ import com.comicify.R
 import com.comicify.core.ui.theme.KapowTheme
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
+import com.comicify.feature.reader.domain.PageLook
 
 private val SectionCorner = 20.dp
 private val SectionHeaderGap = 10.dp
@@ -74,6 +75,16 @@ fun ReadingDirection.labelRes(): Int = when (this) {
 }
 
 fun Boolean.labelRes(): Int = if (this) R.string.detail_option_on else R.string.detail_option_off
+
+fun PageLook.labelRes(): Int = when (this) {
+    PageLook.Original -> R.string.reader_page_look_original
+    PageLook.Brighter -> R.string.reader_page_look_brighter
+    PageLook.MoreContrast -> R.string.reader_page_look_contrast
+    PageLook.Paper -> R.string.reader_page_look_paper
+}
+
+fun pageFitLabelRes(fitWidth: Boolean): Int =
+    if (fitWidth) R.string.reader_page_fit_width else R.string.reader_page_fit_screen
 
 @Composable
 fun SettingsSection(eyebrow: String, title: String, content: @Composable ColumnScope.() -> Unit) {

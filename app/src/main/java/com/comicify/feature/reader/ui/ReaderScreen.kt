@@ -116,6 +116,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.comicify.R
 import com.comicify.core.ui.KapowSnackbarHost
+import com.comicify.core.ui.labelRes
+import com.comicify.core.ui.pageFitLabelRes
 import com.comicify.core.input.PageTurnDirection
 import com.comicify.core.input.RegisterVolumeKeyPageTurns
 import com.comicify.core.window.ReadingPosture
@@ -562,13 +564,6 @@ private fun TopChrome(
     }
 }
 
-private fun PageLook.labelRes(): Int = when (this) {
-    PageLook.Original -> R.string.reader_page_look_original
-    PageLook.Brighter -> R.string.reader_page_look_brighter
-    PageLook.MoreContrast -> R.string.reader_page_look_contrast
-    PageLook.Paper -> R.string.reader_page_look_paper
-}
-
 private enum class HudPanelKind { ViewMode, Settings }
 
 private fun HudPanelKind?.toggled(kind: HudPanelKind): HudPanelKind? = if (this == kind) null else kind
@@ -672,9 +667,7 @@ private fun ViewModePanel(
                     onClick = onToggleFitWidth,
                 ) {
                     Text(
-                        text = stringResource(
-                            if (fitWidth) R.string.reader_page_fit_width else R.string.reader_page_fit_screen,
-                        ),
+                        text = stringResource(pageFitLabelRes(fitWidth)),
                         color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.labelLarge,
                     )

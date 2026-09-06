@@ -35,6 +35,7 @@ import com.comicify.feature.library.domain.MissingComic
 import com.comicify.feature.library.domain.ParsedComicName
 import com.comicify.feature.library.domain.ReadingList
 import com.comicify.feature.library.domain.mergeComicMetadata
+import com.comicify.feature.reader.domain.PageLook
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -378,6 +379,8 @@ class LibraryRepositoryImpl @Inject constructor(
                 bubbleScale = settings.bubbleScale,
                 splitWidePages = settings.splitWidePages,
                 verticalScroll = settings.verticalScroll,
+                pageLook = settings.pageLook.name,
+                fitWidth = settings.fitWidth,
             ),
         )
     }
@@ -395,6 +398,8 @@ class LibraryRepositoryImpl @Inject constructor(
             bubbleScale = bubbleScale,
             splitWidePages = splitWidePages,
             verticalScroll = verticalScroll,
+            pageLook = PageLook.named(pageLook),
+            fitWidth = fitWidth,
         )
 
     private fun deleteLocalFile(uri: Uri): Boolean {
