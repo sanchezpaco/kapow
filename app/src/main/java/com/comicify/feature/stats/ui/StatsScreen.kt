@@ -284,7 +284,7 @@ private fun RowScope.TileUnit(text: String) {
 }
 
 @Composable
-private fun PagesPerDayBlock(perDay: List<DayPages>, average: Int, height: Dp) {
+private fun PagesPerDayBlock(perDay: List<DayPages>, average: Float, height: Dp) {
     Block(eyebrow = stringResource(R.string.stats_pace_eyebrow), title = stringResource(R.string.stats_pace_section)) {
         PagesPerDayChart(perDay = perDay, height = height)
         ChartFooter(start = perDay.first(), average = average)
@@ -339,7 +339,7 @@ private fun barHeight(pages: Int, peak: Int, height: Dp): Dp {
 }
 
 @Composable
-private fun ChartFooter(start: DayPages, average: Int) {
+private fun ChartFooter(start: DayPages, average: Float) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         ChartFooterLabel(dayLabel(start.date))
         ChartFooterLabel(stringResource(R.string.stats_chart_average, figure(average)))

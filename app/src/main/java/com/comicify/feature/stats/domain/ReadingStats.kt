@@ -23,7 +23,7 @@ data class ReadingStats(
     val series: List<SeriesPace>,
     val finishedThisMonth: List<Long>,
 ) {
-    val averagePagesPerDay: Int = pages / STATS_WINDOW_DAYS
+    val averagePagesPerDay: Float = pages.toFloat() / STATS_WINDOW_DAYS
 }
 
 fun readingStats(recentFirst: List<SeriesReading>, zone: ZoneId, now: Long): ReadingStats {

@@ -24,6 +24,13 @@ private fun numberFormat(): NumberFormat {
 @Composable
 fun figure(value: Int): String = numberFormat().format(value)
 
+@Composable
+fun figure(value: Float): String {
+    val locale: Locale = LocalConfiguration.current.locales[0]
+    val format = remember(locale) { NumberFormat.getNumberInstance(locale).apply { maximumFractionDigits = 1 } }
+    return format.format(value)
+}
+
 data class HoursMinutes(val hours: Int, val minutes: Int)
 
 fun hoursAndMinutes(millis: Long): HoursMinutes {

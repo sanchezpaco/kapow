@@ -123,6 +123,6 @@ class ReadingStatsTest {
     @Test
     fun averagesPagesOverTheWholeWindow() {
         val stats = statsOf(listOf(reading(daysAgo = 0, pages = 60), reading(daysAgo = 1, pages = 30)))
-        assertEquals(3, stats.averagePagesPerDay)
+        assertEquals(3f, stats.averagePagesPerDay, 0.001f)
     }
 }
