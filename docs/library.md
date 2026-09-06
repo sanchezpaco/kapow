@@ -77,6 +77,8 @@ Comic(
     id, documentUri, displayName,
     series, issueNumber, year,
     pageCount?, coverPath?, coverAmbient?, addedAt, favorite,
+    storyTitle?, publisher?, writer?, penciller?, inker?, colorist?,
+    summary?, readsRightToLeft?, metadataVersion,
 )
 
 ReadingState(
@@ -107,6 +109,11 @@ ComicSettings(
   reading state. If the delete fails (e.g. the folder was granted read-only by
   an older pick), the file and its entry are left intact rather than lying about
   a deletion that did not happen; re-picking the folder grants write access.
+- The `ComicInfo.xml` columns (`storyTitle` … `readsRightToLeft`) and
+  `metadataVersion` were added in schema **v11** (migration `10→11`). They are
+  all nullable except `metadataVersion`, which defaults to 0 so every existing
+  row is re-read once by the cover pass (below). Nothing else is touched, so a
+  library upgraded in place keeps its covers and reading positions.
 - Detected panels are cached in-memory per session by the reader's `PageLoader`;
   a persistent panel cache is deferred to a later phase.
 
@@ -136,6 +143,10 @@ ComicSettings(
   recording `coverPath`, `pageCount` and `coverAmbient`: the cover's ambient
   colour (same Palette rule as the reader's `ambientColorInt`), stored as an
   ARGB int so the library can tint the hero without decoding the cover again.
+- The same pass reads `ComicInfo.xml` (below): the archive is already open, so
+  metadata costs one extra entry read rather than a second pass over the
+  library. It runs for every comic whose cover is missing **or** whose
+  `metadataVersion` is behind `METADATA_VERSION`.
 - Runs lazily and asynchronously after a scan, so titles appear instantly and
   thumbnails stream in. A comic with no decoded cover yet (or one that cannot be
   decoded) shows a **procedural cover** instead of an empty box: a gradient keyed
@@ -282,6 +293,74 @@ first page decodes instead of starting from the neutral default.
 - Baseline: `ComicNameParser` parses `series`, `issue number`, `year` from the
   filename with a tolerant, unit-tested pure function. No network needed. Series
   falls back to the containing folder name when the filename yields none.
+- On top of that, a comic that carries a **`ComicInfo.xml`** (the de-facto
+  standard written by ComicRack, Komga, Kavita, Mylar…) is read from the archive
+  itself. See `file-formats.md#comicinfoxml` for where the file is looked for
+  and how each container reaches it.
+
+### What is read
+
+`ComicInfoParser` (`feature/library/domain`) is a pure function over the XML
+text — `DocumentBuilder`, no IO, unit-tested — returning a `ComicInfo`. It reads
+`Series`, `Number`, `Year`, `Title`, `Publisher`, `Writer`, `Penciller`,
+`Inker`, `Colorist`, `Summary` and `Manga`, and ignores everything else
+(`Volume`, `Count`, `Genre`, `Characters`, `Web`, `Notes`, `PageCount`,
+`Pages`). A file that is not well-formed XML, or whose root is not
+`<ComicInfo>`, yields `null` and the comic simply keeps its filename metadata.
+
+### Precedence
+
+`mergeComicMetadata(info, parsed)` resolves the two sources per field:
+
+| Field | Winner |
+| --- | --- |
+| `series`, `year` | the XML when non-blank, else `ComicNameParser` |
+| `issueNumber` | the XML **when it parses to an Int**, else `ComicNameParser` |
+| `storyTitle`, `publisher`, `writer`, `penciller`, `inker`, `colorist`, `summary` | the XML only |
+| `readsRightToLeft` | the XML only (`Manga` = `YesAndRightToLeft`) |
+
+The display title stays `LibraryCatalog.title` — `"$series #$issueNumber"` —
+so it silently becomes the real one. `displayName` always keeps the file name
+and is never overwritten: it is the row shown last in the Details section, so
+the user can always see what the metadata replaced. Search
+(`LibraryCatalog.search`) matches the story title as well as title and series.
+
+### When it is read
+
+Not at scan time. The scan stays instant; the cover pass
+(`generateMissingCovers`) already opens every archive once, and reads the XML
+through that same `ComicSource`, so metadata lands a moment after the covers.
+`METADATA_VERSION` (next to the parser, same idea as `DETECTIONS_VERSION` in
+`ml-runtime.md`) is stored per comic: bumping the constant makes the next pass
+re-read every comic, which is also how a library that predates this feature
+gets enriched without a re-scan.
+
+### Where it shows
+
+- Cover cards and the reader's resume hero read `"$series #$issueNumber"`; when
+  a story title exists the hero headlines it and the series line moves above.
+- Inside a series screen each card keeps its `#12` label and gains the story
+  title underneath.
+- The series header line becomes `"Marvel Comics · 1/12 read"` (the publisher is
+  omitted when unknown).
+- **Details** — first item of a cover's long-press menu, opening
+  `ComicSettingsScreen` scrolled to a new "Details" section: the summary, then
+  Writer / Pencils / Inks / Colors / Publisher for the fields that have a value,
+  then always the file name. A comic with no `ComicInfo.xml` shows one line
+  saying so, plus its file name. The section is per comic, so it is hidden when
+  the screen was opened for a whole series.
+- `Manga` = `YesAndRightToLeft` becomes the comic's **default** reading
+  direction: the reader resolves direction as per-comic user setting → the
+  comic's own default → the global default. There is no UI for it; a user who
+  picks a direction for that comic still wins.
+
+### Limits and follow-ups
+
+- `Number` is often not an integer (`0`, `1.MU`, `Annual 1`). v1 keeps `Int?`
+  and falls back to the filename parse for those; the XML's other fields are
+  still used.
+- `<Pages>` entries carrying `DoublePage` / `FrontCover` could later drive
+  `splitWidePages` and `coverAlone` automatically. Out of scope for now.
 - Optional enrichment: ComicVine API for descriptions/cover art. Deferred and
   behind a toggle — only if it adds value without noise. No copyrighted content
   is downloaded, only metadata.
