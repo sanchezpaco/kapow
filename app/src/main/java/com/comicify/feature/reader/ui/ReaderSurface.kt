@@ -28,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
@@ -70,7 +71,7 @@ fun ReaderSurface(
     pendingJump: Int?,
     onJumpApplied: () -> Unit,
     onPageChanged: (Int) -> Unit,
-    onGuidedStop: (Int, Int) -> Unit,
+    onGuidedStop: (Int, Int, Rect) -> Unit,
     onTap: (TapZone) -> Unit,
     onAmbient: (Color) -> Unit,
 ) {

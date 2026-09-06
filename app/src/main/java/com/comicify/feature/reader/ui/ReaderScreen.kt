@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CropPortrait
 import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Settings
@@ -84,6 +85,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -193,6 +195,7 @@ fun ReaderScreen(
     var ambient by remember { mutableStateOf(initialAmbient ?: InitialAmbient) }
     var guidedIndex by remember { mutableIntStateOf(0) }
     var guidedCount by remember { mutableIntStateOf(1) }
+    var guidedStop by remember { mutableStateOf<Rect?>(null) }
     val glow by animateColorAsState(
         targetValue = lerp(Color.Black, ambient, 0.5f),
         animationSpec = tween(700),
@@ -254,7 +257,7 @@ fun ReaderScreen(
                         pendingJump = state.pendingJump,
                         onJumpApplied = viewModel::onJumpApplied,
                         onPageChanged = viewModel::onPageChanged,
-                        onGuidedStop = { index, count -> guidedIndex = index; guidedCount = count },
+                        onGuidedStop = { index, count, view -> guidedIndex = index; guidedCount = count; guidedStop = view },
                         onTap = { zone ->
                             when (zone) {
                                 TapZone.Center -> viewModel.toggleChrome()
@@ -289,6 +292,7 @@ fun ReaderScreen(
             onToggleNightTint = viewModel::toggleNightTint,
             onToggleDirection = viewModel::toggleReadingDirection,
             onToggleSplitWidePages = viewModel::toggleSplitWidePages,
+            onSharePage = { (activeLoader ?: viewModel.pageLoader)?.let { viewModel.sharePage(it, posture, guidedStop) } },
             onReportGlitch = { glitchDialogOpen = true },
             onClose = onClose,
             modifier = Modifier.align(Alignment.TopCenter),
@@ -447,6 +451,7 @@ private fun TopChrome(
     onToggleNightTint: () -> Unit,
     onToggleDirection: () -> Unit,
     onToggleSplitWidePages: () -> Unit,
+    onSharePage: () -> Unit,
     onReportGlitch: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
@@ -503,6 +508,7 @@ private fun TopChrome(
                 RevealedPanel(visible = openPanel == HudPanelKind.Settings) {
                     ReaderSettingsPanel(
                         showGuidedLayout = viewMode == ReaderViewMode.Guided && posture == ReadingPosture.UnfoldedSpread,
+                        guided = viewMode == ReaderViewMode.Guided,
                         guidedFullScreen = guidedFullScreen,
                         nightTintEnabled = nightTintEnabled,
                         direction = direction,
@@ -511,6 +517,7 @@ private fun TopChrome(
                         onToggleNightTint = onToggleNightTint,
                         onToggleDirection = onToggleDirection,
                         onToggleSplitWidePages = onToggleSplitWidePages,
+                        onSharePage = { openPanel = null; onSharePage() },
                         onReportGlitch = { openPanel = null; onReportGlitch() },
                     )
                 }
@@ -702,6 +709,7 @@ private fun BubbleScaleStep(
 @Composable
 private fun ReaderSettingsPanel(
     showGuidedLayout: Boolean,
+    guided: Boolean,
     guidedFullScreen: Boolean,
     nightTintEnabled: Boolean,
     direction: ReadingDirection,
@@ -710,6 +718,7 @@ private fun ReaderSettingsPanel(
     onToggleNightTint: () -> Unit,
     onToggleDirection: () -> Unit,
     onToggleSplitWidePages: () -> Unit,
+    onSharePage: () -> Unit,
     onReportGlitch: () -> Unit,
 ) {
     HudPanel {
@@ -750,6 +759,11 @@ private fun ReaderSettingsPanel(
             }
         }
         PanelDivider()
+        PanelRow(
+            icon = Icons.Filled.IosShare,
+            label = stringResource(if (guided) R.string.reader_action_share_panel else R.string.reader_action_share_page),
+            onClick = onSharePage,
+        )
         PanelRow(
             icon = Icons.Filled.BugReport,
             label = stringResource(R.string.reader_action_report_glitch),
