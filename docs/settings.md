@@ -42,12 +42,12 @@ opens; coming back now lands where you left.
 
 ## Sections
 
-- **Reading (defaults)** — reading direction (choice), enlarged bubbles on open
-  (switch), bubble size (slider), Guided View on open (switch), volume keys turn
-  pages (switch). These are the values a comic falls back to when its own
-  setting is "Default"; the per-comic screen spells them out ("Default (Off)",
-  "Default (Pages)"). The reader reads them once on open
-  (`ReaderViewModel.applyOpenDefaults`) and the bubble scale/direction live
+- **Reading (defaults)** — reading type (Comic · Manga · Webcomic), enlarged
+  bubbles on open (switch), bubble size (slider), Guided View on open (switch),
+  volume keys turn pages (switch). These are the values a comic falls back to
+  when its own setting is "Default"; the per-comic screen spells them out
+  ("Default (Off)", "Default (Comic)"). The reader reads them once on open
+  (`ReaderViewModel.applyOpenDefaults`) and the bubble scale/reading type live
   through `combine` with the per-comic override.
 - **Screen** — night tint and keep the screen on while reading
   (`FLAG_KEEP_SCREEN_ON` is now conditional, default on).

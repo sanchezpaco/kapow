@@ -1,8 +1,8 @@
 package com.comicify.feature.library.domain
 
+import com.comicify.feature.reader.domain.ReadingType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ComicMetadataTest {
@@ -14,7 +14,7 @@ class ComicMetadataTest {
         number: Int? = null,
         year: Int? = null,
         storyTitle: String? = null,
-        readsRightToLeft: Boolean? = null,
+        readingType: ReadingType? = null,
     ) = ComicInfo(
         series = series,
         number = number,
@@ -26,7 +26,7 @@ class ComicMetadataTest {
         inker = null,
         colorist = null,
         summary = null,
-        readsRightToLeft = readsRightToLeft,
+        readingType = readingType,
     )
 
     @Test
@@ -38,7 +38,7 @@ class ComicMetadataTest {
         assertEquals(2011, metadata.year)
         assertNull(metadata.storyTitle)
         assertNull(metadata.summary)
-        assertNull(metadata.readsRightToLeft)
+        assertNull(metadata.readingType)
     }
 
     @Test
@@ -73,10 +73,10 @@ class ComicMetadataTest {
     }
 
     @Test
-    fun mangaBecomesTheComicsReadingDirection() {
-        val metadata = mergeComicMetadata(info = comicInfo(readsRightToLeft = true), parsed = parsed)
+    fun mangaBecomesTheComicsReadingType() {
+        val metadata = mergeComicMetadata(info = comicInfo(readingType = ReadingType.Manga), parsed = parsed)
 
-        assertTrue(metadata.readsRightToLeft == true)
+        assertEquals(ReadingType.Manga, metadata.readingType)
     }
 
     @Test
@@ -92,7 +92,7 @@ class ComicMetadataTest {
             inker = "John Romita Sr.",
             colorist = "Dave Hunt",
             summary = "A summary.",
-            readsRightToLeft = null,
+            readingType = null,
         )
 
         val metadata = mergeComicMetadata(info = info, parsed = parsed)
@@ -132,7 +132,7 @@ class ComicMetadataTest {
             inker = null,
             colorist = null,
             summary = "A summary.",
-            readsRightToLeft = true,
+            readingType = ReadingType.Manga,
         )
 
         val metadata = mergeComicMetadata(
@@ -147,7 +147,7 @@ class ComicMetadataTest {
         assertEquals("Marvel Comics", metadata.publisher)
         assertEquals("Chris Claremont", metadata.writer)
         assertEquals("A summary.", metadata.summary)
-        assertTrue(metadata.readsRightToLeft == true)
+        assertEquals(ReadingType.Manga, metadata.readingType)
     }
 
     @Test

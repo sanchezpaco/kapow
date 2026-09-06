@@ -21,7 +21,6 @@ import com.comicify.core.storage.ReadingListEntity
 import com.comicify.core.storage.ReadingListEntryEntity
 import com.comicify.core.storage.ReadingStateDao
 import com.comicify.core.storage.ReadingStateEntity
-import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.library.domain.ArrivingComic
 import com.comicify.feature.library.domain.ComicInfoParser
 import com.comicify.feature.library.domain.ComicNameParser
@@ -278,7 +277,7 @@ class LibraryRepositoryImpl @Inject constructor(
             inker = metadata.inker,
             colorist = metadata.colorist,
             summary = metadata.summary,
-            readsRightToLeft = metadata.readsRightToLeft,
+            readingType = metadata.readingType,
             metadataVersion = METADATA_VERSION,
         )
     }
@@ -371,7 +370,7 @@ class LibraryRepositoryImpl @Inject constructor(
         comicSettingsDao.upsert(
             ComicSettingsEntity(
                 documentUri = documentUri,
-                rightToLeft = settings.direction?.let { it == ReadingDirection.RightToLeft },
+                readingType = settings.readingType,
                 coverAlone = settings.coverAlone,
                 bubblesEnlarged = settings.bubblesEnlarged,
                 guided = settings.guided,
@@ -388,7 +387,7 @@ class LibraryRepositoryImpl @Inject constructor(
 
     private fun ComicSettingsEntity.toComicSettings(): ComicSettings =
         ComicSettings(
-            direction = rightToLeft?.let { if (it) ReadingDirection.RightToLeft else ReadingDirection.LeftToRight },
+            readingType = readingType,
             coverAlone = coverAlone,
             bubblesEnlarged = bubblesEnlarged,
             guided = guided,

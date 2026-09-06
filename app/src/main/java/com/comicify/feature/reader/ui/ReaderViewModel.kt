@@ -21,7 +21,9 @@ import com.comicify.core.storage.ReaderPreferencesRepository
 import com.comicify.core.window.ReadingPosture
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.domain.model.ReadingPosition
+import com.comicify.feature.library.domain.ComicSettings
 import com.comicify.feature.library.domain.LibraryCatalog
+import com.comicify.feature.library.domain.openModeOnOpen
 import com.comicify.feature.reader.data.ComicSource
 import com.comicify.feature.reader.data.ComicSourceException
 import com.comicify.feature.reader.data.ComicSourceFactory
@@ -33,6 +35,7 @@ import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.Bookmarks
 import com.comicify.feature.reader.domain.ComicOpenError
 import com.comicify.feature.reader.domain.ReaderViewMode
+import com.comicify.feature.reader.domain.ReadingType
 import com.comicify.feature.reader.domain.SplitSuggestion
 import dagger.hilt.android.EntryPointAccessors
 import java.io.IOException
@@ -71,7 +74,7 @@ class ReaderViewModel(
     private val comicSettingsDao: ComicSettingsDao = databaseEntryPoint.comicSettingsDao()
     private val comicDao: ComicDao = databaseEntryPoint.comicDao()
     private val bookmarkDao: BookmarkDao = databaseEntryPoint.bookmarkDao()
-    private val comicReadsRightToLeft = MutableStateFlow<Boolean?>(null)
+    private val comicReadingType = MutableStateFlow<ReadingType?>(null)
     private val bookmarkedComicId = MutableStateFlow<Long?>(null)
     private var libraryComicId: Long? = null
     private var source: ComicSource? = null
@@ -93,14 +96,16 @@ class ReaderViewModel(
     private fun openComic() {
         viewModelScope.launch {
             val comic = comicDao.findByDocumentUri(uri.toString())
-            comicReadsRightToLeft.value = comic?.readsRightToLeft
+            comicReadingType.value = comic?.readingType
             libraryComicId = comic?.id
             bookmarkComic(comic?.id)
             val settings = comicSettingsDao.find(uri.toString())
-            applyOpenDefaults(preferencesRepository.openDefaults.first(), settings)
+            val defaults = preferencesRepository.openDefaults.first()
+            val type = effectiveType(defaults.readingType, comicReadingType.value, settings)
+            applyOpenDefaults(defaults, settings, type)
             val mode = SourceMode(
                 splitWidePages = settings?.splitWidePages ?: false,
-                direction = effectiveDirection(preferencesRepository.readingDirection.first(), comicReadsRightToLeft.value, settings),
+                direction = type.direction,
             )
             loadSource(mode) { state.value.position.pageIndex }
             if (!mode.splitWidePages && settings?.splitSuggested != true) suggestSplitIfMostlyWide()
@@ -165,11 +170,14 @@ class ReaderViewModel(
             .getOrThrow()
     }
 
-    private fun applyOpenDefaults(defaults: OpenDefaults, settings: ComicSettingsEntity?) {
+    private fun applyOpenDefaults(defaults: OpenDefaults, settings: ComicSettingsEntity?, type: ReadingType) {
+        val explicit = ComicSettings(guided = settings?.guided, verticalScroll = settings?.verticalScroll ?: false)
+        val mode = explicit.openModeOnOpen(type, defaults.guidedOnOpen)
         _state.update {
             it.copy(
                 bubblesEnlarged = settings?.bubblesEnlarged ?: defaults.bubblesOnOpen,
-                guided = settings?.guided ?: defaults.guidedOnOpen,
+                guided = mode == ReaderViewMode.Guided,
+                verticalScroll = mode == ReaderViewMode.Strip,
             )
         }
     }
@@ -269,10 +277,11 @@ class ReaderViewModel(
     }
 
     fun setViewMode(mode: ReaderViewMode) {
-        _state.update { it.copy(guided = mode == ReaderViewMode.Guided) }
         val strip = mode == ReaderViewMode.Strip
+        val changed = _state.value.verticalScroll != strip
+        _state.update { it.copy(guided = mode == ReaderViewMode.Guided, verticalScroll = strip, webcomicHint = false) }
         if (!strip) bookmarkComic(libraryComicId)
-        if (_state.value.verticalScroll != strip) updateSettings { it.copy(verticalScroll = strip) }
+        if (changed) updateSettings { it.copy(verticalScroll = strip) }
     }
 
     fun toggleBubblesEnlarged() {
@@ -338,19 +347,23 @@ class ReaderViewModel(
         }
     }
 
-    fun toggleReadingDirection() {
-        val next = when (_state.value.direction) {
-            ReadingDirection.LeftToRight -> ReadingDirection.RightToLeft
-            ReadingDirection.RightToLeft -> ReadingDirection.LeftToRight
-        }
+    fun cycleReadingType() {
+        val next = _state.value.readingType.next()
+        _state.update { it.copy(webcomicHint = next == ReadingType.Webcomic && !it.verticalScroll) }
         viewModelScope.launch {
-            val override = comicSettingsDao.find(uri.toString())?.takeIf { it.rightToLeft != null }
+            val override = comicSettingsDao.find(uri.toString())?.takeIf { it.readingType != null }
             if (override == null) {
-                preferencesRepository.setReadingDirection(next)
+                preferencesRepository.setReadingType(next)
             } else {
-                comicSettingsDao.upsert(override.copy(rightToLeft = next == ReadingDirection.RightToLeft))
+                comicSettingsDao.upsert(override.copy(readingType = next))
             }
         }
+    }
+
+    fun acceptWebcomicHint() = setViewMode(ReaderViewMode.Strip)
+
+    fun dismissWebcomicHint() {
+        _state.update { it.copy(webcomicHint = false) }
     }
 
     fun toggleSplitWidePages() {
@@ -367,7 +380,7 @@ class ReaderViewModel(
 
     private fun emptySettings(documentUri: String = uri.toString()) = ComicSettingsEntity(
         documentUri = documentUri,
-        rightToLeft = null,
+        readingType = null,
         coverAlone = false,
         bubblesEnlarged = null,
         guided = null,
@@ -376,26 +389,25 @@ class ReaderViewModel(
     private fun observeComicSettings() {
         viewModelScope.launch {
             combine(
-                preferencesRepository.readingDirection,
-                comicReadsRightToLeft,
+                preferencesRepository.readingType,
+                comicReadingType,
                 comicSettingsDao.observe(uri.toString()),
             ) { global, comicDefault, settings ->
                 ComicPreferences(
-                    direction = effectiveDirection(global, comicDefault, settings),
+                    readingType = effectiveType(global, comicDefault, settings),
                     coverAlone = settings?.coverAlone ?: false,
                     splitWidePages = settings?.splitWidePages ?: false,
-                    verticalScroll = settings?.verticalScroll ?: false,
                 )
             }.collect { preferences ->
                 _state.update {
                     it.copy(
-                        direction = preferences.direction,
+                        readingType = preferences.readingType,
+                        direction = preferences.readingType.direction,
                         coverAlone = preferences.coverAlone,
                         splitWidePages = preferences.splitWidePages,
-                        verticalScroll = preferences.verticalScroll,
                     )
                 }
-                applySourceMode(SourceMode(preferences.splitWidePages, preferences.direction))
+                applySourceMode(SourceMode(preferences.splitWidePages, preferences.readingType.direction))
             }
         }
     }
@@ -468,22 +480,16 @@ private data class SourceMode(val splitWidePages: Boolean, val direction: Readin
 }
 
 private data class ComicPreferences(
-    val direction: ReadingDirection,
+    val readingType: ReadingType,
     val coverAlone: Boolean,
     val splitWidePages: Boolean,
-    val verticalScroll: Boolean,
 )
 
-private fun effectiveDirection(
-    global: ReadingDirection,
-    comicDefault: Boolean?,
+private fun effectiveType(
+    global: ReadingType,
+    comicDefault: ReadingType?,
     settings: ComicSettingsEntity?,
-): ReadingDirection =
-    when (settings?.rightToLeft ?: comicDefault) {
-        null -> global
-        true -> ReadingDirection.RightToLeft
-        false -> ReadingDirection.LeftToRight
-    }
+): ReadingType = settings?.readingType ?: comicDefault ?: global
 
 private fun ComicSource?.sourcePage(page: Int): Int = (this as? SplitPagesComicSource)?.sourcePageOf(page) ?: page
 

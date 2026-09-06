@@ -68,14 +68,15 @@ import com.comicify.core.ui.SettingsSwitchRow
 import com.comicify.core.ui.defaultLabel
 import com.comicify.core.ui.labelRes
 import com.comicify.core.ui.triStateOptions
-import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
+import com.comicify.feature.library.domain.defaultOpenMode
 import com.comicify.feature.library.domain.openMode
 import com.comicify.feature.library.domain.parseEditedIssueNumber
 import com.comicify.feature.library.domain.withOpenMode
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.ReaderViewMode
+import com.comicify.feature.reader.domain.ReadingType
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.first
 
@@ -122,20 +123,21 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, showDetails: Boolean, onBack
             ) {
                 SettingsChoiceRow(
                     label = stringResource(R.string.settings_mode_on_open),
-                    options = openModeOptions(defaults.guidedOnOpen),
+                    options = openModeOptions(settings.readingType ?: defaults.readingType, defaults.guidedOnOpen),
                     selected = settings.openMode(),
                     onSelect = { viewModel.onSettingsChanged(settings.withOpenMode(it)) },
                 )
                 SettingsDivider()
                 SettingsChoiceRow(
-                    label = stringResource(R.string.detail_setting_direction),
+                    label = stringResource(R.string.detail_setting_type),
                     options = listOf(
-                        null to defaultLabel(stringResource(defaults.direction.labelRes())),
-                        ReadingDirection.LeftToRight to stringResource(R.string.detail_option_ltr),
-                        ReadingDirection.RightToLeft to stringResource(R.string.detail_option_rtl),
+                        null to defaultLabel(stringResource(defaults.readingType.labelRes())),
+                        ReadingType.Comic to stringResource(R.string.reading_type_comic),
+                        ReadingType.Manga to stringResource(R.string.reading_type_manga),
+                        ReadingType.Webcomic to stringResource(R.string.reading_type_webcomic),
                     ),
-                    selected = settings.direction,
-                    onSelect = { viewModel.onSettingsChanged(settings.copy(direction = it)) },
+                    selected = settings.readingType,
+                    onSelect = { viewModel.onSettingsChanged(settings.copy(readingType = it)) },
                 )
                 SettingsDivider()
                 SettingsSwitchRow(
@@ -349,15 +351,13 @@ private fun DetailRow(labelRes: Int, value: String) {
 }
 
 @Composable
-private fun openModeOptions(guidedOnOpen: Boolean): List<Pair<ReaderViewMode?, String>> {
-    val defaultMode = if (guidedOnOpen) R.string.reader_mode_guided else R.string.reader_mode_pages
-    return listOf(
-        null to defaultLabel(stringResource(defaultMode)),
-        ReaderViewMode.Pages to stringResource(R.string.reader_mode_pages),
-        ReaderViewMode.Guided to stringResource(R.string.reader_mode_guided),
-        ReaderViewMode.Strip to stringResource(R.string.reader_mode_strip),
+private fun openModeOptions(type: ReadingType, guidedOnOpen: Boolean): List<Pair<ReaderViewMode?, String>> =
+    listOf(
+        null to defaultLabel(stringResource(defaultOpenMode(type, guidedOnOpen).labelRes())),
+        ReaderViewMode.Pages to stringResource(ReaderViewMode.Pages.labelRes()),
+        ReaderViewMode.Guided to stringResource(ReaderViewMode.Guided.labelRes()),
+        ReaderViewMode.Strip to stringResource(ReaderViewMode.Strip.labelRes()),
     )
-}
 
 @Composable
 private fun SettingsHeader(comics: List<LibraryComic>) {

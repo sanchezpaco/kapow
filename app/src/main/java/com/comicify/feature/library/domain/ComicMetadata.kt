@@ -1,5 +1,7 @@
 package com.comicify.feature.library.domain
 
+import com.comicify.feature.reader.domain.ReadingType
+
 data class ComicMetadata(
     val series: String,
     val issueNumber: Int?,
@@ -11,7 +13,7 @@ data class ComicMetadata(
     val inker: String? = null,
     val colorist: String? = null,
     val summary: String? = null,
-    val readsRightToLeft: Boolean? = null,
+    val readingType: ReadingType? = null,
 )
 
 data class EditedComicMetadata(val series: String, val issueNumber: Int?, val storyTitle: String?)
@@ -33,5 +35,5 @@ fun mergeComicMetadata(info: ComicInfo?, parsed: ParsedComicName, edited: Edited
         inker = info?.inker,
         colorist = info?.colorist,
         summary = info?.summary,
-        readsRightToLeft = info?.readsRightToLeft,
+        readingType = info?.readingType,
     )

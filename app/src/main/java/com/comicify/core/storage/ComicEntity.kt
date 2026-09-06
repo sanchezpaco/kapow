@@ -3,6 +3,7 @@ package com.comicify.core.storage
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.comicify.feature.reader.domain.ReadingType
 
 @Entity(
     tableName = "comics",
@@ -27,7 +28,7 @@ data class ComicEntity(
     val inker: String? = null,
     val colorist: String? = null,
     val summary: String? = null,
-    val readsRightToLeft: Boolean? = null,
+    val readingType: ReadingType? = null,
     val metadataVersion: Int = 0,
     val contentHash: String? = null,
     val rating: Int = 0,

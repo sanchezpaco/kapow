@@ -5,9 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.comicify.core.storage.ReaderPreferencesRepository
 import com.comicify.core.ui.theme.ThemeChoice
-import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.library.data.LibraryRepository
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
+import com.comicify.feature.reader.domain.ReadingType
 import com.comicify.feature.settings.data.LauncherIconRepository
 import com.comicify.feature.settings.domain.LauncherIcon
 import com.comicify.feature.stats.data.ReadingStatsRepository
@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AppSettingsUiState(
-    val direction: ReadingDirection = ReadingDirection.LeftToRight,
+    val readingType: ReadingType = ReadingType.Comic,
     val bubblesOnOpen: Boolean = false,
     val guidedOnOpen: Boolean = false,
     val bubbleScale: Float = BUBBLE_ENLARGE_SCALE,
@@ -52,7 +52,7 @@ class AppSettingsViewModel @Inject constructor(
         combine(preferences.theme, launcherIcon, ::Pair),
     ) { defaults, bubbleScale, (volumeKeys, nightTint, keepScreenOn), folderUri, (theme, icon) ->
         AppSettingsUiState(
-            direction = defaults.direction,
+            readingType = defaults.readingType,
             bubblesOnOpen = defaults.bubblesOnOpen,
             guidedOnOpen = defaults.guidedOnOpen,
             bubbleScale = bubbleScale ?: BUBBLE_ENLARGE_SCALE,
@@ -65,7 +65,7 @@ class AppSettingsViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppSettingsUiState())
 
-    fun onDirectionSelected(direction: ReadingDirection) = save { preferences.setReadingDirection(direction) }
+    fun onReadingTypeSelected(type: ReadingType) = save { preferences.setReadingType(type) }
     fun onBubblesOnOpenChanged(enabled: Boolean) = save { preferences.setBubblesOnOpen(enabled) }
     fun onGuidedOnOpenChanged(enabled: Boolean) = save { preferences.setGuidedOnOpen(enabled) }
     fun onBubbleScaleChanged(scale: Float) = save { preferences.setBubbleScale(scale) }

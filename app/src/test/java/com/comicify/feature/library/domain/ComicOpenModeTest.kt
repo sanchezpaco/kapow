@@ -1,6 +1,7 @@
 package com.comicify.feature.library.domain
 
 import com.comicify.feature.reader.domain.ReaderViewMode
+import com.comicify.feature.reader.domain.ReadingType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -54,5 +55,46 @@ class ComicOpenModeTest {
         val settings = ComicSettings.Default.copy(coverAlone = true, splitWidePages = true, bubbleScale = 1.4f)
         val switched = settings.withOpenMode(ReaderViewMode.Guided)
         assertEquals(settings.copy(guided = true), switched)
+    }
+
+    @Test
+    fun `a webcomic opens in the strip when no mode is set`() {
+        assertEquals(
+            ReaderViewMode.Strip,
+            ComicSettings.Default.openModeOnOpen(ReadingType.Webcomic, guidedOnOpen = false),
+        )
+    }
+
+    @Test
+    fun `a webcomic beats guided view on open`() {
+        assertEquals(
+            ReaderViewMode.Strip,
+            ComicSettings.Default.openModeOnOpen(ReadingType.Webcomic, guidedOnOpen = true),
+        )
+    }
+
+    @Test
+    fun `an explicit mode beats the webcomic strip`() {
+        val settings = ComicSettings.Default.withOpenMode(ReaderViewMode.Pages)
+        assertEquals(ReaderViewMode.Pages, settings.openModeOnOpen(ReadingType.Webcomic, guidedOnOpen = true))
+    }
+
+    @Test
+    fun `guided view on open applies to comics and manga`() {
+        listOf(ReadingType.Comic, ReadingType.Manga).forEach { type ->
+            assertEquals(ReaderViewMode.Guided, ComicSettings.Default.openModeOnOpen(type, guidedOnOpen = true))
+        }
+    }
+
+    @Test
+    fun `pages is the last rung of the ladder`() {
+        assertEquals(ReaderViewMode.Pages, ComicSettings.Default.openModeOnOpen(ReadingType.Comic, guidedOnOpen = false))
+    }
+
+    @Test
+    fun `the default chip follows the same ladder`() {
+        assertEquals(ReaderViewMode.Strip, defaultOpenMode(ReadingType.Webcomic, guidedOnOpen = false))
+        assertEquals(ReaderViewMode.Guided, defaultOpenMode(ReadingType.Manga, guidedOnOpen = true))
+        assertEquals(ReaderViewMode.Pages, defaultOpenMode(ReadingType.Manga, guidedOnOpen = false))
     }
 }

@@ -1,5 +1,7 @@
 package com.comicify.feature.library.domain
 
+import com.comicify.feature.reader.domain.ReadingType
+
 data class ComicInfo(
     val series: String?,
     val number: Int?,
@@ -11,5 +13,5 @@ data class ComicInfo(
     val inker: String?,
     val colorist: String?,
     val summary: String?,
-    val readsRightToLeft: Boolean?,
+    val readingType: ReadingType?,
 )

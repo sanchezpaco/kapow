@@ -1,8 +1,8 @@
 package com.comicify.feature.library.domain
 
+import com.comicify.feature.reader.domain.ReadingType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ComicInfoParserTest {
@@ -38,7 +38,7 @@ class ComicInfoParserTest {
         assertEquals("John Romita Sr.", info.inker)
         assertEquals("Dave Hunt", info.colorist)
         assertEquals("The Green Goblin takes Gwen to the bridge.", info.summary)
-        assertNull(info.readsRightToLeft)
+        assertNull(info.readingType)
     }
 
     @Test
@@ -67,24 +67,24 @@ class ComicInfoParserTest {
     }
 
     @Test
-    fun mangaRightToLeftReadsRightToLeft() {
+    fun mangaRightToLeftBecomesTheMangaType() {
         val info = ComicInfoParser.parse("<ComicInfo><Manga>YesAndRightToLeft</Manga></ComicInfo>")
 
-        assertTrue(info?.readsRightToLeft == true)
+        assertEquals(ReadingType.Manga, info?.readingType)
     }
 
     @Test
-    fun mangaYesReadsLeftToRight() {
+    fun mangaYesBecomesTheComicType() {
         val info = ComicInfoParser.parse("<ComicInfo><Manga>Yes</Manga></ComicInfo>")
 
-        assertEquals(false, info?.readsRightToLeft)
+        assertEquals(ReadingType.Comic, info?.readingType)
     }
 
     @Test
     fun mangaUnknownHasNoOpinion() {
         val info = ComicInfoParser.parse("<ComicInfo><Manga>Unknown</Manga></ComicInfo>")
 
-        assertNull(info?.readsRightToLeft)
+        assertNull(info?.readingType)
     }
 
     @Test

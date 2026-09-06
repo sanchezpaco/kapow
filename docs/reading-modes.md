@@ -310,21 +310,44 @@ the glitch report already uses — `ReaderScreen` starts whatever arrives there.
 
 `ReaderViewModel` reads the comic's `comic_settings` row (`ComicSettingsDao`)
 on open: `bubblesEnlarged` and `guided`, when not null, replace the reader's
-initial off state; `rightToLeft`, when not null, overrides the global reading
-direction, and the reader's direction toggle then writes the override instead
+initial off state; `readingType`, when not null, overrides the global reading
+type, and the reader's type row then writes the override instead
 of the global preference; `bubbleScale` works the same way for the HUD stepper
 (override wins, and stepping updates the override when one exists);
 `coverAlone` feeds the spread pairing above, `splitWidePages` the split
 described above and `verticalScroll` the continuous strip.
 Everything else stays global in `ReaderPreferencesRepository`.
 
-## Reading direction
+## Reading type and direction
 
-The reader has a `ReadingDirection` setting — `LeftToRight` (default) or
-`RightToLeft` (for manga and other right-bound comics) — persisted with
-DataStore (`ReaderPreferences`, key `reading_direction_rtl`) and exposed as
-`ReaderUiState.direction`, toggled from the ViewModel
-(`ReaderViewModel.toggleReadingDirection`) and from the reader settings menu.
+What the user picks is a **`ReadingType`**
+(`feature/reader/domain/ReadingType.kt`) — `Comic` (default), `Manga` or
+`Webcomic` — persisted with DataStore (`ReaderPreferences`, key
+`reading_type`; a pre-1.2 `reading_direction_rtl` still reads as `Manga` /
+`Comic`) and exposed as `ReaderUiState.readingType`, cycled from the ViewModel
+(`ReaderViewModel.cycleReadingType`) and from the reader settings menu.
+
+`ReadingDirection` stays the low-level concept every pager, tap zone and split
+is written against; the type maps onto it with `ReadingType.direction`:
+
+| type | direction | mode on open |
+| --- | --- | --- |
+| `Comic` | `LeftToRight` | — |
+| `Manga` | `RightToLeft` | — |
+| `Webcomic` | `LeftToRight` | vertical scroll |
+
+The effective type resolves as per-comic setting → the comic's ComicInfo
+default → the global type, and its direction lands on
+`ReaderUiState.direction`.
+
+The implied mode is an **on-open** default only, one ladder in
+`ComicSettings.openModeOnOpen` (`feature/library/domain/ComicOpenMode.kt`):
+the comic's explicit "Mode on open", else `Strip` for a `Webcomic`, else
+`Guided` when "Guided view on open" is on, else `Pages`. Picking `Webcomic`
+inside the reader therefore never throws the current page into a scrolling
+strip — it changes the direction and persists the type, and a snackbar
+("Webcomics read in vertical scroll" · Switch) offers the mode change, exactly
+as the split suggestion does.
 
 When `RightToLeft` is active:
 
@@ -370,15 +393,16 @@ is unit-tested directly (`PageOrderTest`).
   The panels live inside the chrome, so they slide away with it, and only one is
   open at a time: `TopChrome` owns a single nullable `HudPanelKind`, so opening
   one closes the other instead of letting two columns interleave.
-- The gear panel holds night tint, reading direction (trailing text, tapping
-  flips it), split wide pages, the panel-layout toggle in the spread, and, below
+- The gear panel holds night tint, reading type (trailing text, tapping
+  cycles Comic → Manga → Webcomic), split wide pages, the panel-layout toggle in the spread, and, below
   a hairline, "Report a visual glitch" as a plain action row that closes the
   panel.
 - **The circle button's fill means "open", never "on".** It takes the accent
   colour only while its own panel is showing. Whether its contents are at the
   defaults is a separate signal: an 8 dp accent dot on the top-end corner of the
   circle, shown while the panel is closed and the eye is off Pages or has
-  bubbles on, or the gear has night tint, right-to-left or the split active.
+  bubbles on, or the gear has night tint, a reading type other than Comic, or
+  the split active.
 - Center tap toggles a minimal overlay: progress, page number, quick settings.
   Both bars carry a scrim so their white content stays legible over light pages:
   the top bar fades black `0.6` → transparent downwards, the bottom chrome
