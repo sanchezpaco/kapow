@@ -33,13 +33,17 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CreateNewFolder
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -143,7 +147,13 @@ fun AppSettingsScreen(
                 ScreenSection(state, viewModel)
             }
             val appSections: @Composable () -> Unit = {
-                LibrarySection(state.folderUri, scanning, onPickFolder = { folderLauncher.launch(null) }, onRefresh = onRefresh)
+                LibrarySection(
+                    folderUri = state.folderUri,
+                    scanning = scanning,
+                    onPickFolder = { folderLauncher.launch(null) },
+                    onRefresh = onRefresh,
+                    onDeleteReadingHistory = viewModel::onDeleteReadingHistory,
+                )
                 AppearanceSection(
                     theme = state.theme,
                     launcherIcon = state.launcherIcon,
@@ -228,7 +238,13 @@ private fun ScreenSection(state: AppSettingsUiState, viewModel: AppSettingsViewM
 }
 
 @Composable
-private fun LibrarySection(folderUri: String?, scanning: Boolean, onPickFolder: () -> Unit, onRefresh: () -> Unit) {
+private fun LibrarySection(
+    folderUri: String?,
+    scanning: Boolean,
+    onPickFolder: () -> Unit,
+    onRefresh: () -> Unit,
+    onDeleteReadingHistory: () -> Unit,
+) {
     SettingsSection(
         eyebrow = stringResource(R.string.app_settings_collection_eyebrow),
         title = stringResource(R.string.library_title),
@@ -242,7 +258,31 @@ private fun LibrarySection(folderUri: String?, scanning: Boolean, onPickFolder: 
                 if (folderUri != null) RescanAction(scanning = scanning, onRefresh = onRefresh)
             }
         }
+        SettingsDivider()
+        DeleteReadingHistoryRow(onDelete = onDeleteReadingHistory)
     }
+}
+
+@Composable
+private fun DeleteReadingHistoryRow(onDelete: () -> Unit) {
+    var confirming by remember { mutableStateOf(false) }
+    SettingsActionRow(label = stringResource(R.string.settings_delete_history)) { confirming = true }
+    if (!confirming) return
+    AlertDialog(
+        onDismissRequest = { confirming = false },
+        title = { Text(stringResource(R.string.settings_delete_history_title)) },
+        text = { Text(stringResource(R.string.settings_delete_history_body)) },
+        confirmButton = {
+            TextButton(onClick = { confirming = false; onDelete() }) {
+                Text(stringResource(R.string.settings_delete_history_confirm), color = KapowTheme.palette.danger)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { confirming = false }) {
+                Text(stringResource(R.string.settings_delete_history_cancel))
+            }
+        },
+    )
 }
 
 @Composable

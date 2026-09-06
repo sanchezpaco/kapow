@@ -10,6 +10,7 @@ import com.comicify.feature.library.data.LibraryRepository
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.settings.data.LauncherIconRepository
 import com.comicify.feature.settings.domain.LauncherIcon
+import com.comicify.feature.stats.data.ReadingStatsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -37,6 +38,7 @@ class AppSettingsViewModel @Inject constructor(
     application: Application,
     library: LibraryRepository,
     private val launcherIcons: LauncherIconRepository,
+    private val stats: ReadingStatsRepository,
 ) : ViewModel() {
 
     private val preferences = ReaderPreferencesRepository(application)
@@ -78,6 +80,7 @@ class AppSettingsViewModel @Inject constructor(
     }
 
     fun onReplayOnboarding() = save { preferences.setOnboardingSeen(false) }
+    fun onDeleteReadingHistory() = save { stats.deleteAll() }
 
     private fun save(write: suspend () -> Unit) {
         viewModelScope.launch { write() }

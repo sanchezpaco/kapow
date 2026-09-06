@@ -11,6 +11,7 @@ How Kapow works, one concern per file.
 - [training.md](training.md) — how the panel and bubble detectors are trained, scored and exported
 - [ml-runtime.md](ml-runtime.md) — minimal ONNX Runtime build and ORT-format models: how the AAR and the `.ort` assets are produced
 - [library.md](library.md) — import, storage, metadata, persistence
+- [stats.md](stats.md) — reading sessions: what is recorded, the pace rule, retention, the stats screen
 - [settings.md](settings.md) — app settings, themes, backup rules
 - [onboarding.md](onboarding.md) — first-launch steps, the DataStore flag, replay from Settings
 - [review-prompt.md](review-prompt.md) — Play In-App Review request: 3 finished comics, 60-day interval, on reader close

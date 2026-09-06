@@ -129,6 +129,46 @@
     <string name="licences_title">Open-source licences</string>
     <string name="licences_intro">Kapow is free software under the AGPL-3.0 and is built on these projects. Tap one to open its page.</string>
 
+    <string name="library_action_stats">Reading stats</string>
+    <string name="stats_title">Stats</string>
+    <string name="stats_window_30_days">Last 30 days</string>
+    <string name="stats_hero_pages">pages read</string>
+    <string name="stats_tile_time">Time read</string>
+    <string name="stats_tile_pace">Your pace</string>
+    <string name="stats_tile_finished">Finished</string>
+    <string name="stats_tile_finished_sub">this month</string>
+    <string name="stats_tile_days">Days read</string>
+    <string name="stats_value_hours_minutes">%1$s h %2$s min</string>
+    <string name="stats_value_minutes">%1$s min</string>
+    <string name="stats_value_pace">%1$s s/page</string>
+    <string name="stats_value_days">%1$s/%2$s</string>
+    <string name="stats_unit_hours">h</string>
+    <string name="stats_unit_minutes">min</string>
+    <string name="stats_unit_pace">s/page</string>
+    <string name="stats_pace_eyebrow">Pace</string>
+    <string name="stats_pace_section">Pages per day</string>
+    <string name="stats_chart_average">avg %1$s pages/day</string>
+    <string name="stats_chart_today">today</string>
+    <string name="stats_series_eyebrow">Series</string>
+    <string name="stats_series_section">Your pace</string>
+    <string name="stats_series_meta">%1$s · %2$s</string>
+    <string name="stats_finished_eyebrow">This month</string>
+    <string name="stats_finished_section">Finished</string>
+    <string name="stats_finished_more">+%1$s</string>
+    <string name="stats_privacy_note">Only on this phone.</string>
+    <string name="stats_empty_title">Nothing to show yet</string>
+    <string name="stats_empty_body">Read a few pages and this screen fills up: your pace, the time you spend and the issues you finish.</string>
+    <string name="stats_empty_resume">Continue %1$s</string>
+    <string name="settings_delete_history">Delete reading history</string>
+    <string name="settings_delete_history_title">Delete reading history?</string>
+    <string name="settings_delete_history_body">Every reading session recorded on this phone will be deleted, and the stats screen starts from zero. Your comics, your progress and your settings are untouched.</string>
+    <string name="settings_delete_history_confirm">Delete</string>
+    <string name="settings_delete_history_cancel">Cancel</string>
+    <plurals name="stats_series_issues">
+        <item quantity="one">%1$s issue</item>
+        <item quantity="other">%1$s issues</item>
+    </plurals>
+
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_next">Next</string>
     <string name="onboarding_start">Start reading</string>

@@ -18,6 +18,11 @@ All notable user-facing changes to Kapow. The format follows
 - Long-press a cover → **Details** for the summary, the credits (writer,
   pencils, inks, colours), the publisher and the file name the metadata
   replaced. A manga marked right-to-left opens that way by default.
+- Reading stats: a new screen from the library toolbar with the pages you read
+  in the last 30 days, the time you spent, your pace, the days you read, a
+  30-day chart, your pace per series and the comics you finished this month.
+  Everything is measured on this phone only, "time left" on the shelf now
+  follows your real pace, and the history can be deleted from Settings.
 
 ### Fixed
 - Enlarged bubbles keep up with page turns the first time through a comic.

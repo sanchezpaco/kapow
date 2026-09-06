@@ -54,6 +54,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.RemoveDone
@@ -158,6 +159,7 @@ fun LibraryScreen(
     onOpenComic: (LibraryComic) -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
     onOpenDetails: (LibraryComic) -> Unit,
+    onOpenStats: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenFile: (Uri) -> Unit,
     onFilterSelected: (LibraryFilter) -> Unit,
@@ -197,6 +199,7 @@ fun LibraryScreen(
                 onOpenComic = onOpenComic,
                 onOpenSettings = onOpenSettings,
                 onOpenDetails = onOpenDetails,
+                onOpenStats = onOpenStats,
                 onOpenAppSettings = onOpenAppSettings,
                 onOpenFile = onOpenFile,
                 onFilterSelected = onFilterSelected,
@@ -224,6 +227,7 @@ private fun LibraryContent(
     onOpenComic: (LibraryComic) -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
     onOpenDetails: (LibraryComic) -> Unit,
+    onOpenStats: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenFile: (Uri) -> Unit,
     onFilterSelected: (LibraryFilter) -> Unit,
@@ -294,6 +298,7 @@ private fun LibraryContent(
                 scanError = state.scanError,
                 grouped = state.grouped,
                 query = state.query,
+                onOpenStats = onOpenStats,
                 onOpenAppSettings = onOpenAppSettings,
                 onOpenFile = openFile,
                 onToggleGrouped = onToggleGrouped,
@@ -313,6 +318,7 @@ private fun LibraryContent(
                 ) {
                     ContinueReadingShelf(
                         comics = state.continueReading,
+                        heroSecondsPerPage = state.heroSecondsPerPage,
                         onOpenComic = onOpenComic,
                         onUnshelve = onUnshelve,
                         modifier = Modifier.padding(bottom = SectionGap),
@@ -502,6 +508,7 @@ private fun LibraryHeader(
     scanError: LibraryScanError?,
     grouped: Boolean,
     query: String,
+    onOpenStats: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenFile: () -> Unit,
     onToggleGrouped: () -> Unit,
@@ -540,6 +547,7 @@ private fun LibraryHeader(
                 active = grouped,
             )
             GhostAction(icon = Icons.Outlined.FileOpen, contentDescription = stringResource(R.string.library_action_open_file), onClick = onOpenFile)
+            GhostAction(icon = Icons.Outlined.BarChart, contentDescription = stringResource(R.string.library_action_stats), onClick = onOpenStats)
             GhostAction(icon = Icons.Outlined.Settings, contentDescription = stringResource(R.string.library_app_settings), onClick = onOpenAppSettings)
         }
         if (searching) {
@@ -647,6 +655,7 @@ internal fun GhostAction(
 @Composable
 private fun ContinueReadingShelf(
     comics: List<LibraryComic>,
+    heroSecondsPerPage: Int,
     onOpenComic: (LibraryComic) -> Unit,
     onUnshelve: (LibraryComic) -> Unit,
     modifier: Modifier = Modifier,
@@ -656,7 +665,7 @@ private fun ContinueReadingShelf(
         val hero = comics.firstOrNull() ?: return@Column
         key(hero.id) {
             SwipeToUnshelve(comic = hero, onUnshelve = onUnshelve) {
-                LibraryHero(comic = hero, onOpenComic = onOpenComic, onUnshelve = onUnshelve)
+                LibraryHero(comic = hero, secondsPerPage = heroSecondsPerPage, onOpenComic = onOpenComic, onUnshelve = onUnshelve)
             }
         }
         val rest = comics.drop(1)
@@ -702,7 +711,12 @@ private fun SwipeUnshelveBackground(direction: SwipeToDismissBoxValue) {
 }
 
 @Composable
-private fun LibraryHero(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit, onUnshelve: (LibraryComic) -> Unit) {
+private fun LibraryHero(
+    comic: LibraryComic,
+    secondsPerPage: Int,
+    onOpenComic: (LibraryComic) -> Unit,
+    onUnshelve: (LibraryComic) -> Unit,
+) {
     val ambient = comic.ambientColor()
     val glow = lerp(Ground, ambient, HeroGlowMix)
     val tint = lerp(OnGround, ambient, HeroTintMix)
@@ -749,7 +763,7 @@ private fun LibraryHero(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit
                     modifier = Modifier.padding(top = 6.dp),
                 )
                 Spacer(modifier = Modifier.weight(1f).heightIn(min = 14.dp))
-                HeroProgress(comic = comic)
+                HeroProgress(comic = comic, secondsPerPage = secondsPerPage)
                 Spacer(modifier = Modifier.height(14.dp))
                 ResumePill()
             }
@@ -784,7 +798,7 @@ private fun UnshelveButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun HeroProgress(comic: LibraryComic) {
+private fun HeroProgress(comic: LibraryComic, secondsPerPage: Int) {
     val pageCount = comic.pageCount
     if (pageCount == null || pageCount <= 0) return
     Row(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
@@ -795,7 +809,7 @@ private fun HeroProgress(comic: LibraryComic) {
         )
         Spacer(modifier = Modifier.weight(1f))
         Text(
-            text = stringResource(R.string.library_time_left, LibraryCatalog.minutesLeft(comic.pageIndex, pageCount)),
+            text = stringResource(R.string.library_time_left, LibraryCatalog.minutesLeft(comic.pageIndex, pageCount, secondsPerPage)),
             style = MaterialTheme.typography.labelSmall,
             color = InkFaint,
         )
