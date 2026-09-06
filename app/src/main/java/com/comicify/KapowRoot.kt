@@ -46,6 +46,7 @@ import com.comicify.feature.reader.ui.StripComic
 import com.comicify.feature.review.ui.InAppReviewPrompt
 import com.comicify.feature.review.ui.ReviewPromptViewModel
 import com.comicify.feature.settings.ui.AppSettingsScreen
+import com.comicify.feature.stats.ui.ReadingSessionViewModel
 import com.comicify.feature.settings.ui.LicencesScreen
 
 private const val SCREEN_FADE_MS = 350
@@ -71,6 +72,7 @@ fun KapowRoot(initialUri: Uri? = null) {
     val onboarding: OnboardingViewModel = hiltViewModel()
     val onboardingSeen by onboarding.seen.collectAsStateWithLifecycle()
     val review: ReviewPromptViewModel = hiltViewModel()
+    val sessionRecorder: ReadingSessionViewModel = hiltViewModel()
     LaunchedEffect(viewModel) { viewModel.comicFinished.collect { review.onComicFinished() } }
     InAppReviewPrompt(review)
     var open by remember {
@@ -144,6 +146,7 @@ fun KapowRoot(initialUri: Uri? = null) {
                         )
                         Screen.Licences -> LicencesScreen(onBack = { licencesOpen = false })
                         is Screen.Reader -> ReaderSession(target.request) {
+                            RecordReadingSession(recorder = sessionRecorder, comicId = target.request.comicId)
                             ReaderScreen(
                                 uri = target.request.uri,
                                 initialPage = target.request.initialPage,
@@ -154,7 +157,10 @@ fun KapowRoot(initialUri: Uri? = null) {
                                     LibraryCatalog.nextInSeries(state.allComics, current.id)?.toStripComic()
                                 },
                                 onPageChanged = { comicId, pageIndex, pageCount ->
-                                    comicId?.let { viewModel.saveProgress(it, pageIndex, pageCount) }
+                                    comicId?.let {
+                                        viewModel.saveProgress(it, pageIndex, pageCount)
+                                        sessionRecorder.onPageChanged(it, pageIndex, pageCount)
+                                    }
                                 },
                                 onClose = { open = null; review.onReaderClosed() },
                                 onOpenIssue = { issue ->
@@ -177,6 +183,17 @@ private fun Screen.key(): Any = when (this) {
     Screen.AppSettings -> "app-settings"
     Screen.Licences -> "licences"
     is Screen.Reader -> request
+}
+
+@Composable
+private fun RecordReadingSession(recorder: ReadingSessionViewModel, comicId: Long?) {
+    if (comicId == null) return
+    DisposableEffect(comicId) {
+        recorder.onReaderOpened(comicId)
+        onDispose { recorder.onReaderClosed(comicId) }
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { recorder.onAppStopped() }
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { recorder.onReaderOpened(comicId) }
 }
 
 @Composable
