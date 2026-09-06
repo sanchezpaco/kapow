@@ -4,7 +4,6 @@ import org.w3c.dom.Document
 import org.xml.sax.InputSource
 import org.xml.sax.SAXException
 import java.io.StringReader
-import javax.xml.XMLConstants
 import javax.xml.parsers.DocumentBuilderFactory
 
 const val COMIC_INFO_ENTRY = "comicinfo.xml"
@@ -42,9 +41,7 @@ object ComicInfoParser {
         }
 
     private fun builderFactory(): DocumentBuilderFactory =
-        DocumentBuilderFactory.newInstance().apply {
-            setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
-        }
+        DocumentBuilderFactory.newInstance().apply { isExpandEntityReferences = false }
 
     private fun readsRightToLeft(manga: String?): Boolean? = when (manga) {
         null, MANGA_UNKNOWN -> null
