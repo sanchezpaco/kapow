@@ -142,7 +142,7 @@ internal val CardShape = RoundedCornerShape(14.dp)
 private val SectionGap = 22.dp
 private val SearchFieldMaxWidth = 480.dp
 private val SearchPresetGap = 8.dp
-private val MenuHeaderMaxWidth = 260.dp
+internal val MenuHeaderMaxWidth = 260.dp
 private val ProgressRingSize = 26.dp
 
 private val CoverGradients = listOf(
@@ -181,19 +181,32 @@ fun LibraryScreen(
     onPresetQuery: (String) -> Unit,
     onSortSelected: (LibrarySort) -> Unit,
     onOpenSeries: (String?) -> Unit,
+    listActions: ReadingListActions,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val unshelvedMessage = stringResource(R.string.library_unshelved)
+    val removedMessage = stringResource(R.string.library_list_removed)
+    val deletedMessage = stringResource(R.string.library_list_deleted)
     val undoLabel = stringResource(R.string.library_undo)
     val unshelveWithUndo: (LibraryComic) -> Unit = { comic ->
         onUnshelve(comic)
-        scope.launch {
-            snackbarHost.currentSnackbarData?.dismiss()
-            val result = snackbarHost.showSnackbar(unshelvedMessage, actionLabel = undoLabel, duration = SnackbarDuration.Short)
-            if (result == SnackbarResult.ActionPerformed) onReshelve(comic)
-        }
+        scope.launch { if (snackbarHost.undoable(unshelvedMessage, undoLabel)) onReshelve(comic) }
     }
+    val lists = ReadingListsUi(
+        lists = state.lists,
+        opened = state.openedList,
+        actions = listActions.copy(
+            delete = { list ->
+                listActions.delete(list)
+                scope.launch { if (snackbarHost.undoable(deletedMessage, undoLabel)) listActions.restore(list) }
+            },
+            remove = { list, comic ->
+                listActions.remove(list, comic)
+                scope.launch { if (snackbarHost.undoable(removedMessage, undoLabel)) listActions.undoRemove() }
+            },
+        ),
+    )
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { KapowSnackbarHost(snackbarHost) },
@@ -222,9 +235,15 @@ fun LibraryScreen(
                 onPresetQuery = onPresetQuery,
                 onSortSelected = onSortSelected,
                 onOpenSeries = onOpenSeries,
+                lists = lists,
             )
         }
     }
+}
+
+private suspend fun SnackbarHostState.undoable(message: String, undoLabel: String): Boolean {
+    currentSnackbarData?.dismiss()
+    return showSnackbar(message, actionLabel = undoLabel, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -252,6 +271,7 @@ private fun LibraryContent(
     onPresetQuery: (String) -> Unit,
     onSortSelected: (LibrarySort) -> Unit,
     onOpenSeries: (String?) -> Unit,
+    lists: ReadingListsUi,
 ) {
     val folderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
@@ -271,6 +291,7 @@ private fun LibraryContent(
     }
 
     BackHandler(enabled = openGroup != null) { onOpenSeries(null) }
+    BackHandler(enabled = openGroup == null && lists.opened != null) { lists.actions.open(null) }
 
     if (openGroup != null) {
         SeriesScreen(
@@ -286,6 +307,7 @@ private fun LibraryContent(
             onDeleteSeries = onDeleteSeries,
             onToggleFavorite = onToggleFavorite,
             onDeleteComic = onDeleteComic,
+            lists = lists,
         )
         return
     }
@@ -336,12 +358,12 @@ private fun LibraryContent(
                         modifier = Modifier.padding(bottom = SectionGap),
                     )
                 }
-                ShelfTitle(sort = state.sort, onSortSelected = onSortSelected)
+                ShelfTitle(state = state, lists = lists, onSortSelected = onSortSelected)
             }
         }
         if (state.comics.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                FilterEmpty(searching = state.query.isNotBlank())
+                if (lists.opened?.comicIds?.isEmpty() == true) ListEmpty() else FilterEmpty(searching = state.query.isNotBlank())
             }
         }
         if (state.grouped) {
@@ -356,6 +378,7 @@ private fun LibraryContent(
                         onToggleRead = onToggleRead,
                         onToggleFavorite = onToggleFavorite,
                         onDeleteComic = onDeleteComic,
+                        lists = lists,
                     )
                     is LibraryEntry.Group -> GroupCard(
                         group = entry,
@@ -378,6 +401,7 @@ private fun LibraryContent(
                     onToggleRead = onToggleRead,
                     onToggleFavorite = onToggleFavorite,
                     onDeleteComic = onDeleteComic,
+                    lists = lists,
                 )
             }
         }
@@ -403,6 +427,7 @@ private fun SeriesScreen(
     onDeleteSeries: (List<LibraryComic>) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDeleteComic: (LibraryComic) -> Unit,
+    lists: ReadingListsUi,
 ) {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = gridMinCell()),
@@ -433,6 +458,7 @@ private fun SeriesScreen(
                 onToggleRead = onToggleRead,
                 onToggleFavorite = onToggleFavorite,
                 onDeleteComic = onDeleteComic,
+                lists = lists,
             )
         }
     }
@@ -976,9 +1002,11 @@ private fun ComicCard(
     onToggleRead: (LibraryComic) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDeleteComic: (LibraryComic) -> Unit,
+    lists: ReadingListsUi,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var addingToList by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1042,10 +1070,12 @@ private fun ComicCard(
         ComicCardMenu(
             expanded = menuExpanded,
             comic = comic,
+            lists = lists,
             onDismiss = { menuExpanded = false },
             onOpenSettings = { menuExpanded = false; onOpenSettings(listOf(comic)) },
             onOpenDetails = { menuExpanded = false; onOpenDetails(comic) },
             onChooseCover = { menuExpanded = false; onChooseCover(comic) },
+            onAddToList = { menuExpanded = false; addingToList = true },
             onToggleRead = onToggleRead,
             onToggleFavorite = onToggleFavorite,
             onDelete = {
@@ -1053,6 +1083,9 @@ private fun ComicCard(
                 confirmDelete = true
             },
         )
+    }
+    if (addingToList) {
+        AddToListDialog(comic = comic, lists = lists, onDismiss = { addingToList = false })
     }
     if (confirmDelete) {
         DeleteConfirmDialog(
@@ -1093,10 +1126,12 @@ internal fun DeleteConfirmDialog(
 internal fun ComicCardMenu(
     expanded: Boolean,
     comic: LibraryComic,
+    lists: ReadingListsUi,
     onDismiss: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenDetails: () -> Unit,
     onChooseCover: () -> Unit,
+    onAddToList: () -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDelete: () -> Unit,
@@ -1120,6 +1155,10 @@ internal fun ComicCardMenu(
             leadingIcon = { Icon(imageVector = Icons.Outlined.Settings, contentDescription = null) },
             onClick = onOpenSettings,
         )
+        AddToListMenuItem(onClick = onAddToList)
+        lists.opened?.let { list ->
+            ReadingListMenuItems(list = list, comic = comic, actions = lists.actions, onDismiss = onDismiss)
+        }
         val readLabel = if (comic.completed) R.string.library_mark_unread else R.string.library_mark_read
         val favoriteLabel = if (comic.favorite) R.string.library_remove_favorite else R.string.library_add_favorite
         DropdownMenuItem(
@@ -1170,7 +1209,7 @@ internal fun FavoriteBadge(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun MenuHeader(title: String) {
+internal fun MenuHeader(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.labelLarge,
@@ -1344,17 +1383,7 @@ private fun FilterHeader(filter: LibraryFilter, onFilterSelected: (LibraryFilter
 }
 
 @Composable
-private fun ShelfTitle(sort: LibrarySort, onSortSelected: (LibrarySort) -> Unit) {
-    SectionHeader(
-        eyebrow = stringResource(R.string.library_shelf_eyebrow),
-        title = stringResource(R.string.library_all_comics),
-    ) {
-        RecentSortToggle(sort = sort, onSortSelected = onSortSelected)
-    }
-}
-
-@Composable
-private fun RecentSortToggle(sort: LibrarySort, onSortSelected: (LibrarySort) -> Unit) {
+internal fun RecentSortToggle(sort: LibrarySort, onSortSelected: (LibrarySort) -> Unit) {
     val recent = sort == LibrarySort.RECENT
     GhostAction(
         icon = Icons.Filled.History,

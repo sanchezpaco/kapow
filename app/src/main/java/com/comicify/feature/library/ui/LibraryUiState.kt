@@ -5,6 +5,7 @@ import com.comicify.feature.library.domain.LibraryEntry
 import com.comicify.feature.library.domain.LibraryFilter
 import com.comicify.feature.library.domain.LibraryScanError
 import com.comicify.feature.library.domain.LibrarySort
+import com.comicify.feature.library.domain.ReadingList
 import com.comicify.feature.stats.domain.ReadingPace
 
 data class LibraryUiState(
@@ -16,6 +17,8 @@ data class LibraryUiState(
     val sort: LibrarySort = LibrarySort.TITLE,
     val query: String = "",
     val openedSeries: String? = null,
+    val lists: List<ReadingList> = emptyList(),
+    val openedList: ReadingList? = null,
     val grouped: Boolean = false,
     val comics: List<LibraryComic> = emptyList(),
     val allComics: List<LibraryComic> = emptyList(),

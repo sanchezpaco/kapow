@@ -11,8 +11,10 @@ import androidx.room.RoomDatabase
         ComicSettingsEntity::class,
         ReadingSessionEntity::class,
         BookmarkEntity::class,
+        ReadingListEntity::class,
+        ReadingListEntryEntity::class,
     ],
-    version = 16,
+    version = 17,
     exportSchema = false,
 )
 abstract class KapowDatabase : RoomDatabase() {
@@ -22,4 +24,5 @@ abstract class KapowDatabase : RoomDatabase() {
     abstract fun comicSettingsDao(): ComicSettingsDao
     abstract fun readingSessionDao(): ReadingSessionDao
     abstract fun bookmarkDao(): BookmarkDao
+    abstract fun readingListDao(): ReadingListDao
 }

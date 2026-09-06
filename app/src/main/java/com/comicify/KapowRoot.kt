@@ -38,6 +38,7 @@ import com.comicify.feature.library.ui.ComicSettingsScreen
 import com.comicify.feature.library.ui.CoverPickerScreen
 import com.comicify.feature.library.ui.LibraryScreen
 import com.comicify.feature.library.ui.LibraryViewModel
+import com.comicify.feature.library.ui.ReadingListActions
 import com.comicify.feature.library.ui.LocalAnimatedVisibilityScope
 import com.comicify.feature.library.ui.LocalSharedTransitionScope
 import com.comicify.feature.onboarding.ui.OnboardingScreen
@@ -148,6 +149,17 @@ fun KapowRoot(initialUri: Uri? = null) {
                             onPresetQuery = viewModel::onPresetQuery,
                             onSortSelected = viewModel::onSortSelected,
                             onOpenSeries = viewModel::onOpenSeries,
+                            listActions = ReadingListActions(
+                                open = viewModel::onOpenList,
+                                create = viewModel::onCreateList,
+                                rename = viewModel::onRenameList,
+                                delete = viewModel::onDeleteList,
+                                restore = viewModel::onRestoreList,
+                                toggle = viewModel::onToggleInList,
+                                remove = viewModel::onRemoveFromList,
+                                undoRemove = viewModel::onUndoRemoveFromList,
+                                move = viewModel::onMoveInList,
+                            ),
                         )
                         is Screen.Settings -> ComicSettingsScreen(
                             comics = target.request.comics,
@@ -180,7 +192,10 @@ fun KapowRoot(initialUri: Uri? = null) {
                                     ?.let { id -> state.allComics.firstOrNull { it.id == id } }
                                     ?.toStripComic(),
                                 nextInSeries = { current ->
-                                    LibraryCatalog.nextInSeries(state.allComics, current.id)?.toStripComic()
+                                    val list = state.openedList
+                                    val next = list?.let { LibraryCatalog.nextInList(state.allComics, it, current.id) }
+                                        ?: LibraryCatalog.nextInSeries(state.allComics, current.id)
+                                    next?.toStripComic()
                                 },
                                 onPageChanged = { comicId, pageIndex, pageCount ->
                                     comicId?.let {

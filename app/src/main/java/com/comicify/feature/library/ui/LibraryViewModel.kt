@@ -7,9 +7,12 @@ import androidx.lifecycle.viewModelScope
 import com.comicify.feature.library.data.LibraryRepository
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
+import com.comicify.feature.library.domain.LibraryEntry
 import com.comicify.feature.library.domain.LibraryFilter
 import com.comicify.feature.library.domain.LibraryScanError
 import com.comicify.feature.library.domain.LibrarySort
+import com.comicify.feature.library.domain.ReadingList
+import com.comicify.feature.library.domain.ReadingListOrder
 import com.comicify.feature.stats.data.ReadingStatsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -45,7 +48,14 @@ class LibraryViewModel @Inject constructor(
     private val sort = MutableStateFlow(LibrarySort.TITLE)
     private val query = MutableStateFlow("")
     private val openedSeries = MutableStateFlow<String?>(null)
+    private val openedListId = MutableStateFlow<Long?>(null)
     private var foregroundScan: Job? = null
+    private var removed: RemovedEntry? = null
+
+    private val listState: Flow<ListState> =
+        combine(repository.readingLists, openedListId) { lists, openedId ->
+            ListState(lists = lists, opened = lists.firstOrNull { it.id == openedId })
+        }
 
     private val shelf: Flow<LibraryUiState> =
         combine(
@@ -53,13 +63,14 @@ class LibraryViewModel @Inject constructor(
             repository.folderUri,
             combine(scanning, scanError) { isScanning, error -> isScanning to error },
             combine(filter, sort, query, repository.grouped, openedSeries, ::ViewState),
-        ) { comics, folder, scanState, view ->
+            listState,
+        ) { comics, folder, scanState, view, lists ->
             val (isScanning, error) = scanState
             val (selectedFilter, selectedSort, searchQuery, isGrouped, series) = view
-            val filtered = LibraryCatalog.sorted(
-                LibraryCatalog.search(LibraryCatalog.filtered(comics, selectedFilter), searchQuery),
-                selectedSort,
-            )
+            val opened = lists.opened
+            val shelved = opened?.let { LibraryCatalog.inList(comics, it) } ?: comics
+            val narrowed = LibraryCatalog.search(LibraryCatalog.filtered(shelved, selectedFilter), searchQuery)
+            val filtered = if (opened == null) LibraryCatalog.sorted(narrowed, selectedSort) else narrowed
             LibraryUiState(
                 loading = false,
                 scanning = isScanning,
@@ -69,12 +80,14 @@ class LibraryViewModel @Inject constructor(
                 sort = selectedSort,
                 query = searchQuery,
                 openedSeries = series,
+                lists = lists.lists,
+                openedList = opened,
                 grouped = isGrouped,
                 comics = filtered,
                 allComics = comics,
-                entries = LibraryCatalog.grouped(filtered),
+                entries = if (opened == null) LibraryCatalog.grouped(filtered) else filtered.map(LibraryEntry::Single),
                 continueReading = LibraryCatalog.continueReading(comics),
-                continueReadingVisible = selectedFilter == LibraryFilter.ALL && searchQuery.isBlank(),
+                continueReadingVisible = selectedFilter == LibraryFilter.ALL && searchQuery.isBlank() && opened == null,
                 totalCount = comics.size,
             )
         }
@@ -123,6 +136,57 @@ class LibraryViewModel @Inject constructor(
 
     fun onOpenSeries(series: String?) {
         openedSeries.value = series
+    }
+
+    fun onOpenList(list: ReadingList?) {
+        openedListId.value = list?.id
+    }
+
+    fun onCreateList(name: String, comic: LibraryComic?) {
+        viewModelScope.launch {
+            val listId = repository.createList(name.trim())
+            comic?.let { repository.addToList(listId, it.id) }
+        }
+    }
+
+    fun onRenameList(list: ReadingList, name: String) {
+        viewModelScope.launch { repository.renameList(list.id, name.trim()) }
+    }
+
+    fun onDeleteList(list: ReadingList) {
+        openedListId.value = null
+        viewModelScope.launch { repository.deleteList(list.id) }
+    }
+
+    fun onRestoreList(list: ReadingList) {
+        viewModelScope.launch { repository.restoreList(list) }
+    }
+
+    fun onToggleInList(list: ReadingList, comic: LibraryComic) {
+        viewModelScope.launch {
+            if (comic.id in list.comicIds) repository.removeFromList(list.id, comic.id)
+            else repository.addToList(list.id, comic.id)
+        }
+    }
+
+    fun onRemoveFromList(list: ReadingList, comic: LibraryComic) {
+        viewModelScope.launch {
+            removed = repository.removeFromList(list.id, comic.id)
+                ?.let { ordering -> RemovedEntry(listId = list.id, comicId = comic.id, ordering = ordering) }
+        }
+    }
+
+    fun onUndoRemoveFromList() {
+        val entry = removed ?: return
+        removed = null
+        viewModelScope.launch { repository.addToList(entry.listId, entry.comicId, entry.ordering) }
+    }
+
+    fun onMoveInList(list: ReadingList, comic: LibraryComic, up: Boolean) {
+        val reordered = if (up) ReadingListOrder.moveUp(list.comicIds, comic.id)
+        else ReadingListOrder.moveDown(list.comicIds, comic.id)
+        if (reordered == list.comicIds) return
+        viewModelScope.launch { repository.reorderList(list.id, reordered) }
     }
 
     fun onQueryChanged(text: String) {
@@ -201,3 +265,7 @@ private data class ViewState(
     val grouped: Boolean,
     val openedSeries: String?,
 )
+
+private data class ListState(val lists: List<ReadingList>, val opened: ReadingList?)
+
+private data class RemovedEntry(val listId: Long, val comicId: Long, val ordering: Int)

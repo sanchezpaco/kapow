@@ -99,12 +99,26 @@ ReadingSession(
 Bookmark(
     comicId, pageIndex, createdAt,
 )
+
+ReadingList(
+    id, name, createdAt,
+)
+
+ReadingListEntry(
+    listId, comicId, ordering,
+)
 ```
 
 - `documentUri` is unique; re-scans ignore comics already registered.
 - `contentHash` is the comic's real identity (below). It was added in schema
   **v13** (migration `12→13`), nullable and indexed, so an upgraded library
   keeps every row and fills the hashes in lazily.
+- `ReadingList` and its join table `ReadingListEntry` hold the reading lists
+  (below). They arrived in schema **v17** (migration `16→17`). The entry is keyed
+  by the **comic row id**, not by `documentUri`, so a relinked file (renamed or
+  moved) keeps its place in every list for free. Both foreign keys cascade:
+  deleting a list drops its entries, and pruning a comic drops it from every
+  list without any code in the prune path.
 - `ReadingSession` records one row per reading session and feeds the stats
   screen and the hero's estimate. It cascades on the comic and is pruned after
   400 days; see `docs/stats.md`.
@@ -153,8 +167,8 @@ Bookmark(
 ## Identity
 
 Every table keys a comic by its `documentUri` (`comics`, `comic_settings`,
-`page_detections`; `reading_states` and `reading_session` hang off the comic
-`id`). A document Uri encodes the file's path, so renaming or moving a file —
+`page_detections`; `reading_states`, `reading_session` and `reading_list_entry`
+hang off the comic `id`). A document Uri encodes the file's path, so renaming or moving a file —
 or re-picking the folder after a lost grant — hands the scan a Uri it has never
 seen and would strand progress, favourites, per-comic settings, cached
 detections and the cover on a row whose file is gone.
@@ -215,6 +229,50 @@ its file is still where the library expects it. Nothing hashes a comic twice.
 - The toggle is remembered across restarts (`grouped` in `LibraryPreferences`,
   default off). Filters apply before grouping, so a filtered group that drops to
   one volume renders as a single card.
+
+## Reading lists
+
+An ordered, cross-series list — a crossover, a re-read, anything the file names
+cannot express. Lists are hand-ordered, never re-sorted.
+
+- **Where they live in the UI:** the shelf title is a **switcher**, not a label.
+  Tapping "All comics ▾" opens a dropdown with "All comics", every list (with
+  its comic count) and "New list…". There is no toolbar icon and no tab — a
+  folded 360 dp row is already full. With no lists at all, the dropdown holds
+  only "New list…".
+- While a list is open the eyebrow reads `LIST · 3/12 read` (the same
+  `library_group_read` the series header uses, over the list's comics) and the
+  trailing slot swaps the Recent sort toggle for the list "⋮" (rename, delete):
+  a hand-ordered list has no sort. The grid shows the list in `ordering`, filter
+  chips and search still narrow it, "Continue reading" collapses
+  (`continueReadingVisible` also requires `openedList == null`) and grouping is
+  ignored — a crossover is exactly what you do not want folded back into series
+  stacks. The Layers toggle stays enabled and applies again on All comics.
+- **Adding** is `Add to list…` in a cover's long-press menu: a dialog headed by
+  the comic's title with a checkbox per list (ticked = already in it, unticking
+  removes it) and a "New list…" row that swaps the body for one text field.
+  Creating a list from that dialog creates it *and* adds the comic. Names are
+  free text, trimmed, duplicates allowed; an empty name disables Create. New
+  members append at `max(ordering) + 1`.
+- **Reordering** is `Move up` / `Move down` in the same menu, hidden at the ends
+  — no drag handles inside a `LazyVerticalGrid`. `ReadingListOrder` is pure and
+  works on the ordered comic ids; the repository writes the resulting order back
+  as `ordering` 0…n-1.
+- **Removing** a comic from a list and **deleting** a list both show the shelf's
+  undo snackbar. Undoing a removal re-inserts the entry at the same `ordering`
+  (removal leaves the gap, so the comic lands back where it was); undoing a
+  delete re-creates the list with its id, name, date and members. Deleting needs
+  no confirmation dialog — no comic is lost — and the shelf falls back to All
+  comics immediately.
+- **The reader follows the list.** `KapowRoot` passes
+  `LibraryCatalog.nextInList(…) ?: LibraryCatalog.nextInSeries(…)`, so a comic
+  opened while a list is on the shelf continues into the next issue *of the
+  list* and otherwise into the next issue of its series. Nothing in the reader
+  changes.
+- The open list is ViewModel state (`openedList`), like `openedSeries`, so
+  returning from settings or the reader lands back in the list. It is **not**
+  persisted: the shelf opens on All comics.
+- An open list with no comics shows `library_list_empty` in the grid area.
 
 ## Covers
 
