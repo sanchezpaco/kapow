@@ -91,7 +91,7 @@ class LibraryViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             repository.seedSampleIfNeeded()
-            repository.generateMissingCovers()
+            repository.fillMissingDetails()
         }
     }
 
@@ -174,7 +174,7 @@ class LibraryViewModel @Inject constructor(
         scanError.value = null
         try {
             scan()
-            repository.generateMissingCovers()
+            repository.fillMissingDetails()
         } catch (cancellation: CancellationException) {
             throw cancellation
         } catch (error: SecurityException) {

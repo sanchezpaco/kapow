@@ -13,6 +13,9 @@ interface PageDetectionDao {
     @Upsert
     suspend fun upsert(detection: PageDetectionEntity)
 
+    @Query("UPDATE OR REPLACE page_detections SET documentUri = :documentUri WHERE documentUri = :previousUri")
+    suspend fun relink(previousUri: String, documentUri: String)
+
     @Query("DELETE FROM page_detections WHERE documentUri = :documentUri")
     suspend fun deleteAll(documentUri: String)
 }

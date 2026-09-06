@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "comics",
-    indices = [Index(value = ["documentUri"], unique = true)],
+    indices = [Index(value = ["documentUri"], unique = true), Index(value = ["contentHash"])],
 )
 data class ComicEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -29,4 +29,5 @@ data class ComicEntity(
     val summary: String? = null,
     val readsRightToLeft: Boolean? = null,
     val metadataVersion: Int = 0,
+    val contentHash: String? = null,
 )
