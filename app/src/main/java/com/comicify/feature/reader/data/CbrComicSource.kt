@@ -25,11 +25,12 @@ class CbrComicSource private constructor(
     private val stream: DescriptorInStream,
     private val archive: IInArchive,
     private val itemIndices: List<Int>,
+    private val comicInfoIndex: Int?,
     private val extractionBatches: List<IntArray>,
 ) : ComicSource {
 
     private val extractedFiles: Map<Int, CompletableDeferred<File>> =
-        itemIndices.associateWith { CompletableDeferred() }
+        (itemIndices + listOfNotNull(comicInfoIndex)).associateWith { CompletableDeferred() }
 
     private var closed = false
     private var extractionFinished = false
@@ -49,6 +50,12 @@ class CbrComicSource private constructor(
     override suspend fun pageAspect(index: Int): Float =
         withContext(Dispatchers.IO) {
             extractedFiles.getValue(itemIndices[index]).await().inputStream().use(::decodeAspect)
+        }
+
+    override suspend fun comicInfoXml(): String? =
+        withContext(Dispatchers.IO) {
+            val extracted = comicInfoIndex?.let(extractedFiles::get) ?: return@withContext null
+            extracted.await().readText()
         }
 
     private fun extractAllItems() {
@@ -125,17 +132,32 @@ class CbrComicSource private constructor(
             withContext(Dispatchers.IO) {
                 val stream = DescriptorInStream(descriptor)
                 val archive = SevenZip.openInArchive(null, stream)
-                val itemIndices = (0 until archive.numberOfItems)
-                    .filter { !isFolder(archive, it) && pathOf(archive, it).hasImageExtension() }
+                val files = (0 until archive.numberOfItems).filter { !isFolder(archive, it) }
+                val itemIndices = files
+                    .filter { pathOf(archive, it).hasImageExtension() }
                     .sortedWith(compareBy(naturalOrder) { pathOf(archive, it) })
-                CbrComicSource(extractDir, stream, archive, itemIndices, extractionBatches(archive, itemIndices, startPage))
+                val comicInfoIndex = files.firstOrNull { pathOf(archive, it).isComicInfoPath() }
+                CbrComicSource(
+                    extractDir,
+                    stream,
+                    archive,
+                    itemIndices,
+                    comicInfoIndex,
+                    extractionBatches(archive, itemIndices, comicInfoIndex, startPage),
+                )
             }
 
-        private fun extractionBatches(archive: IInArchive, itemIndices: List<Int>, startPage: Int): List<IntArray> {
+        private fun extractionBatches(
+            archive: IInArchive,
+            itemIndices: List<Int>,
+            comicInfoIndex: Int?,
+            startPage: Int,
+        ): List<IntArray> {
             if (itemIndices.isEmpty()) return emptyList()
+            val extras = listOfNotNull(comicInfoIndex)
             val start = startPage.coerceIn(0, itemIndices.size - 1)
-            if (isSolid(archive) || start == 0) return listOf(itemIndices.sorted().toIntArray())
-            return listOf(itemIndices.drop(start), itemIndices.take(start)).map { it.sorted().toIntArray() }
+            if (isSolid(archive) || start == 0) return listOf((itemIndices + extras).sorted().toIntArray())
+            return listOf(itemIndices.drop(start) + extras, itemIndices.take(start)).map { it.sorted().toIntArray() }
         }
 
         private fun isSolid(archive: IInArchive): Boolean =

@@ -19,7 +19,7 @@ object DatabaseModule {
     @Singleton
     fun database(@ApplicationContext context: Context): KapowDatabase =
         Room.databaseBuilder(context, KapowDatabase::class.java, "comicify.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
             .build()
 
     @Provides
@@ -94,5 +94,15 @@ private val MIGRATION_8_9 = object : Migration(8, 9) {
 private val MIGRATION_9_10 = object : Migration(9, 10) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE comic_settings ADD COLUMN verticalScroll INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+private val MIGRATION_10_11 = object : Migration(10, 11) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        listOf("storyTitle", "publisher", "writer", "penciller", "inker", "colorist", "summary").forEach { column ->
+            db.execSQL("ALTER TABLE comics ADD COLUMN $column TEXT")
+        }
+        db.execSQL("ALTER TABLE comics ADD COLUMN readsRightToLeft INTEGER")
+        db.execSQL("ALTER TABLE comics ADD COLUMN metadataVersion INTEGER NOT NULL DEFAULT 0")
     }
 }

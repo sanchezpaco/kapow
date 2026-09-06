@@ -28,6 +28,8 @@ class PdfComicSource private constructor(
             renderLock.withLock { renderer.openPage(index).use { it.width.toFloat() / it.height } }
         }
 
+    override suspend fun comicInfoXml(): String? = null
+
     private fun renderPage(index: Int, targetWidth: Int): Bitmap =
         renderer.openPage(index).use { page ->
             val width = if (targetWidth > 0) targetWidth else page.width

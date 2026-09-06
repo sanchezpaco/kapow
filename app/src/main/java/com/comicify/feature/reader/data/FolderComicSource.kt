@@ -30,6 +30,8 @@ class FolderComicSource private constructor(
             }
         }
 
+    override suspend fun comicInfoXml(): String? = null
+
     override fun close() = Unit
 
     companion object {

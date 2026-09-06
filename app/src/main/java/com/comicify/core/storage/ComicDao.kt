@@ -27,6 +27,27 @@ interface ComicDao {
     @Query("UPDATE comics SET pageCount = :pageCount, coverPath = :coverPath, coverAmbient = :coverAmbient WHERE id = :id")
     suspend fun updateCover(id: Long, pageCount: Int?, coverPath: String?, coverAmbient: Int?)
 
+    @Query(
+        "UPDATE comics SET series = :series, issueNumber = :issueNumber, year = :year, storyTitle = :storyTitle, " +
+            "publisher = :publisher, writer = :writer, penciller = :penciller, inker = :inker, colorist = :colorist, " +
+            "summary = :summary, readsRightToLeft = :readsRightToLeft, metadataVersion = :metadataVersion WHERE id = :id",
+    )
+    suspend fun updateMetadata(
+        id: Long,
+        series: String,
+        issueNumber: Int?,
+        year: Int?,
+        storyTitle: String?,
+        publisher: String?,
+        writer: String?,
+        penciller: String?,
+        inker: String?,
+        colorist: String?,
+        summary: String?,
+        readsRightToLeft: Boolean?,
+        metadataVersion: Int,
+    )
+
     @Query("UPDATE comics SET favorite = :favorite WHERE id = :id")
     suspend fun setFavorite(id: Long, favorite: Boolean)
 
