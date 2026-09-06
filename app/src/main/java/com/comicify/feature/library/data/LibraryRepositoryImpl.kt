@@ -365,13 +365,15 @@ class LibraryRepositoryImpl @Inject constructor(
         comicSettingsDao.observe(documentUri).map { it?.toComicSettings() ?: ComicSettings.Default }
 
     override suspend fun saveSettings(documentUri: String, settings: ComicSettings) {
-        if (settings == ComicSettings.Default) {
+        val splitSuggested = comicSettingsDao.find(documentUri)?.splitSuggested ?: false
+        if (settings == ComicSettings.Default && !splitSuggested) {
             comicSettingsDao.delete(documentUri)
             return
         }
         comicSettingsDao.upsert(
             ComicSettingsEntity(
                 documentUri = documentUri,
+                splitSuggested = splitSuggested,
                 rightToLeft = settings.direction?.let { it == ReadingDirection.RightToLeft },
                 coverAlone = settings.coverAlone,
                 bubblesEnlarged = settings.bubblesEnlarged,
