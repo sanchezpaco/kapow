@@ -13,18 +13,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +49,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -50,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.comicify.BuildConfig
 import com.comicify.R
 import com.comicify.core.ui.BubbleScaleRow
+import com.comicify.core.ui.SettingsActionRow
 import com.comicify.core.ui.SettingsChoiceRow
 import com.comicify.core.ui.SettingsDivider
 import com.comicify.core.ui.SettingsRow
@@ -59,8 +68,10 @@ import com.comicify.core.ui.defaultLabel
 import com.comicify.core.ui.labelRes
 import com.comicify.core.ui.triStateOptions
 import com.comicify.domain.model.ReadingDirection
+import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.domain.openMode
+import com.comicify.feature.library.domain.parseEditedIssueNumber
 import com.comicify.feature.library.domain.withOpenMode
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.ReaderViewMode
@@ -74,6 +85,9 @@ private val SectionGap = 22.dp
 private val ClearRowMinHeight = 56.dp
 private val DetailParagraphPadding = 16.dp
 private val DetailValueMaxWidth = 220.dp
+private val RatingStarSize = 24.dp
+private val RatingStarGap = 8.dp
+private val EditFieldGap = 12.dp
 
 @Composable
 fun ComicSettingsScreen(comics: List<LibraryComic>, showDetails: Boolean, onBack: () -> Unit) {
@@ -81,6 +95,7 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, showDetails: Boolean, onBack
     LaunchedEffect(comics) { viewModel.show(comics) }
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val defaults by viewModel.defaults.collectAsStateWithLifecycle()
+    val details by viewModel.details.collectAsStateWithLifecycle()
     val wholeSeries = comics.size > 1
     val scrollState = rememberScrollState()
     var detailsOffset by remember { mutableIntStateOf(0) }
@@ -98,7 +113,7 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, showDetails: Boolean, onBack
             verticalArrangement = Arrangement.spacedBy(SectionGap),
         ) {
             GhostAction(icon = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.library_back), onClick = onBack)
-            SettingsHeader(comics = comics)
+            SettingsHeader(comics = details?.let { listOf(it) } ?: comics)
             SettingsSection(
                 eyebrow = stringResource(if (wholeSeries) R.string.settings_series_eyebrow else R.string.detail_settings_eyebrow),
                 title = stringResource(R.string.detail_settings),
@@ -158,8 +173,16 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, showDetails: Boolean, onBack
                 }
             }
             if (!wholeSeries) {
+                val comic = details ?: comics.first()
                 Box(modifier = Modifier.onGloballyPositioned { detailsOffset = it.positionInParent().y.roundToInt() }) {
-                    DetailsSection(comic = comics.first())
+                    DetailsSection(
+                        comic = comic,
+                        onRate = { viewModel.onRatingChanged(comic.id, it) },
+                        onSave = { series, issueNumber, storyTitle ->
+                            viewModel.onDetailsEdited(comic.id, series, issueNumber, storyTitle)
+                        },
+                        onReset = { viewModel.onResetMetadata(comic.id) },
+                    )
                 }
             }
         }
@@ -167,7 +190,13 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, showDetails: Boolean, onBack
 }
 
 @Composable
-private fun DetailsSection(comic: LibraryComic) {
+private fun DetailsSection(
+    comic: LibraryComic,
+    onRate: (Int) -> Unit,
+    onSave: (String, Int?, String?) -> Unit,
+    onReset: () -> Unit,
+) {
+    var editing by remember { mutableStateOf(false) }
     val paragraph = if (comic.hasComicInfo) comic.summary else stringResource(R.string.detail_info_none)
     val rows = listOfNotNull(
         comic.writer?.let { R.string.detail_info_writer to it },
@@ -181,12 +210,104 @@ private fun DetailsSection(comic: LibraryComic) {
         eyebrow = stringResource(R.string.detail_settings_eyebrow),
         title = stringResource(R.string.detail_info),
     ) {
+        RatingRow(rating = comic.rating, onRate = onRate)
+        SettingsDivider()
         paragraph?.let { DetailParagraph(text = it) }
         rows.forEachIndexed { index, (labelRes, value) ->
             if (index > 0 || paragraph != null) SettingsDivider()
             DetailRow(labelRes = labelRes, value = value)
         }
+        SettingsDivider()
+        SettingsActionRow(label = stringResource(R.string.detail_edit), onClick = { editing = true })
     }
+    if (editing) {
+        EditDetailsDialog(
+            comic = comic,
+            onSave = { series, issueNumber, storyTitle ->
+                editing = false
+                onSave(series, issueNumber, storyTitle)
+            },
+            onReset = {
+                editing = false
+                onReset()
+            },
+            onDismiss = { editing = false },
+        )
+    }
+}
+
+@Composable
+private fun RatingRow(rating: Int, onRate: (Int) -> Unit) {
+    SettingsRow(label = stringResource(R.string.detail_rating)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(RatingStarGap)) {
+            (1..LibraryCatalog.MAX_RATING).forEach { star ->
+                val filled = star <= rating
+                Icon(
+                    imageVector = if (filled) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                    contentDescription = stringResource(R.string.detail_rating_star, star),
+                    tint = if (filled) Accent else InkFaint,
+                    modifier = Modifier
+                        .size(RatingStarSize)
+                        .clickable { onRate(LibraryCatalog.ratingAfterTap(rating, star)) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EditDetailsDialog(
+    comic: LibraryComic,
+    onSave: (String, Int?, String?) -> Unit,
+    onReset: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var series by remember { mutableStateOf(comic.series) }
+    var number by remember { mutableStateOf(comic.issueNumber?.toString().orEmpty()) }
+    var storyTitle by remember { mutableStateOf(comic.storyTitle.orEmpty()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.detail_edit_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(EditFieldGap)) {
+                OutlinedTextField(
+                    value = series,
+                    onValueChange = { series = it },
+                    label = { Text(stringResource(R.string.detail_edit_series)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = number,
+                    onValueChange = { number = it },
+                    label = { Text(stringResource(R.string.detail_edit_number)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = storyTitle,
+                    onValueChange = { storyTitle = it },
+                    label = { Text(stringResource(R.string.detail_edit_story_title)) },
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = series.isNotBlank(),
+                onClick = { onSave(series, parseEditedIssueNumber(number), storyTitle) },
+            ) {
+                Text(stringResource(R.string.detail_edit_save))
+            }
+        },
+        dismissButton = {
+            Row {
+                if (comic.metadataEdited) {
+                    TextButton(onClick = onReset) { Text(stringResource(R.string.detail_edit_reset)) }
+                }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.detail_edit_cancel)) }
+            }
+        },
+    )
 }
 
 @Composable

@@ -64,6 +64,18 @@ interface ComicDao {
         year: Int?,
     )
 
+    @Query("UPDATE comics SET rating = :rating WHERE id = :id")
+    suspend fun setRating(id: Long, rating: Int)
+
+    @Query(
+        "UPDATE comics SET series = :series, issueNumber = :issueNumber, storyTitle = :storyTitle, " +
+            "metadataEdited = 1 WHERE id = :id",
+    )
+    suspend fun saveEditedMetadata(id: Long, series: String, issueNumber: Int?, storyTitle: String?)
+
+    @Query("UPDATE comics SET metadataEdited = 0, metadataVersion = 0 WHERE id = :id")
+    suspend fun clearMetadataEdit(id: Long)
+
     @Query("UPDATE comics SET favorite = :favorite WHERE id = :id")
     suspend fun setFavorite(id: Long, favorite: Boolean)
 

@@ -18,6 +18,7 @@ class LibraryCatalogTest {
         pageCount: Int? = 20,
         shelved: Boolean = true,
         storyTitle: String? = null,
+        rating: Int = 0,
     ) = LibraryComic(
         id = id,
         documentUri = "uri$id",
@@ -34,6 +35,7 @@ class LibraryCatalogTest {
         lastReadAt = lastReadAt,
         shelved = shelved,
         storyTitle = storyTitle,
+        rating = rating,
     )
 
     @Test
@@ -190,5 +192,19 @@ class LibraryCatalogTest {
         val comics = listOf(comic(1, lastReadAt = 10), comic(2), comic(3, lastReadAt = 30))
         assertEquals(listOf(3L, 1L, 2L), LibraryCatalog.sorted(comics, LibrarySort.RECENT).map { it.id })
         assertEquals(comics, LibraryCatalog.sorted(comics, LibrarySort.TITLE))
+    }
+
+    @Test
+    fun tappingAStarRatesAndTappingItAgainClearsTheRating() {
+        assertEquals(4, LibraryCatalog.ratingAfterTap(rating = 0, star = 4))
+        assertEquals(2, LibraryCatalog.ratingAfterTap(rating = 4, star = 2))
+        assertEquals(0, LibraryCatalog.ratingAfterTap(rating = 4, star = 4))
+        assertEquals(0, LibraryCatalog.ratingAfterTap(rating = 1, star = 1))
+    }
+
+    @Test
+    fun highlyRatedKeepsFourStarsAndUp() {
+        val comics = listOf(comic(1, rating = 5), comic(2, rating = 4), comic(3, rating = 3), comic(4))
+        assertEquals(listOf(1L, 2L), LibraryCatalog.highlyRated(comics).map { it.id })
     }
 }

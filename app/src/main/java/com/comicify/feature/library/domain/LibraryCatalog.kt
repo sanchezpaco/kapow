@@ -5,6 +5,8 @@ import com.comicify.core.util.naturalOrder
 object LibraryCatalog {
 
     private const val CONTINUE_READING_LIMIT = 12
+    const val HIGH_RATING = 4
+    const val MAX_RATING = 5
     private const val SECONDS_PER_MINUTE = 60
 
     fun isCompleted(pageIndex: Int, pageCount: Int): Boolean =
@@ -20,6 +22,11 @@ object LibraryCatalog {
         val pagesLeft = (pageCount - pageIndex - 1).coerceAtLeast(0)
         return (pagesLeft * secondsPerPage + SECONDS_PER_MINUTE - 1) / SECONDS_PER_MINUTE
     }
+
+    fun ratingAfterTap(rating: Int, star: Int): Int = if (rating == star) 0 else star
+
+    // TODO(search): wire as the rating: field and the rating:4+ preset once SearchQuery lands.
+    fun highlyRated(comics: List<LibraryComic>): List<LibraryComic> = comics.filter { it.rating >= HIGH_RATING }
 
     fun title(series: String, issueNumber: Int?): String =
         if (issueNumber != null) "$series #$issueNumber" else series

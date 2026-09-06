@@ -69,6 +69,17 @@
     <string name="detail_settings_eyebrow">This comic</string>
     <string name="detail_settings">Reading settings</string>
     <string name="detail_info">Details</string>
+    <string name="detail_rating">Rating</string>
+    <string name="detail_rating_star">%1$d of 5</string>
+    <string name="detail_edit">Edit details</string>
+    <string name="detail_edit_title">Edit details</string>
+    <string name="detail_edit_series">Series</string>
+    <string name="detail_edit_number">Number</string>
+    <string name="detail_edit_story_title">Story title</string>
+    <string name="detail_edit_save">Save</string>
+    <string name="detail_edit_cancel">Cancel</string>
+    <string name="detail_edit_reset">Reset to file</string>
+    <string name="library_filter_rated">Highly rated</string>
     <string name="detail_info_writer">Writer</string>
     <string name="detail_info_pencils">Pencils</string>
     <string name="detail_info_inks">Inks</string>
