@@ -25,8 +25,8 @@ FONTS = Path(__file__).resolve().parent / "fonts"
 SAMPLE_CBZ = icon.ROOT / "app/src/main/assets/sample.cbz"
 SAMPLE_PAGE = "03.jpg"
 OUTPUTS = {
-    "en-US": ("Your collection, always with you", "CBZ · CBR · PDF · Guided View"),
-    "es-ES": ("Tu colección, siempre contigo", "CBZ · CBR · PDF · Guided View"),
+    "en-US": ("Your collection, always with you", "CBZ · CBR · CB7 · CBT · PDF"),
+    "es-ES": ("Tu colección, siempre contigo", "CBZ · CBR · CB7 · CBT · PDF"),
 }
 WORDMARK = "KAPOW!"
 STAGE_SCALE = 1026 / icon.VIEWPORT

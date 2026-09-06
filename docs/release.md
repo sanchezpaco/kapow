@@ -129,23 +129,46 @@ on foldables.
 
 Screenshots use public-domain Golden Age comics (Fiction House's *Planet
 Comics* and *Jumbo Comics*, 1940s, copyright not renewed; archive.org item
-`planet-comics-011-gm-removed-cbpop` and `jumbo-comics-105-november-1947`).
-Never ship screenshots of copyrighted comics. Raw captures live in
-`tools/store_assets/raw/<shot>-<phone|tablet>-<lang>.jpg` (release build only —
-the debug build shows its build badge); `tools/store_assets/screenshots.py`
-frames each one as a tilted ink-bordered panel on the page-grid stage with a
-shout title and a caption box, sized 1080×1920 (phone) and 2560×1440 (seven
-inch: title and caption on the left, the capture bleeding off the bottom-right
-edge). Copy for every shot is the `SHOTS` table. The "bigger bubbles" shot is a
-before/after pair: `bubbles-off-phone-<lang>.jpg` (page 4 of the sample, HUD
-hidden, bubbles off) and `bubbles-phone-<lang>.jpg` (same page at 1.9×) are
-cropped to the same top strip of the page (`COMPARE_STRIP`) and stacked as two
-panels with BEFORE/AFTER tags, so the same bubbles appear in both. The
-settings capture is pre-cropped to the Screen → Appearance sections so the
-About line stays out.
+`planet-comics-011-gm-removed-cbpop` and `jumbo-comics-105-november-1947`) and
+the bundled AURA sample. Never ship screenshots of copyrighted comics. Raw
+captures live in `tools/store_assets/raw/<shot>-<phone|tablet>-<lang>.jpg`
+(release build only — the debug build shows its build badge);
+`tools/store_assets/screenshots.py` frames each one as a tilted ink-bordered
+panel on the page-grid stage with a shout title and a caption box, sized
+1080×1920 (phone) and 2560×1440 (seven inch: title and caption on the left, the
+capture scaled to a fixed width on the right). Copy for every shot is the
+`SHOTS` table; the order of the table is the store order, chosen in the
+2026-09-06 conversion review (differentiators first: bubbles, Guided View,
+shelf, page look, search, details, look; tablets: spread, bubbles on the
+spread, Guided View on the spread, wall of covers).
+
+Shots listed in `COMPARE_SHOTS` are stacked pairs with two tagged panels
+(BEFORE/AFTER, PAGE/PANEL, ORIGINAL/MORE CONTRAST): `<shot>-off-…jpg` is the top
+panel, `<shot>-…jpg` the bottom. Both are cropped to the same top strip of the
+page (`page_bounds` finds the page inside the dark reader background); when the
+bottom capture is not the same page — Guided View's zoomed panel — the top
+panel is the whole page, scaled down to leave the zoomed panel its full width.
+The strip shrinks so two panels always fit the canvas. The tablet pair crops the
+right-hand page of the spread.
+
+Two raws are pre-cropped before framing: the settings capture to the Appearance
+section (background, accents, app icon) and the tablet library to the cover
+area, because the tablet layout leaves the right third empty. A phone capture
+wider than 960 px after scaling is clamped to that width and centred.
 
 Recapture recipe: `cmd locale set-app-locales com.sanchezpaco.kapow --user 0
 --locales es-ES` switches the app language without touching the system; the
-Medium Phone AVD gives the 9:20 phone captures, the Fold AVD in landscape
-(`settings put system user_rotation 1`) the spread. Tapping the page centre
-toggles the HUD; the bubble-size slider under the bubble button goes to 1.9×.
+`Medium_Phone_API_36.0` AVD (1080×2400) gives the phone captures and the
+`Tablet_API_36` AVD (Pixel Tablet, 2560×1600, landscape) the spread, both with
+the `/sdcard/Showcase` folder chosen as the library. The AURA sample in that
+folder is a copy of `assets/sample.cbz` with a `ComicInfo.xml` (series, number,
+year, title, summary) so the shelf and Details show metadata; delete the seeded
+sample so it does not appear twice. `settings put global sysui_demo_allowed 1`
+plus the `com.android.systemui.demo` broadcasts give the clean 10:00 status
+bar. Tapping the page centre toggles the HUD (on the tablet, tap the page, not
+the empty half); captures with the HUD hidden carry no locale, so the tablet
+reader raws are the same file for both languages. Page look cycles Original →
+Brighter → More contrast → Paper from the gear panel; the pair uses Planet
+Comics #69 page 3, the yellowest scan in the set, with More contrast — the one
+preset that still reads at store-card size (Brighter and Paper were tried and
+look like the same image twice).

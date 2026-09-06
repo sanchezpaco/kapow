@@ -1,18 +1,22 @@
-Kapow reads the comics you already own — CBZ, CBR (RAR4 and RAR5) and PDF — on any Android phone or tablet. On a foldable it adapts to the posture: folded, a clean one-page reader; unfolded, the double-page spread as printed; on the table, the page stays up.
+Kapow reads the comics you already own — CBZ, CBR, CB7, CBT and PDF — on any Android phone or tablet. On a foldable it adapts to the posture: folded, a clean one-page reader; unfolded, the double-page spread as printed; on the table, the page stays up.
 
 READ YOUR WAY
 • Guided View: panel by panel, detected on your device — nothing leaves your phone.
-• Bigger speech bubbles: enlarge the lettering so small print stops being a problem.
-• Edge taps or volume keys turn the page, pinch to zoom, left-to-right or right-to-left reading.
+• Bigger speech bubbles: the lettering grows so small print stops being a problem.
+• Comic, Manga (right to left) or Webcomic (vertical scroll), chosen per comic.
+• Page look for tired scans — Original, Brighter, More contrast or Paper — and fit to screen or to width.
+• Edge taps or volume keys turn the page, pinch to zoom, bookmark a page, share the page you are on.
 • Night tint and keep-screen-on while reading.
 
 YOUR SHELF
-• Point Kapow at your comics folder; it builds the bookshelf, groups issues by series and keeps it up to date.
-• Continue reading, unread / read / favourites filters, search and sort.
-• Per-comic settings that remember how you like to read each title.
+• Point Kapow at your comics folder; it builds the shelf, groups issues by series and keeps it up to date even when you rename or move a file.
+• Reading lists you order yourself, and "Next issue" follows them.
+• Search by field — writer:, series:, year>2015, rating:4+ — or tap a preset: In progress, Highly rated, Recently added.
+• ComicInfo.xml metadata: the real series, issue, year, story title and credits. Rate a comic, correct its details, make any page its cover.
+• Reading stats: pages, time and pace over the last 30 days, measured on this device only.
 
 YOUR LOOK
-• Pure black (OLED), graphite or paper themes and seven accent colours, or the wallpaper colour on Android 12+.
+• Pure black (OLED), graphite or paper themes, seven accent colours or the wallpaper colour on Android 12+, and five launcher icons.
 • English and Spanish.
 
 PRIVACY
