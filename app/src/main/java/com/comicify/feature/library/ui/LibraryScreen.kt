@@ -54,6 +54,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.RemoveDone
@@ -156,6 +157,7 @@ fun LibraryScreen(
     onFolderPicked: (Uri) -> Unit,
     onOpenComic: (LibraryComic) -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
+    onOpenStats: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenFile: (Uri) -> Unit,
     onFilterSelected: (LibraryFilter) -> Unit,
@@ -194,6 +196,7 @@ fun LibraryScreen(
                 onFolderPicked = onFolderPicked,
                 onOpenComic = onOpenComic,
                 onOpenSettings = onOpenSettings,
+                onOpenStats = onOpenStats,
                 onOpenAppSettings = onOpenAppSettings,
                 onOpenFile = onOpenFile,
                 onFilterSelected = onFilterSelected,
@@ -220,6 +223,7 @@ private fun LibraryContent(
     onFolderPicked: (Uri) -> Unit,
     onOpenComic: (LibraryComic) -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
+    onOpenStats: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenFile: (Uri) -> Unit,
     onFilterSelected: (LibraryFilter) -> Unit,
@@ -289,6 +293,7 @@ private fun LibraryContent(
                 scanError = state.scanError,
                 grouped = state.grouped,
                 query = state.query,
+                onOpenStats = onOpenStats,
                 onOpenAppSettings = onOpenAppSettings,
                 onOpenFile = openFile,
                 onToggleGrouped = onToggleGrouped,
@@ -486,6 +491,7 @@ private fun LibraryHeader(
     scanError: LibraryScanError?,
     grouped: Boolean,
     query: String,
+    onOpenStats: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenFile: () -> Unit,
     onToggleGrouped: () -> Unit,
@@ -524,6 +530,7 @@ private fun LibraryHeader(
                 active = grouped,
             )
             GhostAction(icon = Icons.Outlined.FileOpen, contentDescription = stringResource(R.string.library_action_open_file), onClick = onOpenFile)
+            GhostAction(icon = Icons.Outlined.BarChart, contentDescription = stringResource(R.string.library_action_stats), onClick = onOpenStats)
             GhostAction(icon = Icons.Outlined.Settings, contentDescription = stringResource(R.string.library_app_settings), onClick = onOpenAppSettings)
         }
         if (searching) {

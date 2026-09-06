@@ -120,6 +120,43 @@
     <string name="licences_title">Licencias de código abierto</string>
     <string name="licences_intro">Kapow es software libre bajo la AGPL-3.0 y se apoya en estos proyectos. Toca uno para abrir su página.</string>
 
+    <string name="library_action_stats">Estadísticas de lectura</string>
+    <string name="stats_title">Estadísticas</string>
+    <string name="stats_window_30_days">Últimos 30 días</string>
+    <string name="stats_hero_pages">páginas leídas</string>
+    <string name="stats_tile_time">Tiempo leído</string>
+    <string name="stats_tile_pace">Tu ritmo</string>
+    <string name="stats_tile_finished">Terminados</string>
+    <string name="stats_tile_finished_sub">este mes</string>
+    <string name="stats_tile_days">Días con lectura</string>
+    <string name="stats_value_hours_minutes">%1$s h %2$s min</string>
+    <string name="stats_value_minutes">%1$s min</string>
+    <string name="stats_value_pace">%1$s s/pág</string>
+    <string name="stats_value_days">%1$s/%2$s</string>
+    <string name="stats_pace_eyebrow">Ritmo</string>
+    <string name="stats_pace_section">Páginas por día</string>
+    <string name="stats_chart_average">media %1$s pág/día</string>
+    <string name="stats_chart_today">hoy</string>
+    <string name="stats_series_eyebrow">Series</string>
+    <string name="stats_series_section">Tu ritmo</string>
+    <string name="stats_series_meta">%1$s · %2$s</string>
+    <string name="stats_finished_eyebrow">Este mes</string>
+    <string name="stats_finished_section">Terminados</string>
+    <string name="stats_finished_more">+%1$s</string>
+    <string name="stats_privacy_note">Solo en este teléfono.</string>
+    <string name="stats_empty_title">Aún no hay nada que contar</string>
+    <string name="stats_empty_body">Lee unas páginas y esta pantalla se llenará: tu ritmo, el tiempo que dedicas y los números que terminas.</string>
+    <string name="stats_empty_resume">Seguir con %1$s</string>
+    <string name="settings_delete_history">Borrar historial de lectura</string>
+    <string name="settings_delete_history_title">¿Borrar el historial de lectura?</string>
+    <string name="settings_delete_history_body">Se borrarán todas las sesiones de lectura registradas en este teléfono y la pantalla de estadísticas empezará de cero. Tus cómics, tu progreso y tus ajustes no se tocan.</string>
+    <string name="settings_delete_history_confirm">Borrar</string>
+    <string name="settings_delete_history_cancel">Cancelar</string>
+    <plurals name="stats_series_issues">
+        <item quantity="one">%1$s número</item>
+        <item quantity="other">%1$s números</item>
+    </plurals>
+
     <string name="onboarding_skip">Saltar</string>
     <string name="onboarding_next">Siguiente</string>
     <string name="onboarding_start">Empezar a leer</string>
