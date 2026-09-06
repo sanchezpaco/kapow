@@ -41,7 +41,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
@@ -138,6 +140,7 @@ private val UnshelveButtonSize = 40.dp
 private val CardShape = RoundedCornerShape(14.dp)
 private val SectionGap = 22.dp
 private val SearchFieldMaxWidth = 480.dp
+private val SearchPresetGap = 8.dp
 private val MenuHeaderMaxWidth = 260.dp
 private val ProgressRingSize = 26.dp
 
@@ -173,6 +176,7 @@ fun LibraryScreen(
     onToggleFavorite: (LibraryComic) -> Unit,
     onDeleteComic: (LibraryComic) -> Unit,
     onQueryChanged: (String) -> Unit,
+    onPresetQuery: (String) -> Unit,
     onSortSelected: (LibrarySort) -> Unit,
     onOpenSeries: (String?) -> Unit,
 ) {
@@ -212,6 +216,7 @@ fun LibraryScreen(
                 onToggleFavorite = onToggleFavorite,
                 onDeleteComic = onDeleteComic,
                 onQueryChanged = onQueryChanged,
+                onPresetQuery = onPresetQuery,
                 onSortSelected = onSortSelected,
                 onOpenSeries = onOpenSeries,
             )
@@ -240,6 +245,7 @@ private fun LibraryContent(
     onToggleFavorite: (LibraryComic) -> Unit,
     onDeleteComic: (LibraryComic) -> Unit,
     onQueryChanged: (String) -> Unit,
+    onPresetQuery: (String) -> Unit,
     onSortSelected: (LibrarySort) -> Unit,
     onOpenSeries: (String?) -> Unit,
 ) {
@@ -303,6 +309,7 @@ private fun LibraryContent(
                 onOpenFile = openFile,
                 onToggleGrouped = onToggleGrouped,
                 onQueryChanged = onQueryChanged,
+                onPresetQuery = onPresetQuery,
                 modifier = Modifier.padding(top = 20.dp),
             )
         }
@@ -329,7 +336,7 @@ private fun LibraryContent(
         }
         if (state.comics.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                FilterEmpty()
+                FilterEmpty(searching = state.query.isNotBlank())
             }
         }
         if (state.grouped) {
@@ -513,6 +520,7 @@ private fun LibraryHeader(
     onOpenFile: () -> Unit,
     onToggleGrouped: () -> Unit,
     onQueryChanged: (String) -> Unit,
+    onPresetQuery: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var searching by remember { mutableStateOf(query.isNotEmpty()) }
@@ -551,7 +559,12 @@ private fun LibraryHeader(
             GhostAction(icon = Icons.Outlined.Settings, contentDescription = stringResource(R.string.library_app_settings), onClick = onOpenAppSettings)
         }
         if (searching) {
-            SearchField(query = query, onQueryChanged = onQueryChanged, onClose = { searching = false; onQueryChanged("") })
+            SearchField(
+                query = query,
+                onQueryChanged = onQueryChanged,
+                onPresetQuery = onPresetQuery,
+                onClose = { searching = false; onQueryChanged("") },
+            )
         }
         if (scanning) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -575,40 +588,81 @@ private fun LibraryHeader(
 }
 
 @Composable
-private fun SearchField(query: String, onQueryChanged: (String) -> Unit, onClose: () -> Unit) {
+private fun SearchField(
+    query: String,
+    onQueryChanged: (String) -> Unit,
+    onPresetQuery: (String) -> Unit,
+    onClose: () -> Unit,
+) {
     val focus = remember { FocusRequester() }
-    var text by remember { mutableStateOf(query) }
+    var text by remember { mutableStateOf(TextFieldValue(query, TextRange(query.length))) }
     LaunchedEffect(Unit) { focus.requestFocus() }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .widthIn(max = SearchFieldMaxWidth)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Surface2)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Icon(imageVector = Icons.Filled.Search, contentDescription = null, tint = InkFaint, modifier = Modifier.size(18.dp))
-        Box(modifier = Modifier.weight(1f)) {
-            if (text.isEmpty()) {
-                Text(text = stringResource(R.string.library_search_hint), style = MaterialTheme.typography.bodyLarge, color = InkFaint)
+    Column(modifier = Modifier.fillMaxWidth().widthIn(max = SearchFieldMaxWidth)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Surface2)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(imageVector = Icons.Filled.Search, contentDescription = null, tint = InkFaint, modifier = Modifier.size(18.dp))
+            Box(modifier = Modifier.weight(1f)) {
+                if (text.text.isEmpty()) {
+                    Text(text = stringResource(R.string.library_search_hint), style = MaterialTheme.typography.bodyLarge, color = InkFaint)
+                }
+                BasicTextField(
+                    value = text,
+                    onValueChange = { text = it; onQueryChanged(it.text) },
+                    singleLine = true,
+                    textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontSize = MaterialTheme.typography.bodyLarge.fontSize),
+                    cursorBrush = SolidColor(Accent),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                )
             }
-            BasicTextField(
-                value = text,
-                onValueChange = { text = it; onQueryChanged(it) },
-                singleLine = true,
-                textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontSize = MaterialTheme.typography.bodyLarge.fontSize),
-                cursorBrush = SolidColor(Accent),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                modifier = Modifier.fillMaxWidth().focusRequester(focus),
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = stringResource(R.string.library_close_search),
+                tint = InkDim,
+                modifier = Modifier.size(20.dp).clip(CircleShape).clickable(onClick = onClose),
             )
         }
-        Icon(
-            imageVector = Icons.Filled.Close,
-            contentDescription = stringResource(R.string.library_close_search),
-            tint = InkDim,
-            modifier = Modifier.size(20.dp).clip(CircleShape).clickable(onClick = onClose),
+        AnimatedVisibility(
+            visible = text.text.isBlank(),
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+        ) {
+            SearchPresets(onPresetQuery = { preset ->
+                text = TextFieldValue(preset, TextRange(preset.length))
+                onPresetQuery(preset)
+            })
+        }
+    }
+}
+
+@Composable
+private fun SearchPresets(onPresetQuery: (String) -> Unit) {
+    val readingQuery = stringResource(R.string.library_preset_reading_query)
+    val recentQuery = stringResource(R.string.library_preset_recent_query)
+    Column(
+        modifier = Modifier.padding(top = SearchPresetGap),
+        verticalArrangement = Arrangement.spacedBy(SearchPresetGap),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            FilterPill(R.string.library_preset_reading, selected = false) { onPresetQuery(readingQuery) }
+            FilterPill(R.string.library_preset_recent, selected = false) { onPresetQuery(recentQuery) }
+        }
+        Text(
+            text = stringResource(R.string.library_search_help),
+            style = MaterialTheme.typography.bodySmall,
+            color = InkFaint,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -1326,9 +1380,9 @@ private fun FilterPill(labelRes: Int, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun FilterEmpty() {
+private fun FilterEmpty(searching: Boolean) {
     Text(
-        text = stringResource(R.string.library_filter_empty),
+        text = stringResource(if (searching) R.string.library_search_empty else R.string.library_filter_empty),
         style = MaterialTheme.typography.bodyMedium,
         color = InkFaint,
         modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),

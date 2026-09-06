@@ -129,6 +129,11 @@ class LibraryViewModel @Inject constructor(
         query.value = text
     }
 
+    fun onPresetQuery(text: String) {
+        filter.value = LibraryFilter.ALL
+        query.value = text
+    }
+
     fun onToggleGrouped() {
         viewModelScope.launch { repository.setGrouped(!state.value.grouped) }
     }

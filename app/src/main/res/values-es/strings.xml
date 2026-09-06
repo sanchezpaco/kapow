@@ -45,7 +45,11 @@
     <string name="library_series_publisher_read">%1$s · %2$s</string>
     <string name="library_unshelve">Quitar de continuar leyendo</string>
     <string name="library_search">Buscar</string>
-    <string name="library_search_hint">Título o serie</string>
+    <string name="library_search_hint">Título, serie, guionista…</string>
+    <string name="library_search_help">Prueba guionista:Ewing o año&gt;2015</string>
+    <string name="library_search_empty">Ningún cómic coincide con esa búsqueda.</string>
+    <string name="library_preset_reading">Empezados</string>
+    <string name="library_preset_recent">Añadidos hace poco</string>
     <string name="library_close_search">Cerrar búsqueda</string>
     <string name="library_sort_recent">Recientes</string>
     <string name="library_unshelved">Quitado de continuar leyendo</string>
