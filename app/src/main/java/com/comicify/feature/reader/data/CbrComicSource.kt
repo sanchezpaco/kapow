@@ -134,7 +134,7 @@ class CbrComicSource private constructor(
                 val archive = SevenZip.openInArchive(null, stream)
                 val files = (0 until archive.numberOfItems).filter { !isFolder(archive, it) }
                 val itemIndices = files
-                    .filter { pathOf(archive, it).hasImageExtension() }
+                    .filter { pathOf(archive, it).isPageEntry() }
                     .sortedWith(compareBy(naturalOrder) { pathOf(archive, it) })
                 val comicInfoIndex = files.firstOrNull { pathOf(archive, it).isComicInfoPath() }
                 CbrComicSource(

@@ -41,7 +41,7 @@ class CbzComicSource private constructor(
             withContext(Dispatchers.IO) {
                 val zip = ZipFile(cacheFile)
                 val entries = zip.entries().asSequence()
-                    .filter { !it.isDirectory && it.name.hasImageExtension() }
+                    .filter { !it.isDirectory && it.name.isPageEntry() }
                     .sortedWith(compareBy(naturalOrder) { it.name })
                     .toList()
                 CbzComicSource(cacheFile, zip, entries)

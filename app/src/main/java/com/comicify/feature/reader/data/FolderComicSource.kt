@@ -69,5 +69,5 @@ class FolderComicSource private constructor(
 internal data class FolderDocument(val name: String, val uri: Uri)
 
 internal fun <T> List<T>.inImageReadingOrder(name: (T) -> String): List<T> =
-    filter { name(it).hasImageExtension() }
+    filter { name(it).isPageEntry() }
         .sortedWith(compareBy(naturalOrder, name))
