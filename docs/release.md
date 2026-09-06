@@ -139,7 +139,7 @@ panel on the page-grid stage with a shout title and a caption box, sized
 capture scaled to a fixed width on the right). Copy for every shot is the
 `SHOTS` table; the order of the table is the store order, chosen in the
 2026-09-06 conversion review (differentiators first: bubbles, Guided View,
-shelf, page look, search, details, look; tablets: spread, bubbles on the
+shelf, page look, search, look; tablets: spread, bubbles on the
 spread, Guided View on the spread, wall of covers).
 
 Shots listed in `COMPARE_SHOTS` are stacked pairs with two tagged panels
