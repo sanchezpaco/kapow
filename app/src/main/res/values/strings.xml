@@ -14,7 +14,10 @@
     <string name="library_scan_error">Couldn\'t read that folder. Try choosing it again.</string>
     <string name="library_scan_access_lost">Access to the comics folder was lost (this happens after reinstalling). Choose it again.</string>
     <string name="library_debug_badge">DEBUG %1$s</string>
-    <string name="library_count">%1$d comics</string>
+    <plurals name="library_count">
+        <item quantity="one">%1$d comic</item>
+        <item quantity="other">%1$d comics</item>
+    </plurals>
     <string name="library_shelf_eyebrow">Shelf</string>
     <string name="library_resume_eyebrow">Resume</string>
     <string name="library_resume">Resume</string>
@@ -77,7 +80,6 @@
     <string name="library_list_delete">Delete list</string>
     <string name="library_list_deleted">List deleted</string>
     <string name="library_list_menu">List options</string>
-    <string name="library_list_count">%1$d comics</string>
     <string name="library_list_empty">Nothing in this list yet. Long-press a comic to add it.</string>
     <string name="settings_series_eyebrow">This series</string>
     <string name="detail_option_default_value">Default (%1$s)</string>

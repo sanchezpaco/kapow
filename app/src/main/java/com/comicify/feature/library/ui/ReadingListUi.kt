@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -169,7 +170,7 @@ private fun SwitcherRow(name: String, selected: Boolean, count: Int? = null, onC
         trailingIcon = {
             count?.let {
                 Text(
-                    text = stringResource(R.string.library_list_count, it),
+                    text = pluralStringResource(R.plurals.library_count, it, it),
                     style = MaterialTheme.typography.labelSmall,
                     color = InkFaint,
                 )

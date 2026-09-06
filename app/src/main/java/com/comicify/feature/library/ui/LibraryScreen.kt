@@ -112,6 +112,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -569,7 +570,7 @@ private fun LibraryHeader(
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
-                text = stringResource(R.string.library_count, comicCount),
+                text = pluralStringResource(R.plurals.library_count, comicCount, comicCount),
                 style = MaterialTheme.typography.labelMedium,
                 color = InkFaint,
                 modifier = Modifier.padding(bottom = 6.dp),

@@ -14,7 +14,10 @@
     <string name="library_scan_error">No se pudo leer esa carpeta. Prueba a elegirla de nuevo.</string>
     <string name="library_scan_access_lost">Se perdió el acceso a la carpeta de cómics (pasa al reinstalar). Elígela de nuevo.</string>
     <string name="library_debug_badge">DEBUG %1$s</string>
-    <string name="library_count">%1$d cómics</string>
+    <plurals name="library_count">
+        <item quantity="one">%1$d cómic</item>
+        <item quantity="other">%1$d cómics</item>
+    </plurals>
     <string name="library_shelf_eyebrow">Estante</string>
     <string name="library_resume_eyebrow">Retomar</string>
     <string name="library_resume">Reanudar</string>
@@ -74,7 +77,6 @@
     <string name="library_list_delete">Eliminar lista</string>
     <string name="library_list_deleted">Lista eliminada</string>
     <string name="library_list_menu">Opciones de la lista</string>
-    <string name="library_list_count">%1$d cómics</string>
     <string name="library_list_empty">Esta lista está vacía. Mantén pulsado un cómic para añadirlo.</string>
     <string name="settings_series_eyebrow">Esta serie</string>
     <string name="detail_option_default_value">Por defecto (%1$s)</string>
