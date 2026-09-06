@@ -49,6 +49,9 @@ opens; coming back now lands where you left.
   "Default (Pages)"). The reader reads them once on open
   (`ReaderViewModel.applyOpenDefaults`) and the bubble scale/direction live
   through `combine` with the per-comic override.
+  Page look and page fit deliberately have **no** global default — they follow
+  the scan, not the reader's taste — so they appear only on the per-comic screen
+  (`docs/library.md`).
 - **Screen** — night tint and keep the screen on while reading
   (`FLAG_KEEP_SCREEN_ON` is now conditional, default on).
 - **Library** — one row: the comics folder with its display name as supporting

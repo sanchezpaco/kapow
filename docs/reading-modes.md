@@ -517,6 +517,10 @@ two.
   the strip is fit to width by definition. The stored value is untouched and
   returns with Pages.
 
+The per-comic settings screen carries the same value as a Screen · Width choice
+row (no "Default" chip, since there is no global default), so a whole series can
+be set to fit width at once.
+
 Reset is one tap of the row back to Screen. There is deliberately no fit height
 (on a portrait screen showing a portrait page it *is* fit screen), no remembered
 arbitrary pinch (a 4× state you cannot see, name or undo), and no global or
@@ -572,6 +576,9 @@ shows what the detector saw — the look is recorded as a `pageLook` field in
 Night tint is orthogonal: it stays global and is drawn above the page and below
 the chrome, so it composes over an adjusted page. The two rows sit next to each
 other in the gear panel so the relationship is legible.
+
+The per-comic settings screen spells the four looks out as a choice row (again
+with no "Default" chip), so a yellowed run can be set to Paper in one go.
 
 ## Night tint
 

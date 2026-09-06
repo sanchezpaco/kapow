@@ -67,6 +67,7 @@ import com.comicify.core.ui.SettingsSection
 import com.comicify.core.ui.SettingsSwitchRow
 import com.comicify.core.ui.defaultLabel
 import com.comicify.core.ui.labelRes
+import com.comicify.core.ui.pageFitLabelRes
 import com.comicify.core.ui.triStateOptions
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.library.domain.LibraryCatalog
@@ -75,6 +76,7 @@ import com.comicify.feature.library.domain.openMode
 import com.comicify.feature.library.domain.parseEditedIssueNumber
 import com.comicify.feature.library.domain.withOpenMode
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
+import com.comicify.feature.reader.domain.PageLook
 import com.comicify.feature.reader.domain.ReaderViewMode
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.first
@@ -150,6 +152,20 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, showDetails: Boolean, onBack
                     supporting = stringResource(R.string.detail_setting_split_wide_pages_detail),
                     checked = settings.splitWidePages,
                     onCheckedChange = { viewModel.onSettingsChanged(settings.copy(splitWidePages = it)) },
+                )
+                SettingsDivider()
+                SettingsChoiceRow(
+                    label = stringResource(R.string.detail_setting_page_look),
+                    options = pageLookOptions(),
+                    selected = settings.pageLook,
+                    onSelect = { viewModel.onSettingsChanged(settings.copy(pageLook = it)) },
+                )
+                SettingsDivider()
+                SettingsChoiceRow(
+                    label = stringResource(R.string.detail_setting_page_fit),
+                    options = pageFitOptions(),
+                    selected = settings.fitWidth,
+                    onSelect = { viewModel.onSettingsChanged(settings.copy(fitWidth = it)) },
                 )
                 SettingsDivider()
                 SettingsChoiceRow(
@@ -347,6 +363,14 @@ private fun DetailRow(labelRes: Int, value: String) {
         )
     }
 }
+
+@Composable
+private fun pageLookOptions(): List<Pair<PageLook, String>> =
+    PageLook.entries.map { look -> look to stringResource(look.labelRes()) }
+
+@Composable
+private fun pageFitOptions(): List<Pair<Boolean, String>> =
+    listOf(false, true).map { fitWidth -> fitWidth to stringResource(pageFitLabelRes(fitWidth)) }
 
 @Composable
 private fun openModeOptions(guidedOnOpen: Boolean): List<Pair<ReaderViewMode?, String>> {
