@@ -1,5 +1,6 @@
 package com.comicify.feature.library.domain
 
+import com.comicify.feature.reader.domain.ReadingType
 import org.w3c.dom.Document
 import org.xml.sax.InputSource
 import org.xml.sax.SAXException
@@ -7,7 +8,7 @@ import java.io.StringReader
 import javax.xml.parsers.DocumentBuilderFactory
 
 const val COMIC_INFO_ENTRY = "comicinfo.xml"
-const val METADATA_VERSION = 1
+const val METADATA_VERSION = 2
 
 private const val ROOT_ELEMENT = "ComicInfo"
 private const val MANGA_RIGHT_TO_LEFT = "YesAndRightToLeft"
@@ -29,7 +30,7 @@ object ComicInfoParser {
             inker = document.text("Inker"),
             colorist = document.text("Colorist"),
             summary = document.text("Summary"),
-            readsRightToLeft = readsRightToLeft(document.text("Manga")),
+            readingType = readingType(document.text("Manga")),
         )
     }
 
@@ -43,10 +44,10 @@ object ComicInfoParser {
     private fun builderFactory(): DocumentBuilderFactory =
         DocumentBuilderFactory.newInstance().apply { isExpandEntityReferences = false }
 
-    private fun readsRightToLeft(manga: String?): Boolean? = when (manga) {
+    private fun readingType(manga: String?): ReadingType? = when (manga) {
         null, MANGA_UNKNOWN -> null
-        MANGA_RIGHT_TO_LEFT -> true
-        else -> false
+        MANGA_RIGHT_TO_LEFT -> ReadingType.Manga
+        else -> ReadingType.Comic
     }
 
     private fun Document.text(tag: String): String? =

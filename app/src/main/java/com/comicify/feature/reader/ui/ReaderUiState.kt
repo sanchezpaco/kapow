@@ -5,6 +5,7 @@ import com.comicify.domain.model.ReadingPosition
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.ComicOpenError
 import com.comicify.feature.reader.domain.PageLook
+import com.comicify.feature.reader.domain.ReadingType
 
 data class ReaderUiState(
     val loading: Boolean = true,
@@ -20,11 +21,13 @@ data class ReaderUiState(
     val bubblesEnlarged: Boolean = false,
     val bubbleScale: Float = BUBBLE_ENLARGE_SCALE,
     val pendingJump: Int? = null,
+    val readingType: ReadingType = ReadingType.Comic,
     val direction: ReadingDirection = ReadingDirection.LeftToRight,
     val coverAlone: Boolean = false,
     val splitWidePages: Boolean = false,
     val verticalScroll: Boolean = false,
     val splitSuggested: Boolean = false,
+    val webcomicHint: Boolean = false,
     val bookmarks: Set<Int> = emptySet(),
     val bookmarksOnly: Boolean = false,
     val bookmarksAvailable: Boolean = false,

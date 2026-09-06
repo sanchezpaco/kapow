@@ -42,9 +42,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.comicify.R
 import com.comicify.core.ui.theme.KapowTheme
-import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
 import com.comicify.feature.reader.domain.PageLook
+import com.comicify.feature.reader.domain.ReaderViewMode
+import com.comicify.feature.reader.domain.ReadingType
 
 private val SectionCorner = 20.dp
 private val SectionHeaderGap = 10.dp
@@ -69,9 +70,16 @@ private const val TABULAR_FIGURES = "tnum"
 @Composable
 fun defaultLabel(value: String): String = stringResource(R.string.detail_option_default_value, value)
 
-fun ReadingDirection.labelRes(): Int = when (this) {
-    ReadingDirection.LeftToRight -> R.string.detail_option_ltr
-    ReadingDirection.RightToLeft -> R.string.detail_option_rtl
+fun ReadingType.labelRes(): Int = when (this) {
+    ReadingType.Comic -> R.string.reading_type_comic
+    ReadingType.Manga -> R.string.reading_type_manga
+    ReadingType.Webcomic -> R.string.reading_type_webcomic
+}
+
+fun ReaderViewMode.labelRes(): Int = when (this) {
+    ReaderViewMode.Pages -> R.string.reader_mode_pages
+    ReaderViewMode.Guided -> R.string.reader_mode_guided
+    ReaderViewMode.Strip -> R.string.reader_mode_strip
 }
 
 fun Boolean.labelRes(): Int = if (this) R.string.detail_option_on else R.string.detail_option_off

@@ -10,7 +10,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.comicify.core.ui.theme.ThemeAccent
 import com.comicify.core.ui.theme.ThemeChoice
 import com.comicify.core.ui.theme.ThemeGround
-import com.comicify.domain.model.ReadingDirection
+import com.comicify.feature.reader.domain.ReadingType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.map
 private val Context.readerPreferencesDataStore by preferencesDataStore(name = "reader_preferences")
 
 data class OpenDefaults(
-    val direction: ReadingDirection = ReadingDirection.LeftToRight,
+    val readingType: ReadingType = ReadingType.Comic,
     val bubblesOnOpen: Boolean = false,
     val guidedOnOpen: Boolean = false,
 )
@@ -46,16 +46,16 @@ class ReaderPreferencesRepository(private val context: Context) {
     val bubbleScale: Flow<Float?> = context.readerPreferencesDataStore.data.map { it[BUBBLE_SCALE] }
     suspend fun setBubbleScale(scale: Float) = set(BUBBLE_SCALE, scale)
 
-    val readingDirection: Flow<ReadingDirection> = flag(READING_DIRECTION_RTL, default = false).map { rtl ->
-        if (rtl) ReadingDirection.RightToLeft else ReadingDirection.LeftToRight
+    val readingType: Flow<ReadingType> = context.readerPreferencesDataStore.data.map { preferences ->
+        preferences[READING_TYPE]?.let(ReadingType::valueOf)
+            ?: if (preferences[LEGACY_DIRECTION_RTL] == true) ReadingType.Manga else ReadingType.Comic
     }
 
-    suspend fun setReadingDirection(direction: ReadingDirection) =
-        set(READING_DIRECTION_RTL, direction == ReadingDirection.RightToLeft)
+    suspend fun setReadingType(type: ReadingType) = set(READING_TYPE, type.name)
 
     val openDefaults: Flow<OpenDefaults> =
-        combine(readingDirection, bubblesOnOpen, guidedOnOpen) { direction, bubbles, guided ->
-            OpenDefaults(direction = direction, bubblesOnOpen = bubbles, guidedOnOpen = guided)
+        combine(readingType, bubblesOnOpen, guidedOnOpen) { type, bubbles, guided ->
+            OpenDefaults(readingType = type, bubblesOnOpen = bubbles, guidedOnOpen = guided)
         }
 
     val theme: Flow<ThemeChoice> = context.readerPreferencesDataStore.data.map {
@@ -86,7 +86,8 @@ class ReaderPreferencesRepository(private val context: Context) {
         val ONBOARDING_SEEN = booleanPreferencesKey("onboarding_seen")
         val BUBBLES_ON_OPEN = booleanPreferencesKey("bubbles_on_open")
         val GUIDED_ON_OPEN = booleanPreferencesKey("guided_on_open")
-        val READING_DIRECTION_RTL = booleanPreferencesKey("reading_direction_rtl")
+        val READING_TYPE = stringPreferencesKey("reading_type")
+        val LEGACY_DIRECTION_RTL = booleanPreferencesKey("reading_direction_rtl")
         val BUBBLE_SCALE = floatPreferencesKey("bubble_scale")
         val THEME_GROUND = stringPreferencesKey("theme_ground")
         val THEME_ACCENT = stringPreferencesKey("theme_accent")

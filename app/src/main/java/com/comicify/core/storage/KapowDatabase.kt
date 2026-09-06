@@ -14,7 +14,7 @@ import androidx.room.RoomDatabase
         ReadingListEntity::class,
         ReadingListEntryEntity::class,
     ],
-    version = 18,
+    version = 19,
     exportSchema = false,
 )
 abstract class KapowDatabase : RoomDatabase() {

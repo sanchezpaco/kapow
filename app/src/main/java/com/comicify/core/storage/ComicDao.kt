@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.comicify.feature.reader.domain.ReadingType
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -33,7 +34,7 @@ interface ComicDao {
     @Query(
         "UPDATE comics SET series = :series, issueNumber = :issueNumber, year = :year, storyTitle = :storyTitle, " +
             "publisher = :publisher, writer = :writer, penciller = :penciller, inker = :inker, colorist = :colorist, " +
-            "summary = :summary, readsRightToLeft = :readsRightToLeft, metadataVersion = :metadataVersion WHERE id = :id",
+            "summary = :summary, readingType = :readingType, metadataVersion = :metadataVersion WHERE id = :id",
     )
     suspend fun updateMetadata(
         id: Long,
@@ -47,7 +48,7 @@ interface ComicDao {
         inker: String?,
         colorist: String?,
         summary: String?,
-        readsRightToLeft: Boolean?,
+        readingType: ReadingType?,
         metadataVersion: Int,
     )
 

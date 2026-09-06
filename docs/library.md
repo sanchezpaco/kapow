@@ -79,7 +79,7 @@ Comic(
     series, issueNumber, year,
     pageCount?, coverPath?, coverPage, coverAmbient?, addedAt, favorite,
     storyTitle?, publisher?, writer?, penciller?, inker?, colorist?,
-    summary?, readsRightToLeft?, metadataVersion,
+    summary?, readingType?, metadataVersion,
     rating, metadataEdited,
 )
 
@@ -88,7 +88,7 @@ ReadingState(
 )
 
 ComicSettings(
-    documentUri, rightToLeft?, coverAlone, bubblesEnlarged?, guided?,
+    documentUri, readingType?, coverAlone, bubblesEnlarged?, guided?,
     bubbleScale?, splitWidePages, splitSuggested, verticalScroll,
 )
 
@@ -113,6 +113,11 @@ ReadingListEntry(
 - `contentHash` is the comic's real identity (below). It was added in schema
   **v13** (migration `12→13`), nullable and indexed, so an upgraded library
   keeps every row and fills the hashes in lazily.
+- `readingType` on both `comics` and `comic_settings` replaced the older
+  `readsRightToLeft` / `rightToLeft` booleans in schema **v19** (migration
+  `18→19`, which rebuilds both tables). The migration preserves the setting —
+  `1` becomes `'Manga'`, `0` becomes `'Comic'`, `NULL` stays `NULL` — so an
+  upgraded library keeps reading manga right-to-left.
 - `ReadingList` and its join table `ReadingListEntry` hold the reading lists
   (below). They arrived in schema **v17** (migration `16→17`). The entry is keyed
   by the **comic row id**, not by `documentUri`, so a relinked file (renamed or
@@ -149,7 +154,7 @@ ReadingListEntry(
   reading state. If the delete fails (e.g. the folder was granted read-only by
   an older pick), the file and its entry are left intact rather than lying about
   a deletion that did not happen; re-picking the folder grants write access.
-- The `ComicInfo.xml` columns (`storyTitle` … `readsRightToLeft`) and
+- The `ComicInfo.xml` columns (`storyTitle` … `readingType`) and
   `metadataVersion` were added in schema **v11** (migration `10→11`). They are
   all nullable except `metadataVersion`, which defaults to 0 so every existing
   row is re-read once by the cover pass (below). Nothing else is touched, so a
@@ -468,12 +473,13 @@ tweaked individually from inside the series screen.
   Reading it back, `verticalScroll` wins over `guided` — the same precedence
   `ReaderViewMode.of` applies — so a comic left in the strip by the HUD reads as
   "Vertical scroll" here. The "Default (…)" label spells out the global mode
-  ("Default (Pages)" / "Default (Guided view)") from `OpenDefaults.guidedOnOpen`.
-- Reading direction (Default · Left to right · Right to left), cover alone in
+  ("Default (Pages)" / "Default (Guided view)") from `OpenDefaults.guidedOnOpen`
+  and the effective reading type — a webcomic reads "Default (Vertical scroll)".
+- Reading type (Default · Comic · Manga · Webcomic), cover alone in
   the spread (switch, "Cover on its own page" / "Pairs 2-3, 4-5…"), split wide
   pages (switch, see `reading-modes.md#split-wide-pages`) and enlarged bubbles on
   open (Default · On · Off). The "Default" chip spells out the global value it
-  falls back to ("Default (Left to right)", "Default (Off)"). Turning bubbles on
+  falls back to ("Default (Comic)", "Default (Off)"). Turning bubbles on
   reveals the scale slider (same `BUBBLE_SCALE_RANGE` and steps as the reader's HUD stepper)
   stored as the comic's `bubbleScale`; a series-wide change writes it to every
   issue. Page look (Original · Brighter · More contrast · Paper) and page fit
@@ -492,7 +498,7 @@ tweaked individually from inside the series screen.
   `page_detections` rows so the next open re-runs the models.
 
 `ComicSettingsViewModel` observes the first target's settings and fans writes
-out to all targets; it also exposes the global reading direction for the
+out to all targets; it also exposes the global reading type for the
 "Default (…)" label.
 
 ### Navigation and transitions
@@ -540,7 +546,7 @@ text — `DocumentBuilder`, no IO, unit-tested — returning a `ComicInfo`. It r
 | `storyTitle` | the hand edit, else the XML |
 | `year` | the XML when non-blank, else `ComicNameParser` |
 | `publisher`, `writer`, `penciller`, `inker`, `colorist`, `summary` | the XML only |
-| `readsRightToLeft` | the XML only (`Manga` = `YesAndRightToLeft`) |
+| `readingType` | the XML only (`Manga` = `YesAndRightToLeft` → `Manga`, any other `Manga` value → `Comic`) |
 
 ### Hand edits
 
@@ -551,7 +557,7 @@ writes the three columns and sets `metadataEdited`, which is what
 `EditedComicMetadata` is built from: while it is set the metadata pass never
 overwrites those three, whatever `METADATA_VERSION` says, and a relink keeps
 them through a rename too — but `publisher`, the credits, `summary` and
-`readsRightToLeft` keep improving from a better ComicInfo parse. `displayName`
+`readingType` keep improving from a better ComicInfo parse. `displayName`
 is never editable.
 
 **Reset to file** (shown in the dialog only while the comic is edited) clears
@@ -574,7 +580,8 @@ through that same `ComicSource`, so metadata lands a moment after the covers.
 `METADATA_VERSION` (next to the parser, same idea as `DETECTIONS_VERSION` in
 `ml-runtime.md`) is stored per comic: bumping the constant makes the next pass
 re-read every comic, which is also how a library that predates this feature
-gets enriched without a re-scan.
+gets enriched without a re-scan. It is at **2** since the reading type replaced
+the `readsRightToLeft` flag (schema v18).
 
 ### Where it shows
 
@@ -592,10 +599,12 @@ gets enriched without a re-scan.
   comic with no `ComicInfo.xml` shows one line saying so, plus its file name.
   The section is per comic, so it is hidden when the screen was opened for a
   whole series.
-- `Manga` = `YesAndRightToLeft` becomes the comic's **default** reading
-  direction: the reader resolves direction as per-comic user setting → the
-  comic's own default → the global default. There is no UI for it; a user who
-  picks a direction for that comic still wins.
+- `Manga` seeds the comic's **default** reading type: `YesAndRightToLeft` →
+  `Manga`, any other value → `Comic`, missing or `Unknown` → nothing. The reader
+  resolves the type as per-comic user setting → the comic's own default → the
+  global default. There is no UI for it; a user who picks a type for that comic
+  still wins. `ComicInfo.xml` has no webcomic flag, so `Webcomic` is only ever
+  chosen by hand.
 
 ### Limits and follow-ups
 

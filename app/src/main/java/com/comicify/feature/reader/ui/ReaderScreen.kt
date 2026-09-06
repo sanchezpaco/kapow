@@ -130,6 +130,7 @@ import com.comicify.feature.reader.domain.Bookmarks
 import com.comicify.feature.reader.domain.ComicOpenError
 import com.comicify.feature.reader.domain.PageLook
 import com.comicify.feature.reader.domain.ReaderViewMode
+import com.comicify.feature.reader.domain.ReadingType
 import com.comicify.feature.reader.domain.TapZone
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlin.math.roundToInt
@@ -305,7 +306,7 @@ fun ReaderScreen(
             fitWidth = state.fitWidth,
             nightTintEnabled = state.nightTintEnabled,
             pageLook = state.pageLook,
-            direction = state.direction,
+            readingType = state.readingType,
             splitWidePages = state.splitWidePages,
             onViewMode = viewModel::setViewMode,
             onToggleBubblesEnlarged = viewModel::toggleBubblesEnlarged,
@@ -314,7 +315,7 @@ fun ReaderScreen(
             onToggleGuidedFullScreen = viewModel::toggleGuidedFullScreen,
             onToggleNightTint = viewModel::toggleNightTint,
             onCyclePageLook = viewModel::cyclePageLook,
-            onToggleDirection = viewModel::toggleReadingDirection,
+            onCycleReadingType = viewModel::cycleReadingType,
             onToggleSplitWidePages = viewModel::toggleSplitWidePages,
             onSharePage = { (activeLoader ?: viewModel.pageLoader)?.let { viewModel.sharePage(it, posture, guidedStop) } },
             onReportGlitch = { glitchDialogOpen = true },
@@ -347,25 +348,36 @@ fun ReaderScreen(
             onDismiss = { atEnd = false },
         )
 
-        SplitSuggestionSnackbar(
+        SuggestionSnackbar(
             suggested = state.splitSuggested,
+            message = stringResource(R.string.reader_split_suggestion),
+            action = stringResource(R.string.reader_split_suggestion_action),
             onAccept = viewModel::acceptSplitSuggestion,
             onDismiss = viewModel::dismissSplitSuggestion,
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding(),
+        )
+
+        SuggestionSnackbar(
+            suggested = state.webcomicHint,
+            message = stringResource(R.string.reader_type_webcomic_hint),
+            action = stringResource(R.string.reader_type_webcomic_action),
+            onAccept = viewModel::acceptWebcomicHint,
+            onDismiss = viewModel::dismissWebcomicHint,
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding(),
         )
     }
 }
 
 @Composable
-private fun SplitSuggestionSnackbar(
+private fun SuggestionSnackbar(
     suggested: Boolean,
+    message: String,
+    action: String,
     onAccept: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val host = remember { SnackbarHostState() }
-    val message = stringResource(R.string.reader_split_suggestion)
-    val action = stringResource(R.string.reader_split_suggestion_action)
     LaunchedEffect(suggested) {
         if (!suggested) return@LaunchedEffect
         val result = host.showSnackbar(message, actionLabel = action, duration = SnackbarDuration.Long)
@@ -473,7 +485,7 @@ private fun TopChrome(
     fitWidth: Boolean,
     nightTintEnabled: Boolean,
     pageLook: PageLook,
-    direction: ReadingDirection,
+    readingType: ReadingType,
     splitWidePages: Boolean,
     onViewMode: (ReaderViewMode) -> Unit,
     onToggleBubblesEnlarged: () -> Unit,
@@ -482,7 +494,7 @@ private fun TopChrome(
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
     onCyclePageLook: () -> Unit,
-    onToggleDirection: () -> Unit,
+    onCycleReadingType: () -> Unit,
     onToggleSplitWidePages: () -> Unit,
     onSharePage: () -> Unit,
     onReportGlitch: () -> Unit,
@@ -524,7 +536,7 @@ private fun TopChrome(
                         icon = Icons.Filled.Settings,
                         open = openPanel == HudPanelKind.Settings,
                         marked = nightTintEnabled || pageLook != PageLook.Original ||
-                            direction == ReadingDirection.RightToLeft || splitWidePages,
+                            readingType != ReadingType.Comic || splitWidePages,
                         contentDescription = stringResource(R.string.reader_action_settings),
                         onClick = { openPanel = openPanel.toggled(HudPanelKind.Settings) },
                     )
@@ -548,12 +560,12 @@ private fun TopChrome(
                         guidedFullScreen = guidedFullScreen,
                         nightTintEnabled = nightTintEnabled,
                         pageLook = pageLook,
-                        direction = direction,
                         splitWidePages = splitWidePages,
                         onToggleGuidedFullScreen = onToggleGuidedFullScreen,
                         onToggleNightTint = onToggleNightTint,
                         onCyclePageLook = onCyclePageLook,
-                        onToggleDirection = onToggleDirection,
+                        readingType = readingType,
+                        onCycleReadingType = onCycleReadingType,
                         onToggleSplitWidePages = onToggleSplitWidePages,
                         onSharePage = { openPanel = null; onSharePage() },
                         onReportGlitch = { openPanel = null; onReportGlitch() },
@@ -766,12 +778,12 @@ private fun ReaderSettingsPanel(
     guidedFullScreen: Boolean,
     nightTintEnabled: Boolean,
     pageLook: PageLook,
-    direction: ReadingDirection,
     splitWidePages: Boolean,
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
     onCyclePageLook: () -> Unit,
-    onToggleDirection: () -> Unit,
+    readingType: ReadingType,
+    onCycleReadingType: () -> Unit,
     onToggleSplitWidePages: () -> Unit,
     onSharePage: () -> Unit,
     onReportGlitch: () -> Unit,
@@ -797,13 +809,11 @@ private fun ReaderSettingsPanel(
         }
         PanelRow(
             icon = Icons.Filled.SwapHoriz,
-            label = stringResource(R.string.reader_setting_direction),
-            onClick = onToggleDirection,
+            label = stringResource(R.string.reader_setting_type),
+            onClick = onCycleReadingType,
         ) {
             Text(
-                text = stringResource(
-                    if (direction == ReadingDirection.RightToLeft) R.string.reader_direction_rtl else R.string.reader_direction_ltr,
-                ),
+                text = stringResource(readingType.labelRes()),
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelLarge,
             )

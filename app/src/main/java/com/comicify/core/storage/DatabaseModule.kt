@@ -19,7 +19,7 @@ object DatabaseModule {
     @Singleton
     fun database(@ApplicationContext context: Context): KapowDatabase =
         Room.databaseBuilder(context, KapowDatabase::class.java, "comicify.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
             .build()
 
     @Provides
@@ -184,5 +184,47 @@ private val MIGRATION_17_18 = object : Migration(17, 18) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE comic_settings ADD COLUMN pageLook TEXT NOT NULL DEFAULT 'Original'")
         db.execSQL("ALTER TABLE comic_settings ADD COLUMN fitWidth INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+private const val READING_TYPE_OF_RTL = "CASE %1\$s WHEN 1 THEN 'Manga' WHEN 0 THEN 'Comic' END"
+
+private val MIGRATION_18_19 = object : Migration(18, 19) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `comics_typed` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `documentUri` TEXT NOT NULL, " +
+                "`displayName` TEXT NOT NULL, `series` TEXT NOT NULL, `issueNumber` INTEGER, `year` INTEGER, " +
+                "`pageCount` INTEGER, `coverPath` TEXT, `addedAt` INTEGER NOT NULL, `favorite` INTEGER NOT NULL, " +
+                "`coverAmbient` INTEGER, `storyTitle` TEXT, `publisher` TEXT, `writer` TEXT, `penciller` TEXT, " +
+                "`inker` TEXT, `colorist` TEXT, `summary` TEXT, `readingType` TEXT, " +
+                "`metadataVersion` INTEGER NOT NULL, `contentHash` TEXT, `rating` INTEGER NOT NULL, " +
+                "`metadataEdited` INTEGER NOT NULL, `coverPage` INTEGER NOT NULL)",
+        )
+        db.execSQL(
+            "INSERT INTO `comics_typed` SELECT id, documentUri, displayName, series, issueNumber, year, " +
+                "pageCount, coverPath, addedAt, favorite, coverAmbient, storyTitle, publisher, writer, penciller, " +
+                "inker, colorist, summary, " + READING_TYPE_OF_RTL.format("readsRightToLeft") + ", " +
+                "metadataVersion, contentHash, rating, metadataEdited, coverPage FROM `comics`",
+        )
+        db.execSQL("DROP TABLE `comics`")
+        db.execSQL("ALTER TABLE `comics_typed` RENAME TO `comics`")
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_comics_documentUri` ON `comics` (`documentUri`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_comics_contentHash` ON `comics` (`contentHash`)")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `comic_settings_typed` (" +
+                "`documentUri` TEXT NOT NULL, `readingType` TEXT, `coverAlone` INTEGER NOT NULL, " +
+                "`bubblesEnlarged` INTEGER, `guided` INTEGER, `bubbleScale` REAL, " +
+                "`splitWidePages` INTEGER NOT NULL, `splitSuggested` INTEGER NOT NULL, " +
+                "`verticalScroll` INTEGER NOT NULL, `pageLook` TEXT NOT NULL, `fitWidth` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`documentUri`))",
+        )
+        db.execSQL(
+            "INSERT INTO `comic_settings_typed` SELECT documentUri, " +
+                READING_TYPE_OF_RTL.format("rightToLeft") + ", coverAlone, bubblesEnlarged, guided, bubbleScale, " +
+                "splitWidePages, splitSuggested, verticalScroll, pageLook, fitWidth FROM `comic_settings`",
+        )
+        db.execSQL("DROP TABLE `comic_settings`")
+        db.execSQL("ALTER TABLE `comic_settings_typed` RENAME TO `comic_settings`")
     }
 }

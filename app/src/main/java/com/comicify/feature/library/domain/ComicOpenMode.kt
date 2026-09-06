@@ -1,6 +1,7 @@
 package com.comicify.feature.library.domain
 
 import com.comicify.feature.reader.domain.ReaderViewMode
+import com.comicify.feature.reader.domain.ReadingType
 
 fun ComicSettings.openMode(): ReaderViewMode? = when {
     verticalScroll -> ReaderViewMode.Strip
@@ -15,3 +16,12 @@ fun ComicSettings.withOpenMode(mode: ReaderViewMode?): ComicSettings = when (mod
     ReaderViewMode.Guided -> copy(guided = true, verticalScroll = false)
     ReaderViewMode.Strip -> copy(verticalScroll = true)
 }
+
+fun defaultOpenMode(type: ReadingType, guidedOnOpen: Boolean): ReaderViewMode = when {
+    type == ReadingType.Webcomic -> ReaderViewMode.Strip
+    guidedOnOpen -> ReaderViewMode.Guided
+    else -> ReaderViewMode.Pages
+}
+
+fun ComicSettings.openModeOnOpen(type: ReadingType, guidedOnOpen: Boolean): ReaderViewMode =
+    openMode() ?: defaultOpenMode(type, guidedOnOpen)

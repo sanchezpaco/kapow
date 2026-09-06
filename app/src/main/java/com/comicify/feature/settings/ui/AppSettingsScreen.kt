@@ -84,8 +84,8 @@ import com.comicify.core.ui.theme.ThemeAccent
 import com.comicify.core.ui.theme.ThemeChoice
 import com.comicify.core.ui.theme.ThemeGround
 import com.comicify.core.ui.theme.resolve
-import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.library.ui.GhostAction
+import com.comicify.feature.reader.domain.ReadingType
 import com.comicify.feature.settings.domain.LauncherIcon
 
 private val ScreenPadding = 20.dp
@@ -182,13 +182,14 @@ private fun ReadingSection(state: AppSettingsUiState, viewModel: AppSettingsView
         title = stringResource(R.string.app_settings_reading),
     ) {
         SettingsChoiceRow(
-            label = stringResource(R.string.detail_setting_direction),
+            label = stringResource(R.string.app_settings_reading_type),
             options = listOf(
-                ReadingDirection.LeftToRight to stringResource(R.string.detail_option_ltr),
-                ReadingDirection.RightToLeft to stringResource(R.string.detail_option_rtl),
+                ReadingType.Comic to stringResource(R.string.reading_type_comic),
+                ReadingType.Manga to stringResource(R.string.reading_type_manga),
+                ReadingType.Webcomic to stringResource(R.string.reading_type_webcomic),
             ),
-            selected = state.direction,
-            onSelect = viewModel::onDirectionSelected,
+            selected = state.readingType,
+            onSelect = viewModel::onReadingTypeSelected,
         )
         SettingsDivider()
         SettingsSwitchRow(
