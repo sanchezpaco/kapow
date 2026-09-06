@@ -8,7 +8,7 @@ The home of the collection: import comics, browse covers, resume reading.
   (`ACTION_OPEN_DOCUMENT_TREE`). We `takePersistableUriPermission` and store the
   tree Uri in DataStore (`LibraryPreferences`), so the folder survives restarts.
 - `ComicScanner` walks the tree recursively with `DocumentsContract` (no extra
-  dependency), collecting `.cbz/.cbr/.pdf` by extension, or by comic MIME type
+  dependency), collecting `.cbz/.cbr/.cb7/.cbt/.7z/.tar/.pdf` by extension, or by comic MIME type
   when a provider hides the extension. Extension detection is tolerant of trailing
   suffixes providers append to duplicate downloads (e.g. `Comic.cbr (1)`).
   Subfolders name the series.

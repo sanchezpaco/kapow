@@ -17,7 +17,7 @@ View** on the cover screen, and **enlarged speech bubbles** that keep the text
 readable on the small screen. Bilingual UI (Spanish / English), black,
 graphite and paper themes.
 
-Kapow reads comic archives you already own (`.cbz`, `.cbr` and `.pdf`). It is
+Kapow reads comic archives you already own (`.cbz`, `.cbr`, `.cb7`, `.cbt` and `.pdf`). It is
 not a store and downloads nothing.
 
 ## Features

@@ -5,7 +5,7 @@ How Kapow works, one concern per file.
 - [architecture.md](architecture.md) — layers, modules, state flow, DI
 - [foldable.md](foldable.md) — postures, adaptive reading modes, position continuity
 - [reading-modes.md](reading-modes.md) — the reading surfaces and how they render
-- [file-formats.md](file-formats.md) — CBZ / CBR / PDF loading pipeline
+- [file-formats.md](file-formats.md) — CBZ / CBR / CB7 / CBT / PDF loading pipeline
 - [guided-view.md](guided-view.md) — automatic panel detection and navigation
 - [speech-bubbles.md](speech-bubbles.md) — enlarged speech bubbles toggle (detection, layout, overlay)
 - [training.md](training.md) — how the panel and bubble detectors are trained, scored and exported

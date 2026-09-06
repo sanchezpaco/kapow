@@ -38,22 +38,35 @@ opens the picked document as a read-only `ParcelFileDescriptor`, reads the
 leading magic bytes through a positional `FileChannel` read, and routes on
 content, not extension. Only ZIP is copied to a cache file (`java.util.zip.ZipFile`
 needs a path, and reopening the descriptor through `/proc/self/fd` is refused
-with `EACCES` by scoped storage); RAR and PDF read the descriptor directly, so
-opening no longer scales with the archive size (Blacksad #1, 165 MB RAR, on
-the Fold: first page 509 → 361 ms):
+with `EACCES` by scoped storage); RAR, 7z, tar and PDF read the descriptor
+directly, so opening no longer scales with the archive size (Blacksad #1,
+165 MB RAR, on the Fold: first page 509 → 361 ms):
 
-- `Rar!…` → RAR (both RAR4 and RAR5) → `CbrComicSource`.
-- `%PDF…` → PDF → `PdfComicSource`.
-- Anything else → ZIP → `CbzComicSource` (default).
+| Magic bytes | Offset | Format | Source |
+| --- | --- | --- | --- |
+| `Rar!` | 0 | RAR4 and RAR5 (`.cbr`) | `CbrComicSource` |
+| `%PDF` | 0 | PDF | `PdfComicSource` |
+| `PK` | 0 | ZIP (`.cbz`) | `CbzComicSource` |
+| `37 7A BC AF 27 1C` | 0 | 7z (`.cb7`) | `CbrComicSource` |
+| `ustar` | 257 | tar (`.cbt`) | `CbrComicSource` |
+
+Anything else is `ComicOpenError.UnsupportedFormat`. The read is
+`MAGIC_BYTE_COUNT` = 262 bytes, because tar has no leading signature: its magic
+sits inside the first header block, at offset 257. Matching only `ustar` covers
+both the POSIX (`ustar\0` + version `00`) and the GNU (`ustar  \0`) spellings of
+that field.
 
 The pure magic-byte matcher (`detectComicFileFormat`) lives in `ComicFileFormat.kt`
 and is unit-tested independently of any file IO.
 
-## CBR (RAR4 and RAR5)
+## CBR (RAR4 and RAR5), CB7 (7z) and CBT (tar)
 
 - Read with **7-Zip-JBinding** (`com.github.omicronapps:7-Zip-JBinding-4Android`,
   via JitPack), which ships native `.so` per ABI and handles both RAR4 and RAR5.
-  `junrar` was dropped because it cannot read RAR5.
+  `junrar` was dropped because it cannot read RAR5. `SevenZip.openInArchive`
+  is called with a `null` format so the library sniffs the container itself,
+  which is why 7z and tar need no reader of their own: `CbrComicSource` opens
+  all three the same way.
 - The archive is opened once over `DescriptorInStream` (an `IInStream` doing
   positional reads on the document's descriptor) and then **extracted once,
   sequentially, in the background** into a per-comic temp directory in the
@@ -114,7 +127,7 @@ and ignoring any folder, so both `ComicInfo.xml` at the archive root and a
 nested `comicinfo.xml` are found; the first match wins.
 
 - **CBZ** — a plain `ZipFile.getInputStream` on that entry. Free.
-- **CBR** — the file rides along in the sequential extraction pass the source
+- **CBR, CB7, CBT** — the file rides along in the sequential extraction pass the source
   already runs (it is added to the first extraction batch), and `comicInfoXml()`
   awaits its `CompletableDeferred` like a page. It is deliberately *not* a
   separate `extractSlow` call: that would run on the archive concurrently with
@@ -133,7 +146,7 @@ it.
 classified into a sealed `ComicOpenError` (`feature/reader/domain`), each
 carried to the reader as a distinct localized message:
 
-- `UnsupportedFormat` — the magic bytes are not ZIP, RAR or PDF.
+- `UnsupportedFormat` — the magic bytes are not ZIP, RAR, 7z, tar or PDF.
 - `EmptyArchive` — the archive opened but contains zero readable image pages.
 - `ReadFailure` — the stream could not be read, or the archive is corrupted.
 - `PasswordProtected` — `PdfRenderer` threw `SecurityException` on an

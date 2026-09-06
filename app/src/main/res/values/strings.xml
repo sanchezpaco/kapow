@@ -173,7 +173,7 @@
     <string name="onboarding_next">Next</string>
     <string name="onboarding_start">Start reading</string>
     <string name="onboarding_folder_title">Your comics, your folder</string>
-    <string name="onboarding_folder_body">Point Kapow at the folder where you keep your CBZ, CBR and PDF files. It builds the bookshelf and keeps it up to date.</string>
+    <string name="onboarding_folder_body">Point Kapow at the folder where you keep your CBZ, CBR, CB7, CBT and PDF files. It builds the bookshelf and keeps it up to date.</string>
     <string name="onboarding_folder_sample">You can do this later from Settings. A sample comic is already on the shelf.</string>
     <string name="onboarding_folder_selected">Folder selected</string>
     <string name="onboarding_gestures_title">Reading gestures</string>
@@ -219,7 +219,7 @@
     <string name="glitch_report_chooser">Send the report with</string>
     <string name="reader_action_next_page">Next page</string>
     <string name="reader_action_previous_page">Previous page</string>
-    <string name="reader_error_unsupported_format">This file format is not supported. Kapow reads CBZ, CBR and PDF files.</string>
+    <string name="reader_error_unsupported_format">This file format is not supported. Kapow reads CBZ, CBR, CB7, CBT and PDF files.</string>
     <string name="reader_error_empty_archive">This archive does not contain any readable pages.</string>
     <string name="reader_error_read_failure">This comic could not be read. The file may be corrupted or unavailable.</string>
     <string name="reader_error_password_protected">This PDF is password-protected. Kapow cannot open encrypted files.</string>

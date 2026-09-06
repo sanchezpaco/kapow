@@ -173,7 +173,7 @@
     <string name="onboarding_next">Siguiente</string>
     <string name="onboarding_start">Empezar a leer</string>
     <string name="onboarding_folder_title">Tus cómics, tu carpeta</string>
-    <string name="onboarding_folder_body">Indica a Kapow la carpeta donde guardas tus archivos CBZ, CBR y PDF. Con ella construye la estantería y la mantiene al día.</string>
+    <string name="onboarding_folder_body">Indica a Kapow la carpeta donde guardas tus archivos CBZ, CBR, CB7, CBT y PDF. Con ella construye la estantería y la mantiene al día.</string>
     <string name="onboarding_folder_sample">Puedes hacerlo más tarde desde Ajustes. Ya hay un cómic de muestra en la estantería.</string>
     <string name="onboarding_folder_selected">Carpeta seleccionada</string>
     <string name="onboarding_gestures_title">Gestos de lectura</string>
@@ -219,7 +219,7 @@
     <string name="glitch_report_chooser">Enviar el informe con</string>
     <string name="reader_action_next_page">Página siguiente</string>
     <string name="reader_action_previous_page">Página anterior</string>
-    <string name="reader_error_unsupported_format">Este formato de archivo no es compatible. Kapow lee archivos CBZ, CBR y PDF.</string>
+    <string name="reader_error_unsupported_format">Este formato de archivo no es compatible. Kapow lee archivos CBZ, CBR, CB7, CBT y PDF.</string>
     <string name="reader_error_empty_archive">Este archivo no contiene páginas legibles.</string>
     <string name="reader_error_read_failure">No se ha podido leer este cómic. Puede que el archivo esté dañado o no esté disponible.</string>
     <string name="reader_error_password_protected">Este PDF está protegido con contraseña. Kapow no puede abrir archivos cifrados.</string>

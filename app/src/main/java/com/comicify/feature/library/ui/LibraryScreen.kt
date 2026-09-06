@@ -1550,6 +1550,8 @@ private val openDocumentMimeTypes = arrayOf(
     "application/zip",
     "application/x-rar-compressed",
     "application/vnd.rar",
+    "application/x-7z-compressed",
+    "application/x-tar",
     "application/pdf",
     "application/octet-stream",
 )
