@@ -53,10 +53,12 @@ private const val READER_ENTER_SCALE = 0.94f
 
 private data class OpenRequest(val uri: Uri, val comicId: Long?, val initialPage: Int, val ambient: Color?)
 
+private data class SettingsRequest(val comics: List<LibraryComic>, val showDetails: Boolean)
+
 private sealed interface Screen {
     data object Onboarding : Screen
     data object Library : Screen
-    data class Settings(val comics: List<LibraryComic>) : Screen
+    data class Settings(val request: SettingsRequest) : Screen
     data object AppSettings : Screen
     data object Licences : Screen
     data class Reader(val request: OpenRequest) : Screen
@@ -76,7 +78,7 @@ fun KapowRoot(initialUri: Uri? = null) {
     var open by remember {
         mutableStateOf(initialUri?.let { OpenRequest(uri = it, comicId = null, initialPage = 0, ambient = null) })
     }
-    var settingsOf by remember { mutableStateOf<List<LibraryComic>?>(null) }
+    var settingsOf by remember { mutableStateOf<SettingsRequest?>(null) }
     var appSettingsOpen by remember { mutableStateOf(false) }
     var licencesOpen by remember { mutableStateOf(false) }
     val appSettingsScroll = rememberScrollState()
@@ -116,7 +118,8 @@ fun KapowRoot(initialUri: Uri? = null) {
                             state = state,
                             onFolderPicked = viewModel::onFolderPicked,
                             onOpenComic = { open = it.toOpenRequest() },
-                            onOpenSettings = { settingsOf = it },
+                            onOpenSettings = { settingsOf = SettingsRequest(comics = it, showDetails = false) },
+                            onOpenDetails = { settingsOf = SettingsRequest(comics = listOf(it), showDetails = true) },
                             onOpenAppSettings = { appSettingsOpen = true },
                             onOpenFile = { open = OpenRequest(uri = it, comicId = null, initialPage = 0, ambient = null) },
                             onFilterSelected = viewModel::onFilterSelected,
@@ -133,7 +136,11 @@ fun KapowRoot(initialUri: Uri? = null) {
                             onSortSelected = viewModel::onSortSelected,
                             onOpenSeries = viewModel::onOpenSeries,
                         )
-                        is Screen.Settings -> ComicSettingsScreen(comics = target.comics, onBack = { settingsOf = null })
+                        is Screen.Settings -> ComicSettingsScreen(
+                            comics = target.request.comics,
+                            showDetails = target.request.showDetails,
+                            onBack = { settingsOf = null },
+                        )
                         Screen.AppSettings -> AppSettingsScreen(
                             scanning = state.scanning,
                             scrollState = appSettingsScroll,
@@ -173,7 +180,7 @@ fun KapowRoot(initialUri: Uri? = null) {
 private fun Screen.key(): Any = when (this) {
     Screen.Onboarding -> "onboarding"
     Screen.Library -> "library"
-    is Screen.Settings -> "settings-${comics.first().id}"
+    is Screen.Settings -> "settings-${request.comics.first().id}"
     Screen.AppSettings -> "app-settings"
     Screen.Licences -> "licences"
     is Screen.Reader -> request

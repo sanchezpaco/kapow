@@ -17,9 +17,11 @@ class LibraryCatalogTest {
         lastReadAt: Long? = null,
         pageCount: Int? = 20,
         shelved: Boolean = true,
+        storyTitle: String? = null,
     ) = LibraryComic(
         id = id,
         documentUri = "uri$id",
+        displayName = "file$id",
         title = LibraryCatalog.title(series, issueNumber),
         series = series,
         issueNumber = issueNumber,
@@ -31,6 +33,7 @@ class LibraryCatalogTest {
         favorite = favorite,
         lastReadAt = lastReadAt,
         shelved = shelved,
+        storyTitle = storyTitle,
     )
 
     @Test
@@ -165,6 +168,15 @@ class LibraryCatalogTest {
         assertEquals(listOf(1L), LibraryCatalog.search(comics, "doom #2").map { it.id })
         assertEquals(listOf(2L), LibraryCatalog.search(comics, "VENOM").map { it.id })
         assertEquals(comics, LibraryCatalog.search(comics, "  "))
+    }
+
+    @Test
+    fun searchMatchesTheStoryTitle() {
+        val comics = listOf(
+            comic(1, series = "The Amazing Spider-Man", issueNumber = 121, storyTitle = "The Night Gwen Stacy Died"),
+            comic(2, series = "Venomverse"),
+        )
+        assertEquals(listOf(1L), LibraryCatalog.search(comics, "gwen").map { it.id })
     }
 
     @Test

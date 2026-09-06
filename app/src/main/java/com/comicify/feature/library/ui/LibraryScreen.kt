@@ -78,6 +78,7 @@ import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.outlined.StarBorder
@@ -156,6 +157,7 @@ fun LibraryScreen(
     onFolderPicked: (Uri) -> Unit,
     onOpenComic: (LibraryComic) -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
+    onOpenDetails: (LibraryComic) -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenFile: (Uri) -> Unit,
     onFilterSelected: (LibraryFilter) -> Unit,
@@ -194,6 +196,7 @@ fun LibraryScreen(
                 onFolderPicked = onFolderPicked,
                 onOpenComic = onOpenComic,
                 onOpenSettings = onOpenSettings,
+                onOpenDetails = onOpenDetails,
                 onOpenAppSettings = onOpenAppSettings,
                 onOpenFile = onOpenFile,
                 onFilterSelected = onFilterSelected,
@@ -220,6 +223,7 @@ private fun LibraryContent(
     onFolderPicked: (Uri) -> Unit,
     onOpenComic: (LibraryComic) -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
+    onOpenDetails: (LibraryComic) -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenFile: (Uri) -> Unit,
     onFilterSelected: (LibraryFilter) -> Unit,
@@ -260,6 +264,7 @@ private fun LibraryContent(
             onBack = { onOpenSeries(null) },
             onOpenComic = onOpenComic,
             onOpenSettings = onOpenSettings,
+            onOpenDetails = onOpenDetails,
             onToggleRead = onToggleRead,
             onSetSeriesRead = onSetSeriesRead,
             onSetSeriesFavorite = onSetSeriesFavorite,
@@ -328,6 +333,7 @@ private fun LibraryContent(
                         comic = entry.comic,
                         onOpenComic = onOpenComic,
                         onOpenSettings = onOpenSettings,
+                        onOpenDetails = onOpenDetails,
                         onToggleRead = onToggleRead,
                         onToggleFavorite = onToggleFavorite,
                         onDeleteComic = onDeleteComic,
@@ -348,6 +354,7 @@ private fun LibraryContent(
                     comic = comic,
                     onOpenComic = onOpenComic,
                     onOpenSettings = onOpenSettings,
+                    onOpenDetails = onOpenDetails,
                     onToggleRead = onToggleRead,
                     onToggleFavorite = onToggleFavorite,
                     onDeleteComic = onDeleteComic,
@@ -368,6 +375,7 @@ private fun SeriesScreen(
     onBack: () -> Unit,
     onOpenComic: (LibraryComic) -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
+    onOpenDetails: (LibraryComic) -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onSetSeriesRead: (List<LibraryComic>, Boolean) -> Unit,
     onSetSeriesFavorite: (List<LibraryComic>, Boolean) -> Unit,
@@ -396,8 +404,10 @@ private fun SeriesScreen(
             ComicCard(
                 comic = comic,
                 title = comic.issueNumber?.let { "#$it" } ?: comic.title,
+                subtitle = comic.storyTitle,
                 onOpenComic = onOpenComic,
                 onOpenSettings = onOpenSettings,
+                onOpenDetails = onOpenDetails,
                 onToggleRead = onToggleRead,
                 onToggleFavorite = onToggleFavorite,
                 onDeleteComic = onDeleteComic,
@@ -443,7 +453,7 @@ private fun SeriesHeader(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = stringResource(R.string.library_group_read, group.comics.count { it.completed }, group.comics.size),
+                text = group.progressLine(),
                 style = MaterialTheme.typography.labelMedium,
                 color = InkFaint,
             )
@@ -461,6 +471,13 @@ private fun SeriesHeader(
             )
         }
     }
+}
+
+@Composable
+private fun LibraryEntry.Group.progressLine(): String {
+    val read = stringResource(R.string.library_group_read, comics.count { it.completed }, comics.size)
+    val publisher = comics.firstNotNullOfOrNull { it.publisher } ?: return read
+    return stringResource(R.string.library_series_publisher_read, publisher, read)
 }
 
 @Composable
@@ -712,9 +729,9 @@ private fun LibraryHero(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit
                     letterSpacing = 2.sp,
                     color = tint,
                 )
-                if (!comic.title.startsWith(comic.series)) {
+                comic.heroSeriesLine()?.let { seriesLine ->
                     Text(
-                        text = comic.series,
+                        text = seriesLine,
                         style = MaterialTheme.typography.labelMedium,
                         color = InkDim,
                         maxLines = 1,
@@ -723,7 +740,7 @@ private fun LibraryHero(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit
                     )
                 }
                 Text(
-                    text = comic.title,
+                    text = comic.storyTitle ?: comic.title,
                     style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -739,6 +756,12 @@ private fun LibraryHero(comic: LibraryComic, onOpenComic: (LibraryComic) -> Unit
         }
         UnshelveButton(onClick = { onUnshelve(comic) }, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp))
     }
+}
+
+private fun LibraryComic.heroSeriesLine(): String? = when {
+    storyTitle != null -> title
+    !title.startsWith(series) -> series
+    else -> null
 }
 
 @Composable
@@ -866,7 +889,9 @@ private fun ComicCard(
     comic: LibraryComic,
     onOpenComic: (LibraryComic) -> Unit,
     title: String = comic.title,
+    subtitle: String? = null,
     onOpenSettings: (List<LibraryComic>) -> Unit,
+    onOpenDetails: (LibraryComic) -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDeleteComic: (LibraryComic) -> Unit,
@@ -924,11 +949,21 @@ private fun ComicCard(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
+        subtitle?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.labelSmall,
+                color = InkFaint,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         ComicCardMenu(
             expanded = menuExpanded,
             comic = comic,
             onDismiss = { menuExpanded = false },
             onOpenSettings = { menuExpanded = false; onOpenSettings(listOf(comic)) },
+            onOpenDetails = { menuExpanded = false; onOpenDetails(comic) },
             onToggleRead = onToggleRead,
             onToggleFavorite = onToggleFavorite,
             onDelete = {
@@ -978,12 +1013,18 @@ internal fun ComicCardMenu(
     comic: LibraryComic,
     onDismiss: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenDetails: () -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDelete: () -> Unit,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         MenuHeader(title = comic.title)
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.detail_info)) },
+            leadingIcon = { Icon(imageVector = Icons.Outlined.Info, contentDescription = null) },
+            onClick = onOpenDetails,
+        )
         DropdownMenuItem(
             text = { Text(stringResource(R.string.detail_settings)) },
             leadingIcon = { Icon(imageVector = Icons.Outlined.Settings, contentDescription = null) },
@@ -1324,7 +1365,7 @@ private fun ProceduralCover(comic: LibraryComic, showArtwork: Boolean) {
             modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
         )
         Text(
-            text = comic.title,
+            text = comic.storyTitle ?: comic.series,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.ExtraBold,
             color = Color.White,
