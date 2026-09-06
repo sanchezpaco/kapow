@@ -151,8 +151,9 @@ panel is the whole page, scaled down to leave the zoomed panel its full width.
 The strip shrinks so two panels always fit the canvas. The tablet pair crops the
 right-hand page of the spread.
 
-Two raws are pre-cropped before framing: the settings capture to the Appearance
-section (background, accents, app icon) and the tablet library to the cover
+Shots in `PRECROPPED` skip the page detection: their two raws are already the
+crops, which is how the settings shot stacks the Reading defaults over the
+Appearance section. The tablet library raw is also pre-cropped to the cover
 area, because the tablet layout leaves the right third empty. A phone capture
 wider than 960 px after scaling is clamped to that width and centred.
 

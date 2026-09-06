@@ -33,8 +33,8 @@ SHOTS = [
                            "es-ES": ("ESCANEOS VIEJOS", "Más contraste para las páginas amarillentas")}),
     ("phone", "search", {"en-US": ("SEARCH", "Search by series, writer or year"),
                          "es-ES": ("BÚSQUEDA", "Busca por serie, guionista o año")}),
-    ("phone", "settings", {"en-US": ("YOUR LOOK", "Black, graphite or paper background and the colour you want"),
-                           "es-ES": ("A TU GUSTO", "Fondo negro, grafito o papel y el color que quieras")}),
+    ("phone", "settings", {"en-US": ("SETTINGS", "Reading defaults, background and accent colour"),
+                           "es-ES": ("AJUSTES", "Lectura por defecto, fondo y color de acento")}),
     ("tablet", "spread", {"en-US": ("TWO PAGES", "On a tablet you read two pages at a time"),
                           "es-ES": ("DOBLE PÁGINA", "En tablet se lee a doble página")}),
     ("tablet", "bubbles-spread", {"en-US": ("BIGGER BUBBLES!", "On the spread too"),
@@ -49,7 +49,9 @@ COMPARE_SHOTS = {
     "bubbles-spread": {"en-US": ("BEFORE", "AFTER"), "es-ES": ("ANTES", "DESPUÉS")},
     "guided": {"en-US": ("PAGE", "PANEL"), "es-ES": ("PÁGINA", "VIÑETA")},
     "pagelook": {"en-US": ("ORIGINAL", "MORE CONTRAST"), "es-ES": ("ORIGINAL", "MÁS CONTRASTE")},
+    "settings": {"en-US": ("READING", "LOOK"), "es-ES": ("LECTURA", "ASPECTO")},
 }
+PRECROPPED = {"settings"}
 
 PANEL_TILT = -2
 PANEL_STROKE = 10
@@ -264,6 +266,8 @@ def tablet_compare_svg(crops: tuple, labels: tuple, title: str, text: str, k: st
 def compare(kind: str, name: str, lang: str, shot: Image.Image, title: str, text: str, k: str, luckiest: TTFont, archivo: TTFont) -> str:
     before = Image.open(RAW / f"{name}-off-{kind}-{lang}.jpg")
     labels = COMPARE_SHOTS[name][lang]
+    if name in PRECROPPED:
+        return compare_svg((before, shot), labels, title, text, k, luckiest, archivo)
     if kind == "phone":
         return compare_svg(pair_crops(before, shot), labels, title, text, k, luckiest, archivo)
     return tablet_compare_svg(spread_crops(before, shot), labels, title, text, k, luckiest, archivo)
