@@ -13,6 +13,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -26,6 +27,8 @@ class ComicSettingsViewModel @Inject constructor(
     private val repository: LibraryRepository,
 ) : ViewModel() {
 
+    private val shown = MutableStateFlow<List<LibraryComic>>(emptyList())
+
     private val documentUris = MutableStateFlow<List<String>>(emptyList())
 
     val defaults: StateFlow<OpenDefaults> = ReaderPreferencesRepository(application).openDefaults
@@ -35,12 +38,29 @@ class ComicSettingsViewModel @Inject constructor(
         .flatMapLatest { uris -> uris.firstOrNull()?.let(repository::settings) ?: flowOf(ComicSettings.Default) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ComicSettings.Default)
 
+    val details: StateFlow<LibraryComic?> = combine(shown, repository.library) { comics, library ->
+        comics.singleOrNull()?.let { comic -> library.firstOrNull { it.id == comic.id } ?: comic }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     fun show(comics: List<LibraryComic>) {
+        shown.value = comics
         documentUris.value = comics.map { it.documentUri }
     }
 
     fun onSettingsChanged(settings: ComicSettings) {
         viewModelScope.launch { documentUris.value.forEach { repository.saveSettings(it, settings) } }
+    }
+
+    fun onRatingChanged(comicId: Long, rating: Int) {
+        viewModelScope.launch { repository.setRating(comicId, rating) }
+    }
+
+    fun onDetailsEdited(comicId: Long, series: String, issueNumber: Int?, storyTitle: String?) {
+        viewModelScope.launch { repository.saveEditedMetadata(comicId, series, issueNumber, storyTitle) }
+    }
+
+    fun onResetMetadata(comicId: Long) {
+        viewModelScope.launch { repository.resetMetadata(comicId) }
     }
 
     fun onClearDetections() {

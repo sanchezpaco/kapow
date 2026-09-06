@@ -73,6 +73,17 @@
     <string name="detail_settings_eyebrow">Este cómic</string>
     <string name="detail_settings">Ajustes de lectura</string>
     <string name="detail_info">Ficha</string>
+    <string name="detail_rating">Valoración</string>
+    <string name="detail_rating_star">%1$d de 5</string>
+    <string name="detail_edit">Editar la ficha</string>
+    <string name="detail_edit_title">Editar la ficha</string>
+    <string name="detail_edit_series">Serie</string>
+    <string name="detail_edit_number">Número</string>
+    <string name="detail_edit_story_title">Título de la historia</string>
+    <string name="detail_edit_save">Guardar</string>
+    <string name="detail_edit_cancel">Cancelar</string>
+    <string name="detail_edit_reset">Restaurar del archivo</string>
+    <string name="library_filter_rated">Mejor valorados</string>
     <string name="detail_info_writer">Guion</string>
     <string name="detail_info_pencils">Dibujo</string>
     <string name="detail_info_inks">Tinta</string>

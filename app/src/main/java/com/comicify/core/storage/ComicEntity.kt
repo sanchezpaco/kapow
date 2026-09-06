@@ -30,4 +30,6 @@ data class ComicEntity(
     val readsRightToLeft: Boolean? = null,
     val metadataVersion: Int = 0,
     val contentHash: String? = null,
+    val rating: Int = 0,
+    val metadataEdited: Boolean = false,
 )

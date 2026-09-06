@@ -104,4 +104,59 @@ class ComicMetadataTest {
         assertEquals("Dave Hunt", metadata.colorist)
         assertEquals("A summary.", metadata.summary)
     }
+
+    @Test
+    fun anEditedComicKeepsItsSeriesNumberAndStoryTitle() {
+        val metadata = mergeComicMetadata(
+            info = comicInfo(series = "X-Men", number = 3, year = 1991, storyTitle = "Rubicon"),
+            parsed = parsed,
+            edited = EditedComicMetadata(series = "Uncanny X-Men", issueNumber = 300, storyTitle = null),
+        )
+
+        assertEquals("Uncanny X-Men", metadata.series)
+        assertEquals(300, metadata.issueNumber)
+        assertNull(metadata.storyTitle)
+        assertEquals(1991, metadata.year)
+    }
+
+    @Test
+    fun anEditedComicStillTakesCreditsFromTheXml() {
+        val info = ComicInfo(
+            series = "X-Men",
+            number = 3,
+            year = null,
+            storyTitle = "Rubicon",
+            publisher = "Marvel Comics",
+            writer = "Chris Claremont",
+            penciller = null,
+            inker = null,
+            colorist = null,
+            summary = "A summary.",
+            readsRightToLeft = true,
+        )
+
+        val metadata = mergeComicMetadata(
+            info = info,
+            parsed = parsed,
+            edited = EditedComicMetadata(series = "Uncanny X-Men", issueNumber = null, storyTitle = "Kept"),
+        )
+
+        assertEquals("Uncanny X-Men", metadata.series)
+        assertNull(metadata.issueNumber)
+        assertEquals("Kept", metadata.storyTitle)
+        assertEquals("Marvel Comics", metadata.publisher)
+        assertEquals("Chris Claremont", metadata.writer)
+        assertEquals("A summary.", metadata.summary)
+        assertTrue(metadata.readsRightToLeft == true)
+    }
+
+    @Test
+    fun theEditedNumberIsParsedLeniently() {
+        assertEquals(12, parseEditedIssueNumber("12"))
+        assertEquals(12, parseEditedIssueNumber(" #012 "))
+        assertEquals(0, parseEditedIssueNumber("0"))
+        assertNull(parseEditedIssueNumber(""))
+        assertNull(parseEditedIssueNumber("one"))
+        assertNull(parseEditedIssueNumber("12b"))
+    }
 }

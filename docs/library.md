@@ -80,6 +80,7 @@ Comic(
     pageCount?, coverPath?, coverAmbient?, addedAt, favorite,
     storyTitle?, publisher?, writer?, penciller?, inker?, colorist?,
     summary?, readsRightToLeft?, metadataVersion,
+    rating, metadataEdited,
 )
 
 ReadingState(
@@ -125,6 +126,13 @@ ReadingSession(
   all nullable except `metadataVersion`, which defaults to 0 so every existing
   row is re-read once by the cover pass (below). Nothing else is touched, so a
   library upgraded in place keeps its covers and reading positions.
+- `rating` (0 = unrated, 1..5) and `metadataEdited` were added in schema **v14**
+  (migration `13→14`), both `NOT NULL DEFAULT 0`, so an upgraded library keeps
+  every row unrated and unedited. `rating` is set from the Details section's
+  star row — tapping the star that is already the rating clears it back to 0 —
+  and is per comic: a series settings screen hides the Details section, so it
+  never rates a whole stack. "Highly rated" means `rating >= 4`
+  (`LibraryCatalog.highlyRated`).
 - Detected panels are cached in-memory per session by the reader's `PageLoader`;
   a persistent panel cache is deferred to a later phase.
 
@@ -422,14 +430,34 @@ text — `DocumentBuilder`, no IO, unit-tested — returning a `ComicInfo`. It r
 
 ### Precedence
 
-`mergeComicMetadata(info, parsed)` resolves the two sources per field:
+`mergeComicMetadata(info, parsed, edited)` resolves the sources per field:
 
 | Field | Winner |
 | --- | --- |
-| `series`, `year` | the XML when non-blank, else `ComicNameParser` |
-| `issueNumber` | the XML **when it parses to an Int**, else `ComicNameParser` |
-| `storyTitle`, `publisher`, `writer`, `penciller`, `inker`, `colorist`, `summary` | the XML only |
+| `series` | the hand edit, else the XML when non-blank, else `ComicNameParser` |
+| `issueNumber` | the hand edit, else the XML **when it parses to an Int**, else `ComicNameParser` |
+| `storyTitle` | the hand edit, else the XML |
+| `year` | the XML when non-blank, else `ComicNameParser` |
+| `publisher`, `writer`, `penciller`, `inker`, `colorist`, `summary` | the XML only |
 | `readsRightToLeft` | the XML only (`Manga` = `YesAndRightToLeft`) |
+
+### Hand edits
+
+The Details section's **Edit details** row opens a dialog over `series`,
+`issueNumber` and `storyTitle` (Series is required; Number is parsed leniently
+by `parseEditedIssueNumber`, so `#012` and `12` are the same issue). Saving
+writes the three columns and sets `metadataEdited`, which is what
+`EditedComicMetadata` is built from: while it is set the metadata pass never
+overwrites those three, whatever `METADATA_VERSION` says, and a relink keeps
+them through a rename too — but `publisher`, the credits, `summary` and
+`readsRightToLeft` keep improving from a better ComicInfo parse. `displayName`
+is never editable.
+
+**Reset to file** (shown in the dialog only while the comic is edited) clears
+`metadataEdited`, sets `metadataVersion` back to 0 and re-reads that one comic,
+re-parsing its file name, so the values come back as a fresh scan would produce
+them. Downstream nothing knows an edit happened: the title, the hero, the cards
+and the series grouping are all recomputed from the edited columns.
 
 The display title stays `LibraryCatalog.title` — `"$series #$issueNumber"` —
 so it silently becomes the real one. `displayName` always keeps the file name
@@ -457,11 +485,12 @@ gets enriched without a re-scan.
 - The series header line becomes `"Marvel Comics · 1/12 read"` (the publisher is
   omitted when unknown).
 - **Details** — first item of a cover's long-press menu, opening
-  `ComicSettingsScreen` scrolled to a new "Details" section: the summary, then
-  Writer / Pencils / Inks / Colors / Publisher for the fields that have a value,
-  then always the file name. A comic with no `ComicInfo.xml` shows one line
-  saying so, plus its file name. The section is per comic, so it is hidden when
-  the screen was opened for a whole series.
+  `ComicSettingsScreen` scrolled to a new "Details" section: a star rating row,
+  the summary, then Writer / Pencils / Inks / Colors / Publisher for the fields
+  that have a value, then the file name, and last an **Edit details** row. A
+  comic with no `ComicInfo.xml` shows one line saying so, plus its file name.
+  The section is per comic, so it is hidden when the screen was opened for a
+  whole series.
 - `Manga` = `YesAndRightToLeft` becomes the comic's **default** reading
   direction: the reader resolves direction as per-comic user setting → the
   comic's own default → the global default. There is no UI for it; a user who

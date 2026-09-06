@@ -23,6 +23,7 @@ import com.comicify.feature.library.domain.ArrivingComic
 import com.comicify.feature.library.domain.ComicInfoParser
 import com.comicify.feature.library.domain.ComicNameParser
 import com.comicify.feature.library.domain.ComicSettings
+import com.comicify.feature.library.domain.EditedComicMetadata
 import com.comicify.feature.library.domain.METADATA_VERSION
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
@@ -156,13 +157,14 @@ class LibraryRepositoryImpl @Inject constructor(
 
     private suspend fun relinkComic(comic: ComicEntity, arrival: ArrivingComic) {
         val parsed = ComicNameParser.parse(arrival.displayName)
+        val edited = comic.editedMetadata()
         database.withTransaction {
             comicDao.relink(
                 id = comic.id,
                 documentUri = arrival.documentUri,
                 displayName = arrival.title(),
-                series = arrival.series(parsed),
-                issueNumber = parsed.issueNumber,
+                series = edited?.series ?: arrival.series(parsed),
+                issueNumber = if (edited != null) edited.issueNumber else parsed.issueNumber,
                 year = parsed.year,
             )
             comicSettingsDao.relink(comic.documentUri, arrival.documentUri)
@@ -183,7 +185,7 @@ class LibraryRepositoryImpl @Inject constructor(
             runCatching { coverGenerator.generate(comic.id, comic.documentUri.toUri()) }
                 .onSuccess { generated ->
                     comicDao.updateCover(comic.id, generated.pageCount, generated.coverPath, generated.ambient)
-                    saveMetadata(comic, generated.comicInfoXml)
+                    saveMetadata(comic, comic.parsedName(), generated.comicInfoXml)
                 }
         }
     }
@@ -194,10 +196,11 @@ class LibraryRepositoryImpl @Inject constructor(
         comicDao.setContentHash(comic.id, hash)
     }
 
-    private suspend fun saveMetadata(comic: ComicEntity, comicInfoXml: String?) {
+    private suspend fun saveMetadata(comic: ComicEntity, parsed: ParsedComicName, comicInfoXml: String?) {
         val metadata = mergeComicMetadata(
             info = comicInfoXml?.let(ComicInfoParser::parse),
-            parsed = ParsedComicName(series = comic.series, issueNumber = comic.issueNumber, year = comic.year),
+            parsed = parsed,
+            edited = comic.editedMetadata(),
         )
         comicDao.updateMetadata(
             id = comic.id,
@@ -256,6 +259,24 @@ class LibraryRepositoryImpl @Inject constructor(
 
     override suspend fun setFavorite(comicId: Long, favorite: Boolean) {
         comicDao.setFavorite(comicId, favorite)
+    }
+
+    override suspend fun setRating(comicId: Long, rating: Int) {
+        comicDao.setRating(comicId, rating)
+    }
+
+    override suspend fun saveEditedMetadata(comicId: Long, series: String, issueNumber: Int?, storyTitle: String?) {
+        comicDao.saveEditedMetadata(comicId, series.trim(), issueNumber, storyTitle?.trim()?.ifBlank { null })
+    }
+
+    override suspend fun resetMetadata(comicId: Long) {
+        comicDao.clearMetadataEdit(comicId)
+        val comic = comicDao.findById(comicId) ?: return
+        runCatching { coverGenerator.generate(comic.id, comic.documentUri.toUri()) }
+            .onSuccess { generated ->
+                comicDao.updateCover(comic.id, generated.pageCount, generated.coverPath, generated.ambient)
+                saveMetadata(comic, ComicNameParser.parse(comic.displayName), generated.comicInfoXml)
+            }
     }
 
     override suspend fun deleteComic(comicId: Long): Boolean {
@@ -354,8 +375,16 @@ class LibraryRepositoryImpl @Inject constructor(
             summary = summary,
             year = year,
             addedAt = addedAt,
+            rating = rating,
+            metadataEdited = metadataEdited,
         )
 }
+
+private fun ComicEntity.parsedName(): ParsedComicName =
+    ParsedComicName(series = series, issueNumber = issueNumber, year = year)
+
+private fun ComicEntity.editedMetadata(): EditedComicMetadata? =
+    if (metadataEdited) EditedComicMetadata(series = series, issueNumber = issueNumber, storyTitle = storyTitle) else null
 
 private fun ComicEntity.needsCoverOrMetadata(): Boolean =
     coverMissing() || metadataVersion < METADATA_VERSION
