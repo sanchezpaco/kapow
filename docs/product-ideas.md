@@ -130,12 +130,16 @@ direction and split-wide-pages, zoom locked, disabled in landscape spread.
 9. **Paper & Light.** Surface modes (newsprint with warm white and light
    grain for old scans, pure white for digital) plus art brightness/contrast
    independent of the system, all via `ColorMatrix`.
-10. **Reading stats that mean something.** Pace per series, time per page
-    guided vs normal, streaks, "finished this month" as a cover mosaic.
+10. ~~**Reading stats that mean something.**~~ **Shipped 2026-09-06** (see
+    `docs/stats.md`): a Stats screen from the library toolbar and the shelf's
+    "time left" following the measured pace per series and mode. The design
+    review cut streaks, period chips and a session log on purpose.
 11. **Panel bookmarks.** Long-press in Guided View saves the panel crop as a
     "moment"; gallery per comic; share as an image.
-12. **`ComicInfo.xml` metadata** inside the archive (title, series, number,
-    authors) before any online source; and PDF support, still pending.
+12. ~~**`ComicInfo.xml` metadata**~~ **Shipped 2026-09-06** (see
+    `docs/library.md` → Metadata): series, number, year, story title, credits,
+    publisher and summary from the archive, a Details section per comic. PDF
+    support shipped earlier; PDFs carry no ComicInfo.
 
 ## Suggested order
 

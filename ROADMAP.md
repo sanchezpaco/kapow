@@ -526,7 +526,7 @@ Goal: the details that make it feel premium.
       page's stops, and a veil that animates up cannot win the race against a
       preloaded bitmap. Verified on the Fold's cover screen, 4.3 % janky
       frames, 0 slow bitmap uploads. See `docs/guided-view.md`
-- [ ] Reading stats / recently read
+- [x] Reading stats / recently read — shipped in the 1.1 section below
 - [ ] Gesture and transition tuning pass
 - [ ] Home-screen thumbnails
 
