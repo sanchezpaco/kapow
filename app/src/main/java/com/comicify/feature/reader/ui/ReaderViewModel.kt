@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.comicify.core.storage.ComicDao
 import com.comicify.core.storage.ComicSettingsDao
 import com.comicify.core.storage.ComicSettingsEntity
 import com.comicify.core.storage.DatabaseEntryPoint
@@ -57,8 +58,10 @@ class ReaderViewModel(
     private val _shareRequests = MutableSharedFlow<Intent>(extraBufferCapacity = 1)
     val shareRequests: SharedFlow<Intent> = _shareRequests.asSharedFlow()
 
-    private val comicSettingsDao: ComicSettingsDao =
-        EntryPointAccessors.fromApplication(application, DatabaseEntryPoint::class.java).comicSettingsDao()
+    private val databaseEntryPoint = EntryPointAccessors.fromApplication(application, DatabaseEntryPoint::class.java)
+    private val comicSettingsDao: ComicSettingsDao = databaseEntryPoint.comicSettingsDao()
+    private val comicDao: ComicDao = databaseEntryPoint.comicDao()
+    private val comicReadsRightToLeft = MutableStateFlow<Boolean?>(null)
     private var source: ComicSource? = null
     private val chainSources = mutableListOf<ComicSource>()
     private var sourceMode: SourceMode? = null
@@ -76,11 +79,12 @@ class ReaderViewModel(
 
     private fun openComic() {
         viewModelScope.launch {
+            comicReadsRightToLeft.value = comicDao.findByDocumentUri(uri.toString())?.readsRightToLeft
             val settings = comicSettingsDao.find(uri.toString())
             applyOpenDefaults(preferencesRepository.openDefaults.first(), settings)
             val mode = SourceMode(
                 splitWidePages = settings?.splitWidePages ?: false,
-                direction = effectiveDirection(preferencesRepository.readingDirection.first(), settings),
+                direction = effectiveDirection(preferencesRepository.readingDirection.first(), comicReadsRightToLeft.value, settings),
             )
             loadSource(mode) { state.value.position.pageIndex }
             if (!mode.splitWidePages && settings?.splitSuggested != true) suggestSplitIfMostlyWide()
@@ -305,9 +309,13 @@ class ReaderViewModel(
 
     private fun observeComicSettings() {
         viewModelScope.launch {
-            combine(preferencesRepository.readingDirection, comicSettingsDao.observe(uri.toString())) { global, settings ->
+            combine(
+                preferencesRepository.readingDirection,
+                comicReadsRightToLeft,
+                comicSettingsDao.observe(uri.toString()),
+            ) { global, comicDefault, settings ->
                 ComicPreferences(
-                    direction = effectiveDirection(global, settings),
+                    direction = effectiveDirection(global, comicDefault, settings),
                     coverAlone = settings?.coverAlone ?: false,
                     splitWidePages = settings?.splitWidePages ?: false,
                     verticalScroll = settings?.verticalScroll ?: false,
@@ -374,8 +382,12 @@ private data class ComicPreferences(
     val verticalScroll: Boolean,
 )
 
-private fun effectiveDirection(global: ReadingDirection, settings: ComicSettingsEntity?): ReadingDirection =
-    when (settings?.rightToLeft) {
+private fun effectiveDirection(
+    global: ReadingDirection,
+    comicDefault: Boolean?,
+    settings: ComicSettingsEntity?,
+): ReadingDirection =
+    when (settings?.rightToLeft ?: comicDefault) {
         null -> global
         true -> ReadingDirection.RightToLeft
         false -> ReadingDirection.LeftToRight

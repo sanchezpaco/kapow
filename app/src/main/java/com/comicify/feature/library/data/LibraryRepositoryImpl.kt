@@ -17,10 +17,14 @@ import com.comicify.core.storage.PageDetectionDao
 import com.comicify.core.storage.ReadingStateDao
 import com.comicify.core.storage.ReadingStateEntity
 import com.comicify.domain.model.ReadingDirection
+import com.comicify.feature.library.domain.ComicInfoParser
 import com.comicify.feature.library.domain.ComicNameParser
 import com.comicify.feature.library.domain.ComicSettings
+import com.comicify.feature.library.domain.METADATA_VERSION
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
+import com.comicify.feature.library.domain.ParsedComicName
+import com.comicify.feature.library.domain.mergeComicMetadata
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -121,10 +125,35 @@ class LibraryRepositoryImpl @Inject constructor(
     }
 
     override suspend fun generateMissingCovers() {
-        comicDao.getAll().filter { it.coverMissing() }.forEach { comic ->
+        comicDao.getAll().filter { it.needsCoverOrMetadata() }.forEach { comic ->
             runCatching { coverGenerator.generate(comic.id, comic.documentUri.toUri()) }
-                .onSuccess { comicDao.updateCover(comic.id, it.pageCount, it.coverPath, it.ambient) }
+                .onSuccess { generated ->
+                    comicDao.updateCover(comic.id, generated.pageCount, generated.coverPath, generated.ambient)
+                    saveMetadata(comic, generated.comicInfoXml)
+                }
         }
+    }
+
+    private suspend fun saveMetadata(comic: ComicEntity, comicInfoXml: String?) {
+        val metadata = mergeComicMetadata(
+            info = comicInfoXml?.let(ComicInfoParser::parse),
+            parsed = ParsedComicName(series = comic.series, issueNumber = comic.issueNumber, year = comic.year),
+        )
+        comicDao.updateMetadata(
+            id = comic.id,
+            series = metadata.series,
+            issueNumber = metadata.issueNumber,
+            year = metadata.year,
+            storyTitle = metadata.storyTitle,
+            publisher = metadata.publisher,
+            writer = metadata.writer,
+            penciller = metadata.penciller,
+            inker = metadata.inker,
+            colorist = metadata.colorist,
+            summary = metadata.summary,
+            readsRightToLeft = metadata.readsRightToLeft,
+            metadataVersion = METADATA_VERSION,
+        )
     }
 
     override suspend fun saveProgress(comicId: Long, pageIndex: Int, pageCount: Int): Boolean {
@@ -251,6 +280,7 @@ class LibraryRepositoryImpl @Inject constructor(
         LibraryComic(
             id = id,
             documentUri = documentUri,
+            displayName = displayName,
             title = LibraryCatalog.title(series, issueNumber),
             series = series,
             issueNumber = issueNumber,
@@ -262,7 +292,17 @@ class LibraryRepositoryImpl @Inject constructor(
             favorite = favorite,
             lastReadAt = state?.updatedAt,
             shelved = state?.shelved ?: true,
+            storyTitle = storyTitle,
+            publisher = publisher,
+            writer = writer,
+            penciller = penciller,
+            inker = inker,
+            colorist = colorist,
+            summary = summary,
         )
 }
+
+private fun ComicEntity.needsCoverOrMetadata(): Boolean =
+    coverMissing() || metadataVersion < METADATA_VERSION
 
 private fun ComicEntity.coverMissing(): Boolean = coverPath?.let { !File(it).exists() } ?: true

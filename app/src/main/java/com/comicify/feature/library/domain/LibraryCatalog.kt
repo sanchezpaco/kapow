@@ -35,7 +35,9 @@ object LibraryCatalog {
     fun search(comics: List<LibraryComic>, query: String): List<LibraryComic> {
         val needle = query.trim()
         if (needle.isEmpty()) return comics
-        return comics.filter { it.title.contains(needle, ignoreCase = true) || it.series.contains(needle, ignoreCase = true) }
+        return comics.filter { comic ->
+            listOfNotNull(comic.title, comic.series, comic.storyTitle).any { it.contains(needle, ignoreCase = true) }
+        }
     }
 
     fun sorted(comics: List<LibraryComic>, sort: LibrarySort): List<LibraryComic> =
