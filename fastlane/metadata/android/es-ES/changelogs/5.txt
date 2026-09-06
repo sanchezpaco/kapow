@@ -1,0 +1,7 @@
+• Renombra o mueve un cómic y conserva su progreso y ajustes
+• Marcadores desde el contador; listas de lectura entre series
+• Cualquier página como portada, valoración y ficha corregible
+• Búsqueda por campos: guionista:, serie:, año>, valoración:4+
+• Aspecto de página (Más claro, Más contraste, Papel) y ajuste al ancho
+• Comparte la página que lees; tipo de lectura Cómic / Manga / Webcómic
+• Archivos CB7 y CBT, metadatos ComicInfo.xml, estadísticas de lectura

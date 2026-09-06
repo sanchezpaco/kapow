@@ -7,7 +7,41 @@ All notable user-facing changes to Kapow. The format follows
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-09-06
+
 ### Added
+- A comic is now recognised by its content, not its path: rename it, move it
+  into a subfolder or pick the library folder again after a reinstall and it
+  keeps its progress, favourite, bookmarks, settings and cached detections.
+- `.cb7` (7z) and `.cbt` (tar) archives open like CBZ and CBR; the format is
+  read from the file's bytes, not its extension.
+- Library search understands fields: `writer:ewing`, `series:hulk`,
+  `publisher:marvel`, `year>2015`, `rating:4+`, `added:30d`, `is:reading`,
+  with Spanish keys too (`guionista:`, `editorial:`, `año>`). Three preset
+  chips under the empty field — In progress, Highly rated, Recently added —
+  type their query for you so the syntax is learned by seeing it. Words
+  without a key still search every field, accents ignored.
+- Bookmarks: the bookmark button beside the page counter marks the page you
+  are on; a second chip counts them and filters the thumbnail strip down to
+  the bookmarked pages. Bookmarks follow a comic through renames and splits.
+- Long-press a cover → **Choose cover** to make any page the cover; **Use
+  first page** puts it back. The shelf, the series stack, the hero glow and the
+  reader's opening colour all follow.
+- Reading lists: tap the shelf title ("All comics ▾") to switch to a list or
+  create one. Add comics from a cover's long-press menu, reorder with Move up /
+  Move down, remove or delete a list with undo. Reading from a list, "Next
+  issue" follows the list across series.
+- Rate a comic out of five in its Details; tap the current star to clear.
+  **Edit details** corrects a wrong series, issue number or story title, and
+  the correction survives every rescan until you choose **Reset to file**.
+- **Share this page** in the reader's gear panel sends the page you are looking
+  at at full resolution, with enlarged bubbles and page look baked in and no
+  chrome; a spread shares both pages joined, Guided View shares the panel.
+- **Page look** per comic in the gear panel and in the comic's settings:
+  Original, Brighter, More contrast or Paper, for dark or yellowed scans.
+- **Page fit** per comic in the eye panel: fit to screen or fit to width, so a
+  dense page on the folded screen no longer needs a pinch on every turn.
+  Double-tap under fit width shows the other framing.
 - Settings → Appearance: pick the launcher icon. The same bubble and K over a
   blue, ink, red, violet or mixed comic page; the home screen shows the new
   icon a moment after you choose it.
@@ -17,12 +51,20 @@ All notable user-facing changes to Kapow. The format follows
   series.
 - Long-press a cover → **Details** for the summary, the credits (writer,
   pencils, inks, colours), the publisher and the file name the metadata
-  replaced. A manga marked right-to-left opens that way by default.
+  replaced.
 - Reading stats: a new screen from the library toolbar with the pages you read
   in the last 30 days, the time you spent, your pace, the days you read, a
   30-day chart, your pace per series and the comics you finished this month.
   Everything is measured on this phone only, "time left" on the shelf now
   follows your real pace, and the history can be deleted from Settings.
+
+### Changed
+- "Reading direction" is now a **Reading type**: Comic, Manga (right to left)
+  or Webcomic, per comic and as the app default. A webcomic opens in vertical
+  scroll unless the comic says otherwise; picking Webcomic in the reader
+  offers the switch instead of forcing it. A `ComicInfo.xml` marked manga
+  sets the type by itself. Existing right-to-left comics become Manga.
+- The library counts "1 comic" rather than "1 comics".
 
 ### Fixed
 - Library search no longer drops or reorders letters when you type fast.
@@ -32,6 +74,13 @@ All notable user-facing changes to Kapow. The format follows
   before, the bubbles fell several pages behind the reader and the page you
   were looking at showed a spinner instead of enlarged balloons. Pages are now
   decoded once, and the pages ahead of you are prepared before the one behind.
+- A `.cbt` written on a Mac counted its `PaxHeader` bookkeeping entries as
+  pages (a three-page tar showed six); those and `__MACOSX` resource forks are
+  skipped in every archive format.
+- Changing any setting on a comic's settings screen no longer resets its page
+  look and page fit, nor re-arms the "split wide pages" suggestion.
+- The pages-per-day average keeps a decimal so a light month does not read as
+  zero.
 
 ## [1.0.3] - 2026-09-04
 

@@ -1,0 +1,7 @@
+• Rename or move a comic and it keeps its progress and settings
+• Bookmarks from the page counter; reading lists across series
+• Choose any page as the cover, rate a comic, correct its details
+• Search by field: writer:, series:, year>, rating:4+
+• Page look (Brighter, More contrast, Paper) and fit to width
+• Share the page you are reading; reading type Comic / Manga / Webcomic
+• CB7 and CBT archives, ComicInfo.xml metadata, reading stats
