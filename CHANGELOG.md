@@ -11,6 +11,11 @@ All notable user-facing changes to Kapow. The format follows
 - Settings → Appearance: pick the launcher icon. The same bubble and K over a
   blue, ink, red, violet or mixed comic page; the home screen shows the new
   icon a moment after you choose it.
+- Reading stats: a new screen from the library toolbar with the pages you read
+  in the last 30 days, the time you spent, your pace, the days you read, a
+  30-day chart, your pace per series and the comics you finished this month.
+  Everything is measured on this phone only, "time left" on the shelf now
+  follows your real pace, and the history can be deleted from Settings.
 
 ### Fixed
 - Enlarged bubbles keep up with page turns the first time through a comic.

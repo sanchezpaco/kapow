@@ -87,9 +87,16 @@ ComicSettings(
     documentUri, rightToLeft?, coverAlone, bubblesEnlarged?, guided?,
     bubbleScale?, splitWidePages, splitSuggested, verticalScroll,
 )
+
+ReadingSession(
+    id, comicId, startedAt, endedAt, pages, mode, finished,
+)
 ```
 
 - `documentUri` is unique; re-scans ignore comics already registered.
+- `ReadingSession` records one row per reading session and feeds the stats
+  screen and the hero's estimate. It cascades on the comic and is pruned after
+  400 days; see `docs/stats.md`.
 - `ReadingState` powers "continue reading" and cross-session position restore
   (see `foldable.md` for the in-memory `ReadingPosition` this maps to). The
   reader seeds its initial page from it and, on each page turn, saves the index
@@ -151,8 +158,9 @@ corner (percent) and a red→amber bar under in-progress comics; finished comics
 a green "Completed" badge and favorites an amber star. The most recently read
 unfinished comic becomes the **hero**: a wide card washed with the cover's
 ambient colour, showing the cover, progress and an estimated time left
-(`LibraryCatalog.minutesLeft`, a flat 45 s per page until real reading stats
-exist); any other unfinished comics follow in a row of smaller resume cards.
+(`LibraryCatalog.minutesLeft`, fed by the pace measured from the reader's own
+sessions and falling back to 45 s per page — see `docs/stats.md`); any other
+unfinished comics follow in a row of smaller resume cards.
 Both carry a "×" that hides the comic from "Continue reading" without touching
 its progress (`ReadingState.shelved = false`); the next `saveProgress` upsert
 re-shelves it, so a comic reappears as soon as it is read again.
@@ -202,7 +210,8 @@ re-shelves it, so a comic reappears as soon as it is read again.
   The swipe state is keyed by comic so the next hero starts settled, and the
   row scrolls back to its start whenever the hero changes (a `LazyRow` would
   otherwise keep the old first item anchored and hide a reinserted one).
-- Toolbar: search, group-by-series toggle and open-a-file are visible; choose
+- Toolbar: search, group-by-series toggle, open-a-file and reading stats
+  (`docs/stats.md`) are visible; choose
   folder and refresh live behind "⋮". The empty state keeps the large
   "Choose folder" button. The group toggle keeps the same `Layers` glyph the
   series count badge uses in both states and signals grouping only with the

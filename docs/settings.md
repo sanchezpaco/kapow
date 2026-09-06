@@ -56,7 +56,9 @@ opens; coming back now lands where you left.
   quiet text button. Solid red stays reserved for destructive actions. Scans
   still run in `LibraryViewModel` so the library shows the scanning/error state;
   the settings screen only shows the spinner on the Refresh button while a scan
-  runs.
+  runs. A second row, "Delete reading history", empties the `reading_session`
+  table after a confirmation dialog (`docs/stats.md`); comics, progress and
+  settings are untouched.
 - **Appearance** — theme picker and launcher icon picker, below.
 - **About** — version name and build label as a muted line at the top of the
   surface, then chevron rows: "Show the introduction again"
