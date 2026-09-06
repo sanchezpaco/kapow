@@ -12,7 +12,7 @@ import androidx.room.RoomDatabase
         ReadingSessionEntity::class,
         BookmarkEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = false,
 )
 abstract class KapowDatabase : RoomDatabase() {

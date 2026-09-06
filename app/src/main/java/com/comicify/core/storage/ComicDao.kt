@@ -24,8 +24,11 @@ interface ComicDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(comic: ComicEntity): Long
 
-    @Query("UPDATE comics SET pageCount = :pageCount, coverPath = :coverPath, coverAmbient = :coverAmbient WHERE id = :id")
-    suspend fun updateCover(id: Long, pageCount: Int?, coverPath: String?, coverAmbient: Int?)
+    @Query(
+        "UPDATE comics SET pageCount = :pageCount, coverPage = :coverPage, coverPath = :coverPath, " +
+            "coverAmbient = :coverAmbient WHERE id = :id",
+    )
+    suspend fun updateCover(id: Long, pageCount: Int?, coverPage: Int, coverPath: String?, coverAmbient: Int?)
 
     @Query(
         "UPDATE comics SET series = :series, issueNumber = :issueNumber, year = :year, storyTitle = :storyTitle, " +

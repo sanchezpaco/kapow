@@ -81,6 +81,7 @@ import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.HorizontalDivider
@@ -137,7 +138,7 @@ private val ShelfCardWidthCompact = 296.dp
 private val GridMinCell = 158.dp
 private val GridMinCellCompact = 112.dp
 private val UnshelveButtonSize = 40.dp
-private val CardShape = RoundedCornerShape(14.dp)
+internal val CardShape = RoundedCornerShape(14.dp)
 private val SectionGap = 22.dp
 private val SearchFieldMaxWidth = 480.dp
 private val SearchPresetGap = 8.dp
@@ -162,6 +163,7 @@ fun LibraryScreen(
     onOpenComic: (LibraryComic) -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
     onOpenDetails: (LibraryComic) -> Unit,
+    onChooseCover: (LibraryComic) -> Unit,
     onOpenStats: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenFile: (Uri) -> Unit,
@@ -203,6 +205,7 @@ fun LibraryScreen(
                 onOpenComic = onOpenComic,
                 onOpenSettings = onOpenSettings,
                 onOpenDetails = onOpenDetails,
+                onChooseCover = onChooseCover,
                 onOpenStats = onOpenStats,
                 onOpenAppSettings = onOpenAppSettings,
                 onOpenFile = onOpenFile,
@@ -232,6 +235,7 @@ private fun LibraryContent(
     onOpenComic: (LibraryComic) -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
     onOpenDetails: (LibraryComic) -> Unit,
+    onChooseCover: (LibraryComic) -> Unit,
     onOpenStats: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenFile: (Uri) -> Unit,
@@ -275,6 +279,7 @@ private fun LibraryContent(
             onOpenComic = onOpenComic,
             onOpenSettings = onOpenSettings,
             onOpenDetails = onOpenDetails,
+            onChooseCover = onChooseCover,
             onToggleRead = onToggleRead,
             onSetSeriesRead = onSetSeriesRead,
             onSetSeriesFavorite = onSetSeriesFavorite,
@@ -347,6 +352,7 @@ private fun LibraryContent(
                         onOpenComic = onOpenComic,
                         onOpenSettings = onOpenSettings,
                         onOpenDetails = onOpenDetails,
+                        onChooseCover = onChooseCover,
                         onToggleRead = onToggleRead,
                         onToggleFavorite = onToggleFavorite,
                         onDeleteComic = onDeleteComic,
@@ -368,6 +374,7 @@ private fun LibraryContent(
                     onOpenComic = onOpenComic,
                     onOpenSettings = onOpenSettings,
                     onOpenDetails = onOpenDetails,
+                    onChooseCover = onChooseCover,
                     onToggleRead = onToggleRead,
                     onToggleFavorite = onToggleFavorite,
                     onDeleteComic = onDeleteComic,
@@ -389,6 +396,7 @@ private fun SeriesScreen(
     onOpenComic: (LibraryComic) -> Unit,
     onOpenSettings: (List<LibraryComic>) -> Unit,
     onOpenDetails: (LibraryComic) -> Unit,
+    onChooseCover: (LibraryComic) -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onSetSeriesRead: (List<LibraryComic>, Boolean) -> Unit,
     onSetSeriesFavorite: (List<LibraryComic>, Boolean) -> Unit,
@@ -421,6 +429,7 @@ private fun SeriesScreen(
                 onOpenComic = onOpenComic,
                 onOpenSettings = onOpenSettings,
                 onOpenDetails = onOpenDetails,
+                onChooseCover = onChooseCover,
                 onToggleRead = onToggleRead,
                 onToggleFavorite = onToggleFavorite,
                 onDeleteComic = onDeleteComic,
@@ -963,6 +972,7 @@ private fun ComicCard(
     subtitle: String? = null,
     onOpenSettings: (List<LibraryComic>) -> Unit,
     onOpenDetails: (LibraryComic) -> Unit,
+    onChooseCover: (LibraryComic) -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDeleteComic: (LibraryComic) -> Unit,
@@ -1035,6 +1045,7 @@ private fun ComicCard(
             onDismiss = { menuExpanded = false },
             onOpenSettings = { menuExpanded = false; onOpenSettings(listOf(comic)) },
             onOpenDetails = { menuExpanded = false; onOpenDetails(comic) },
+            onChooseCover = { menuExpanded = false; onChooseCover(comic) },
             onToggleRead = onToggleRead,
             onToggleFavorite = onToggleFavorite,
             onDelete = {
@@ -1085,6 +1096,7 @@ internal fun ComicCardMenu(
     onDismiss: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenDetails: () -> Unit,
+    onChooseCover: () -> Unit,
     onToggleRead: (LibraryComic) -> Unit,
     onToggleFavorite: (LibraryComic) -> Unit,
     onDelete: () -> Unit,
@@ -1096,6 +1108,13 @@ internal fun ComicCardMenu(
             leadingIcon = { Icon(imageVector = Icons.Outlined.Info, contentDescription = null) },
             onClick = onOpenDetails,
         )
+        if (comic.pageCount != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.library_choose_cover)) },
+                leadingIcon = { Icon(imageVector = Icons.Outlined.Image, contentDescription = null) },
+                onClick = onChooseCover,
+            )
+        }
         DropdownMenuItem(
             text = { Text(stringResource(R.string.detail_settings)) },
             leadingIcon = { Icon(imageVector = Icons.Outlined.Settings, contentDescription = null) },
@@ -1364,7 +1383,7 @@ private fun FilterBar(selected: LibraryFilter, onFilterSelected: (LibraryFilter)
 private fun isCompactWidth(): Boolean = LocalConfiguration.current.screenWidthDp < COMPACT_WIDTH_DP
 
 @Composable
-private fun gridMinCell() = if (isCompactWidth()) GridMinCellCompact else GridMinCell
+internal fun gridMinCell() = if (isCompactWidth()) GridMinCellCompact else GridMinCell
 
 @Composable
 private fun FilterPill(labelRes: Int, selected: Boolean, onClick: () -> Unit) {

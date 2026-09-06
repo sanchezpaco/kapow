@@ -22,6 +22,7 @@ interface LibraryRepository {
     suspend fun setRating(comicId: Long, rating: Int)
     suspend fun saveEditedMetadata(comicId: Long, series: String, issueNumber: Int?, storyTitle: String?)
     suspend fun resetMetadata(comicId: Long)
+    suspend fun setCoverPage(comicId: Long, page: Int): Boolean
     suspend fun deleteComic(comicId: Long): Boolean
     fun settings(documentUri: String): Flow<ComicSettings>
     suspend fun saveSettings(documentUri: String, settings: ComicSettings)
