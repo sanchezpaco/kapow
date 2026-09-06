@@ -28,6 +28,8 @@ class SplitPagesComicSource private constructor(
         return if (page.side == null) aspect else aspect / HALVES_PER_WIDE_PAGE
     }
 
+    override suspend fun comicInfoXml(): String? = inner.comicInfoXml()
+
     fun sourcePageOf(index: Int): Int = pages[index.coerceIn(pages.indices)].sourceIndex
 
     fun pageOfSource(sourceIndex: Int): Int = SplitPages.firstPageOfSource(pages, sourceIndex)

@@ -105,6 +105,28 @@ and is unit-tested independently of any file IO.
 - `PdfRenderer` is not thread-safe: page rendering is serialized behind a
   `Mutex` per source.
 
+## ComicInfo.xml
+
+Every `ComicSource` can hand back the raw text of the archive's `ComicInfo.xml`
+(`comicInfoXml()`), which the library parses into metadata — see
+`library.md#metadata`. The entry is matched on its file name, case-insensitively
+and ignoring any folder, so both `ComicInfo.xml` at the archive root and a
+nested `comicinfo.xml` are found; the first match wins.
+
+- **CBZ** — a plain `ZipFile.getInputStream` on that entry. Free.
+- **CBR** — the file rides along in the sequential extraction pass the source
+  already runs (it is added to the first extraction batch), and `comicInfoXml()`
+  awaits its `CompletableDeferred` like a page. It is deliberately *not* a
+  separate `extractSlow` call: that would run on the archive concurrently with
+  the extraction thread, and on a solid archive it would decompress the block
+  twice. An archive with no such item returns `null` immediately and pays
+  nothing.
+- **PDF** and **plain image folders** — no such file; both return `null`.
+- `SplitPagesComicSource` delegates to the source it wraps.
+
+Only the cover/metadata pass calls it, so opening a comic to read never pays for
+it.
+
 ## Open failures
 
 `ComicSourceFactory.open` never leaks raw exceptions to the UI. Failures are

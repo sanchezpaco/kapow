@@ -20,4 +20,13 @@ data class ComicEntity(
     val addedAt: Long,
     val favorite: Boolean = false,
     val coverAmbient: Int? = null,
+    val storyTitle: String? = null,
+    val publisher: String? = null,
+    val writer: String? = null,
+    val penciller: String? = null,
+    val inker: String? = null,
+    val colorist: String? = null,
+    val summary: String? = null,
+    val readsRightToLeft: Boolean? = null,
+    val metadataVersion: Int = 0,
 )

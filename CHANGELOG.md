@@ -11,6 +11,13 @@ All notable user-facing changes to Kapow. The format follows
 - Settings → Appearance: pick the launcher icon. The same bubble and K over a
   blue, ink, red, violet or mixed comic page; the home screen shows the new
   icon a moment after you choose it.
+- Comics that carry a `ComicInfo.xml` now show what is really inside them
+  instead of what the file happens to be called: the right series, issue and
+  year on the covers, and the story title on "Continue reading" and inside a
+  series.
+- Long-press a cover → **Details** for the summary, the credits (writer,
+  pencils, inks, colours), the publisher and the file name the metadata
+  replaced. A manga marked right-to-left opens that way by default.
 
 ### Fixed
 - Enlarged bubbles keep up with page turns the first time through a comic.

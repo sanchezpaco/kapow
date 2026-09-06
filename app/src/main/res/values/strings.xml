@@ -42,6 +42,7 @@
     <string name="library_group">Group by series</string>
     <string name="library_ungroup">Show all comics</string>
     <string name="library_group_read">%1$d/%2$d read</string>
+    <string name="library_series_publisher_read">%1$s · %2$s</string>
     <string name="library_unshelve">Remove from continue reading</string>
     <string name="library_search">Search</string>
     <string name="library_search_hint">Title or series</string>
@@ -67,6 +68,14 @@
     <string name="detail_setting_split_wide_pages_detail">Two comic pages in one</string>
     <string name="detail_settings_eyebrow">This comic</string>
     <string name="detail_settings">Reading settings</string>
+    <string name="detail_info">Details</string>
+    <string name="detail_info_writer">Writer</string>
+    <string name="detail_info_pencils">Pencils</string>
+    <string name="detail_info_inks">Inks</string>
+    <string name="detail_info_colors">Colors</string>
+    <string name="detail_info_publisher">Publisher</string>
+    <string name="detail_info_file">File name</string>
+    <string name="detail_info_none">This file has no ComicInfo.xml, so its details come from the file name.</string>
     <string name="detail_setting_direction">Reading direction</string>
     <string name="detail_setting_cover_alone">Cover on its own page</string>
     <string name="detail_setting_split_wide_pages">Split wide pages</string>

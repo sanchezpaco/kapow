@@ -28,16 +28,21 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -47,6 +52,7 @@ import com.comicify.R
 import com.comicify.core.ui.BubbleScaleRow
 import com.comicify.core.ui.SettingsChoiceRow
 import com.comicify.core.ui.SettingsDivider
+import com.comicify.core.ui.SettingsRow
 import com.comicify.core.ui.SettingsSection
 import com.comicify.core.ui.SettingsSwitchRow
 import com.comicify.core.ui.defaultLabel
@@ -58,23 +64,32 @@ import com.comicify.feature.library.domain.openMode
 import com.comicify.feature.library.domain.withOpenMode
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.ReaderViewMode
+import kotlin.math.roundToInt
+import kotlinx.coroutines.flow.first
 
 private val SettingsCoverWidth = 96.dp
 private val SettingsContentMaxWidth = 640.dp
 private val ScreenPadding = 20.dp
 private val SectionGap = 22.dp
 private val ClearRowMinHeight = 56.dp
+private val DetailParagraphPadding = 16.dp
+private val DetailValueMaxWidth = 220.dp
 
 @Composable
-fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
+fun ComicSettingsScreen(comics: List<LibraryComic>, showDetails: Boolean, onBack: () -> Unit) {
     val viewModel: ComicSettingsViewModel = hiltViewModel()
     LaunchedEffect(comics) { viewModel.show(comics) }
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val defaults by viewModel.defaults.collectAsStateWithLifecycle()
     val wholeSeries = comics.size > 1
+    val scrollState = rememberScrollState()
+    var detailsOffset by remember { mutableIntStateOf(0) }
+    LaunchedEffect(showDetails) {
+        if (showDetails) scrollState.scrollTo(snapshotFlow { detailsOffset }.first { it > 0 })
+    }
     BackHandler(onBack = onBack)
 
-    Box(modifier = Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState())) {
+    Box(modifier = Modifier.fillMaxSize().statusBarsPadding().verticalScroll(scrollState)) {
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -142,7 +157,60 @@ fun ComicSettingsScreen(comics: List<LibraryComic>, onBack: () -> Unit) {
                     ClearDetectionsRow(onClearDetections = viewModel::onClearDetections)
                 }
             }
+            if (!wholeSeries) {
+                Box(modifier = Modifier.onGloballyPositioned { detailsOffset = it.positionInParent().y.roundToInt() }) {
+                    DetailsSection(comic = comics.first())
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun DetailsSection(comic: LibraryComic) {
+    val paragraph = if (comic.hasComicInfo) comic.summary else stringResource(R.string.detail_info_none)
+    val rows = listOfNotNull(
+        comic.writer?.let { R.string.detail_info_writer to it },
+        comic.penciller?.let { R.string.detail_info_pencils to it },
+        comic.inker?.let { R.string.detail_info_inks to it },
+        comic.colorist?.let { R.string.detail_info_colors to it },
+        comic.publisher?.let { R.string.detail_info_publisher to it },
+        R.string.detail_info_file to comic.displayName,
+    )
+    SettingsSection(
+        eyebrow = stringResource(R.string.detail_settings_eyebrow),
+        title = stringResource(R.string.detail_info),
+    ) {
+        paragraph?.let { DetailParagraph(text = it) }
+        rows.forEachIndexed { index, (labelRes, value) ->
+            if (index > 0 || paragraph != null) SettingsDivider()
+            DetailRow(labelRes = labelRes, value = value)
+        }
+    }
+}
+
+@Composable
+private fun DetailParagraph(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = InkDim,
+        modifier = Modifier.padding(DetailParagraphPadding),
+    )
+}
+
+@Composable
+private fun DetailRow(labelRes: Int, value: String) {
+    SettingsRow(label = stringResource(labelRes)) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = InkDim,
+            textAlign = TextAlign.End,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.widthIn(max = DetailValueMaxWidth),
+        )
     }
 }
 

@@ -25,6 +25,12 @@ class CbzComicSource private constructor(
     override suspend fun pageAspect(index: Int): Float =
         withContext(Dispatchers.IO) { zip.getInputStream(entries[index]).use(::decodeAspect) }
 
+    override suspend fun comicInfoXml(): String? =
+        withContext(Dispatchers.IO) {
+            val entry = zip.entries().asSequence().firstOrNull { it.name.isComicInfoPath() } ?: return@withContext null
+            zip.getInputStream(entry).use { it.readBytes().decodeToString() }
+        }
+
     override fun close() {
         runCatching { zip.close() }
         runCatching { cacheFile.delete() }
