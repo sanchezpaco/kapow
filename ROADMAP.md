@@ -755,6 +755,63 @@ emulator at unfolded, spread and folded widths.
 
 ---
 
+## 1.2 — Gap review against YACReader
+
+A feature inventory of YACReader 10.3.1 (desktop reader + library + server,
+`github.com/YACReader/yacreader`) crossed with Kapow's docs and strings on
+2026-09-06. Its Android client already does panel-by-panel reading with
+automatic detection, margin trimming and image filters, so Guided View is a
+quality bar, not a unique concept; YACReader has no reading statistics at all.
+Ranked by value for a single-device personal reader. All ten shipped the same
+day: two Senior Designer passes wrote one spec per UI item, one Opus
+implementer per item worked in its own worktree, and the integrator merged
+them in migration order (Room v12 → v19) and verified each on the emulator.
+
+- [x] Content hash as the comic's identity: SHA-1 of the first 512 KB plus the
+      file size, matched during the scan, with `documentUri` demoted to a
+      cache. Today a rename, a move or a re-picked folder orphans progress,
+      favourites, per-comic settings and the cached detections (the
+      `AccessLost` case in `docs/library.md`)
+- [x] Bookmarks: several per comic, set from the reader, listed in the
+      thumbnail scrubber and the per-comic sheet; merges with the "panel
+      bookmarks" idea in `docs/product-ideas.md`
+- [x] Per-comic image adjustments: brightness, contrast and gamma (or a
+      "paper" preset) stored with the comic and applied in the render path;
+      today the only control is the global night tint. Idea 9 in
+      `docs/product-ideas.md`
+- [x] Fit modes with a persisted per-comic choice (fit screen, fit width, fit
+      height) and a remembered zoom, so a dense page on the folded screen
+      does not need a pinch on every turn; the non-ML fallback when Guided
+      View fails
+- [x] Reading type instead of the direction boolean: comic, manga (RTL),
+      western manga, webcomic, 4koma, per comic and per series, driving both
+      the direction and the default view mode (webcomic → vertical strip)
+- [x] Field-qualified search over the ComicInfo columns already stored
+      (`series:`, `writer:`, `publisher:`, `year>`) plus preset queries:
+      unread, in progress, highly rated, recently added
+- [x] Reading lists: ordered, user-made, cross-series (a crossover reading
+      order, a re-read plan); "Next issue" follows the list when reading from
+      one. Two Room tables with an `ordering` column
+- [x] Custom cover: pick any page of the comic (a `coverPage` index) with a
+      reset, for variant covers, ad leaves and blank first pages
+- [x] Rating per comic with a "highly rated" filter, and an `edited` flag on
+      metadata so a corrected series or number survives `METADATA_VERSION`
+      re-reads
+- [x] Small: detect `.cb7` / `.cbt` by magic bytes (today anything not RAR or
+      PDF goes to the ZIP reader and fails), and a "Share this page" action
+      reusing the glitch report's bitmap path
+
+Not adopted: magnifying glass (enlarged bubbles solve the same problem), 3-D
+"go to flow" (the scrubber covers it), file rename and folder organisation from
+metadata templates (hostile under SAF, and Kapow owns no files), theme editor
+and remappable shortcuts (over-configuration for one user), ComicVine scraping
+(already deferred, conflicts with `docs/privacy.md`), a server. Being a
+YACReaderLibrary *client* is the one network idea worth a product decision if
+the collection ever moves to a NAS; its `/v2` protocol is unauthenticated
+plaintext.
+
+---
+
 ## Non-goals
 
 - No online store, DRM, or downloading of copyrighted content. Kapow reads
