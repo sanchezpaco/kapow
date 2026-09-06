@@ -407,6 +407,24 @@ is unit-tested directly (`PageOrderTest`).
   current page's thumbnail is highlighted and the strip centres on it. See
   `thumbnail-scrubber` below. Hidden with the chrome, and suppressed in Guided
   View (which navigates panel by panel).
+- **Bookmarks:** the counter row carries a bookmark chip on each side of the
+  page counter, so the row reads "toggle · 07 / 32 · filter". The left chip (40 dp,
+  circular, always in the row) bookmarks **the page the counter names** — the
+  spread's first page in `UnfoldedSpread`, the page above the hinge in Tabletop,
+  the issue page under the top of the viewport in the strip — and fills with the
+  accent while that page is bookmarked. The right chip appears only once the
+  comic has a bookmark: a ribbon and the count (`9+` above nine); tapping it
+  filters the scrubber to the bookmarked pages and takes the accent, tapping it
+  again restores the full strip. In Guided View the left chip still works and the
+  right one is hidden, since there is no scrubber to filter; bookmarks are
+  page-level, never panel-level. Both slots are the same width, so the counter
+  stays centred whether or not the filter is showing. The filter is session
+  state on `ReaderUiState` (`bookmarksOnly`): it is dropped when the chrome
+  hides, when a thumbnail is tapped, and when the last bookmark is removed. The
+  chips are the only affordance — no long-press, no new gesture, nothing added to
+  the eye or gear panel. Bookmarks themselves live in Room (`bookmark`, keyed by
+  the library comic id, see `docs/library.md`), so they survive the session; a
+  comic that is not in the library has no id to key on and shows no chip.
 - Reaching the end of a comic raises `EndOfComicOverlay`. It is the last child of
   the reader `Box`, so its scrim covers the chrome — including the progress bar,
   which never hides — and the chrome is hidden for as long as the overlay is up,
@@ -433,6 +451,15 @@ is unit-tested directly (`PageOrderTest`).
   lands on the same page state the pager and `onPageChanged` already drive. In the
   two-page spread the target page maps to its spread step
   (`ThumbnailStrip.stepIndexForPage`).
+- A bookmarked page carries a small accent corner ribbon on the top-right of its
+  thumbnail. The 2 dp accent border stays reserved for "current page", so a page
+  that is both reads unambiguously.
+- Filtering to bookmarks keeps the same `LazyRow` and the same cell; only the
+  index list changes (`Bookmarks.scrubberPages`). Tapping a cell while filtered
+  raises the usual `pendingJump` **and** restores the full strip, so a jump always
+  leaves the reader in the normal state, and re-centring is skipped while filtered
+  because the list is short. In the strip the filter covers the active issue's
+  pages only, the same "active comic" rule the counter and progress follow.
 
 ## Preloading
 

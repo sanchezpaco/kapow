@@ -4,8 +4,15 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [ComicEntity::class, ReadingStateEntity::class, PageDetectionEntity::class, ComicSettingsEntity::class, ReadingSessionEntity::class],
-    version = 14,
+    entities = [
+        ComicEntity::class,
+        ReadingStateEntity::class,
+        PageDetectionEntity::class,
+        ComicSettingsEntity::class,
+        ReadingSessionEntity::class,
+        BookmarkEntity::class,
+    ],
+    version = 15,
     exportSchema = false,
 )
 abstract class KapowDatabase : RoomDatabase() {
@@ -14,4 +21,5 @@ abstract class KapowDatabase : RoomDatabase() {
     abstract fun pageDetectionDao(): PageDetectionDao
     abstract fun comicSettingsDao(): ComicSettingsDao
     abstract fun readingSessionDao(): ReadingSessionDao
+    abstract fun bookmarkDao(): BookmarkDao
 }

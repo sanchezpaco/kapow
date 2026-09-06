@@ -95,6 +95,10 @@ ComicSettings(
 ReadingSession(
     id, comicId, startedAt, endedAt, pages, mode, finished,
 )
+
+Bookmark(
+    comicId, pageIndex, createdAt,
+)
 ```
 
 - `documentUri` is unique; re-scans ignore comics already registered.
@@ -104,6 +108,16 @@ ReadingSession(
 - `ReadingSession` records one row per reading session and feeds the stats
   screen and the hero's estimate. It cascades on the comic and is pruned after
   400 days; see `docs/stats.md`.
+- `Bookmark` holds the pages the reader marked, one row per page, primary key
+  `(comicId, pageIndex)`, added in schema **v15**. It is keyed by the comic row
+  id, not the document Uri, so bookmarks survive a rename or move, and it
+  cascades on the comic so deleting a comic takes its bookmarks with it. There is
+  no cap and nothing global: bookmarks belong to one comic. Toggling **split wide
+  pages** rewrites them through the same logical page → source page → first half
+  conversion the reader uses to keep the reading position, so two halves of a
+  split page merge back into one bookmark. The reader shows them on the counter
+  row and in the thumbnail scrubber (`docs/reading-modes.md`); the per-comic
+  screen shows the count as a detail row.
 - `ReadingState` powers "continue reading" and cross-session position restore
   (see `foldable.md` for the in-memory `ReadingPosition` this maps to). The
   reader seeds its initial page from it and, on each page turn, saves the index

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -23,10 +24,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -42,24 +46,27 @@ private val ThumbWidth = 48.dp
 private val ThumbHeight = 66.dp
 private val ThumbSpacing = 6.dp
 private val ThumbCorner = RoundedCornerShape(4.dp)
+private val ThumbRibbonSize = 14.dp
 
 @Composable
 fun ThumbnailScrubber(
     loader: PageLoader,
     visible: Boolean,
     currentPage: Int,
-    pageCount: Int,
+    pages: List<Int>,
+    bookmarks: Set<Int>,
+    filtered: Boolean,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
     val itemWidthPx = with(LocalDensity.current) { (ThumbWidth + ThumbSpacing).roundToPx() }
 
-    LaunchedEffect(visible, currentPage) {
-        if (!visible) return@LaunchedEffect
+    LaunchedEffect(visible, currentPage, filtered) {
+        if (!visible || filtered) return@LaunchedEffect
         val viewport = snapshotFlow { listState.layoutInfo.viewportSize.width }.first { it > 0 }
         listState.scrollToItem(
-            index = currentPage.coerceIn(0, (pageCount - 1).coerceAtLeast(0)),
+            index = currentPage.coerceIn(0, (pages.size - 1).coerceAtLeast(0)),
             scrollOffset = ThumbnailStrip.centerScrollOffsetPx(viewport, itemWidthPx),
         )
     }
@@ -70,12 +77,13 @@ fun ThumbnailScrubber(
         horizontalArrangement = Arrangement.spacedBy(ThumbSpacing),
         contentPadding = PaddingValues(horizontal = 4.dp),
     ) {
-        items(count = pageCount, key = { it }) { index ->
+        items(items = pages, key = { it }) { index ->
             ThumbnailCell(
                 loader = loader,
                 index = index,
                 visible = visible,
                 selected = index == currentPage,
+                bookmarked = index in bookmarks,
                 onClick = { onSelect(index) },
             )
         }
@@ -88,6 +96,7 @@ private fun ThumbnailCell(
     index: Int,
     visible: Boolean,
     selected: Boolean,
+    bookmarked: Boolean,
     onClick: () -> Unit,
 ) {
     var thumb by remember(loader, index) { mutableStateOf<ImageBitmap?>(null) }
@@ -95,7 +104,8 @@ private fun ThumbnailCell(
         if (visible && thumb == null) thumb = runCatching { loader.loadThumb(index) }.getOrNull()
     }
 
-    val borderColor = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent
+    val accent = MaterialTheme.colorScheme.primary
+    val borderColor = if (selected) accent else Color.Transparent
     val description = stringResource(R.string.reader_thumbnail_go_to_page, index + 1)
 
     Box(
@@ -118,5 +128,20 @@ private fun ThumbnailCell(
                 modifier = Modifier.fillMaxSize().clip(ThumbCorner),
             )
         }
+        if (bookmarked) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(ThumbRibbonSize)
+                    .drawBehind { drawPath(topEndCorner(size.width, size.height), accent) },
+            )
+        }
     }
+}
+
+private fun topEndCorner(width: Float, height: Float): Path = Path().apply {
+    moveTo(width, 0f)
+    lineTo(width, height)
+    lineTo(0f, 0f)
+    close()
 }

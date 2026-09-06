@@ -24,4 +24,7 @@ data class ReaderUiState(
     val splitWidePages: Boolean = false,
     val verticalScroll: Boolean = false,
     val splitSuggested: Boolean = false,
+    val bookmarks: Set<Int> = emptySet(),
+    val bookmarksOnly: Boolean = false,
+    val bookmarksAvailable: Boolean = false,
 )

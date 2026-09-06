@@ -10,4 +10,5 @@ interface DatabaseEntryPoint {
     fun comicDao(): ComicDao
     fun pageDetectionDao(): PageDetectionDao
     fun comicSettingsDao(): ComicSettingsDao
+    fun bookmarkDao(): BookmarkDao
 }

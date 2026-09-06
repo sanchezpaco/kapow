@@ -19,7 +19,7 @@ object DatabaseModule {
     @Singleton
     fun database(@ApplicationContext context: Context): KapowDatabase =
         Room.databaseBuilder(context, KapowDatabase::class.java, "comicify.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
             .build()
 
     @Provides
@@ -36,6 +36,9 @@ object DatabaseModule {
 
     @Provides
     fun readingSessionDao(database: KapowDatabase): ReadingSessionDao = database.readingSessionDao()
+
+    @Provides
+    fun bookmarkDao(database: KapowDatabase): BookmarkDao = database.bookmarkDao()
 }
 
 private val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -135,5 +138,17 @@ private val MIGRATION_13_14 = object : Migration(13, 14) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE comics ADD COLUMN rating INTEGER NOT NULL DEFAULT 0")
         db.execSQL("ALTER TABLE comics ADD COLUMN metadataEdited INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+private val MIGRATION_14_15 = object : Migration(14, 15) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `bookmark` (" +
+                "`comicId` INTEGER NOT NULL, `pageIndex` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, " +
+                "PRIMARY KEY(`comicId`, `pageIndex`), " +
+                "FOREIGN KEY(`comicId`) REFERENCES `comics`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)",
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_bookmark_comicId` ON `bookmark` (`comicId`)")
     }
 }
