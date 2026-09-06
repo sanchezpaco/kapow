@@ -65,6 +65,7 @@ fun ReaderSurface(
     onStripScrolled: () -> Unit,
     bubbleScale: Float?,
     pageLook: PageLook,
+    fitWidth: Boolean,
     direction: ReadingDirection,
     coverAlone: Boolean,
     initialPage: Int,
@@ -107,11 +108,11 @@ fun ReaderSurface(
     key(loader, posture, direction, coverAlone) {
         when (posture) {
             ReadingPosture.UnfoldedSpread ->
-                SpreadReader(loader, bubbleScale, pageLook, direction, coverAlone, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
+                SpreadReader(loader, bubbleScale, pageLook, fitWidth, direction, coverAlone, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
             ReadingPosture.Tabletop ->
-                TabletopReader(loader, bubbleScale, pageLook, direction, hinge, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
+                TabletopReader(loader, bubbleScale, pageLook, fitWidth, direction, hinge, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
             else ->
-                SinglePageReader(loader, bubbleScale, pageLook, direction, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
+                SinglePageReader(loader, bubbleScale, pageLook, fitWidth, direction, initialPage, pageTurnRequests, pendingJump, onJumpApplied, onPageChanged, onTap, onAmbient)
         }
     }
 }
@@ -126,6 +127,7 @@ private fun SinglePageReader(
     loader: PageLoader,
     bubbleScale: Float?,
     pageLook: PageLook,
+    fitWidth: Boolean,
     direction: ReadingDirection,
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
@@ -168,6 +170,7 @@ private fun SinglePageReader(
             loader = loader,
             bubbleScale = bubbleScale,
             pageLook = pageLook,
+            fitWidth = fitWidth,
             index = PageOrder.logicalIndex(direction, physicalPage, pageCount),
             direction = direction,
             tapZones = TapZones.FullWidth,
@@ -196,6 +199,7 @@ private fun SpreadReader(
     loader: PageLoader,
     bubbleScale: Float?,
     pageLook: PageLook,
+    fitWidth: Boolean,
     direction: ReadingDirection,
     coverAlone: Boolean,
     initialPage: Int,
@@ -249,6 +253,7 @@ private fun SpreadReader(
                     loader = loader,
                     bubbleScale = bubbleScale,
                     pageLook = pageLook,
+                    fitWidth = fitWidth,
                     index = screenLeftPage,
                     direction = direction,
                     tapZones = TapZones.LeftHalf,
@@ -264,6 +269,7 @@ private fun SpreadReader(
                     loader = loader,
                     bubbleScale = bubbleScale,
                     pageLook = pageLook,
+                    fitWidth = fitWidth,
                     index = screenRightPage,
                     direction = direction,
                     tapZones = TapZones.RightHalf,
@@ -283,6 +289,7 @@ private fun TabletopReader(
     loader: PageLoader,
     bubbleScale: Float?,
     pageLook: PageLook,
+    fitWidth: Boolean,
     direction: ReadingDirection,
     hinge: HingeOcclusion?,
     initialPage: Int,
@@ -329,6 +336,7 @@ private fun TabletopReader(
                     loader = loader,
                     bubbleScale = bubbleScale,
                     pageLook = pageLook,
+                    fitWidth = fitWidth,
                     index = PageOrder.logicalIndex(direction, physicalPage, pageCount),
                     direction = direction,
                     tapZones = TapZones.FullWidth,

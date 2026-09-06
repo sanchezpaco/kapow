@@ -26,4 +26,5 @@ data class ReaderUiState(
     val verticalScroll: Boolean = false,
     val splitSuggested: Boolean = false,
     val pageLook: PageLook = PageLook.Original,
+    val fitWidth: Boolean = false,
 )

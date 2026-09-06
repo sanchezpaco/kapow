@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material.icons.filled.CropPortrait
+import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Remove
@@ -250,6 +251,7 @@ fun ReaderScreen(
                         onStripScrolled = viewModel::hideChrome,
                         bubbleScale = state.bubbleScale.takeIf { state.bubblesEnlarged },
                         pageLook = state.pageLook,
+                        fitWidth = state.fitWidth,
                         direction = state.direction,
                         coverAlone = state.coverAlone,
                         initialPage = state.position.pageIndex,
@@ -282,12 +284,14 @@ fun ReaderScreen(
             guidedFullScreen = state.guidedFullScreen,
             bubblesEnlarged = state.bubblesEnlarged,
             bubbleScale = state.bubbleScale,
+            fitWidth = state.fitWidth,
             nightTintEnabled = state.nightTintEnabled,
             pageLook = state.pageLook,
             direction = state.direction,
             splitWidePages = state.splitWidePages,
             onViewMode = viewModel::setViewMode,
             onToggleBubblesEnlarged = viewModel::toggleBubblesEnlarged,
+            onToggleFitWidth = viewModel::toggleFitWidth,
             onBubbleScale = viewModel::setBubbleScale,
             onToggleGuidedFullScreen = viewModel::toggleGuidedFullScreen,
             onToggleNightTint = viewModel::toggleNightTint,
@@ -442,12 +446,14 @@ private fun TopChrome(
     guidedFullScreen: Boolean,
     bubblesEnlarged: Boolean,
     bubbleScale: Float,
+    fitWidth: Boolean,
     nightTintEnabled: Boolean,
     pageLook: PageLook,
     direction: ReadingDirection,
     splitWidePages: Boolean,
     onViewMode: (ReaderViewMode) -> Unit,
     onToggleBubblesEnlarged: () -> Unit,
+    onToggleFitWidth: () -> Unit,
     onBubbleScale: (Float) -> Unit,
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
@@ -484,7 +490,7 @@ private fun TopChrome(
                     CircleControl(
                         icon = Icons.Filled.Visibility,
                         open = openPanel == HudPanelKind.ViewMode,
-                        marked = viewMode != ReaderViewMode.Pages || bubblesEnlarged,
+                        marked = viewMode != ReaderViewMode.Pages || bubblesEnlarged || fitWidth,
                         contentDescription = stringResource(R.string.reader_action_view_mode),
                         onClick = { openPanel = openPanel.toggled(HudPanelKind.ViewMode) },
                     )
@@ -503,8 +509,10 @@ private fun TopChrome(
                         mode = viewMode,
                         bubblesEnlarged = bubblesEnlarged,
                         bubbleScale = bubbleScale,
+                        fitWidth = fitWidth,
                         onMode = { openPanel = null; onViewMode(it) },
                         onToggleBubbles = onToggleBubblesEnlarged,
+                        onToggleFitWidth = onToggleFitWidth,
                         onBubbleScale = onBubbleScale,
                     )
                 }
@@ -614,8 +622,10 @@ private fun ViewModePanel(
     mode: ReaderViewMode,
     bubblesEnlarged: Boolean,
     bubbleScale: Float,
+    fitWidth: Boolean,
     onMode: (ReaderViewMode) -> Unit,
     onToggleBubbles: () -> Unit,
+    onToggleFitWidth: () -> Unit,
     onBubbleScale: (Float) -> Unit,
 ) {
     HudPanel {
@@ -630,6 +640,21 @@ private fun ViewModePanel(
         }
         if (mode.allowsBubbles()) {
             PanelDivider()
+            if (mode == ReaderViewMode.Pages) {
+                PanelRow(
+                    icon = Icons.Filled.FitScreen,
+                    label = stringResource(R.string.reader_page_fit),
+                    onClick = onToggleFitWidth,
+                ) {
+                    Text(
+                        text = stringResource(
+                            if (fitWidth) R.string.reader_page_fit_width else R.string.reader_page_fit_screen,
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
             PanelRow(
                 icon = Icons.Filled.ChatBubbleOutline,
                 label = stringResource(R.string.reader_mode_bubbles),

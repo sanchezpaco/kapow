@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.Text
 import android.util.Log
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import com.comicify.feature.reader.ui.BubbleOverlay.drawBubbles
 import androidx.compose.ui.geometry.Offset
@@ -44,18 +45,25 @@ import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.input.pointer.util.addPointerInputChange
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import com.comicify.feature.reader.data.PageArt
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
+import com.comicify.feature.reader.domain.PageFit
 import com.comicify.feature.reader.domain.PageLook
+import com.comicify.feature.reader.domain.PageZoomAction
 import com.comicify.feature.reader.domain.PanSlop
 import com.comicify.feature.reader.domain.TapZone
 import com.comicify.feature.reader.domain.TapZones
 import com.comicify.feature.reader.data.PaintedBubble
 import kotlinx.coroutines.Job
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 
 private const val PAGE_TAG = "ReaderPage"
@@ -70,12 +78,11 @@ private fun centeredOn(tap: Offset, size: IntSize, scale: Float): Offset {
     return (center - tap) * scale
 }
 
-private fun panBounds(size: IntSize, scale: Float): Offset =
-    Offset((scale - 1f) * size.width / 2f, (scale - 1f) * size.height / 2f)
-
-private fun clampOffset(offset: Offset, size: IntSize, scale: Float): Offset {
-    val max = panBounds(size, scale)
-    return Offset(offset.x.coerceIn(-max.x, max.x), offset.y.coerceIn(-max.y, max.y))
+private fun Modifier.pageFrame(content: Size): Modifier = layout { measurable, _ ->
+    val width = content.width.roundToInt()
+    val height = content.height.roundToInt()
+    val placeable = measurable.measure(Constraints.fixed(width, height))
+    layout(width, height) { placeable.place(0, 0) }
 }
 
 @Composable
@@ -84,6 +91,7 @@ fun ZoomablePage(
     index: Int,
     bubbleScale: Float?,
     pageLook: PageLook,
+    fitWidth: Boolean,
     direction: ReadingDirection,
     tapZones: TapZones,
     onTap: (TapZone) -> Unit,
@@ -94,8 +102,11 @@ fun ZoomablePage(
     var loadFailed by remember(index) { mutableStateOf(false) }
     var overlay by remember(index) { mutableStateOf<BubbleOverlayState>(BubbleOverlayState.None) }
     var scale by remember(index) { mutableFloatStateOf(1f) }
-    var offset by remember(index) { mutableStateOf(Offset.Zero) }
+    var offset by remember(index, fitWidth) { mutableStateOf<Offset?>(null) }
+    var framedToWidth by remember(index, fitWidth) { mutableStateOf(fitWidth) }
+    var keptWidthOffsetY by remember(index, fitWidth) { mutableStateOf<Float?>(null) }
     var flingJob by remember(index) { mutableStateOf<Job?>(null) }
+    var container by remember { mutableStateOf(IntSize.Zero) }
     val scope = rememberCoroutineScope()
     val decay = remember { exponentialDecay<Offset>(frictionMultiplier = 2.0f) }
 
@@ -113,7 +124,7 @@ fun ZoomablePage(
     LaunchedEffect(scale) { onZoomedChange(scale > 1.01f) }
 
     Box(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().onSizeChanged { container = it },
         contentAlignment = Alignment.Center,
     ) {
         val page = art
@@ -130,25 +141,43 @@ fun ZoomablePage(
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         } else {
+            fun frameSize() = PageFit.content(container.toSize(), page.aspect(), framedToWidth)
+            fun boundsAt(zoom: Float) = PageFit.panBounds(container.toSize(), frameSize(), zoom)
+            fun offsetAt(zoom: Float) = PageFit.clamp(offset ?: PageFit.atTopEdge(boundsAt(zoom)), boundsAt(zoom))
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(index) {
+                    .then(if (framedToWidth) Modifier.clipToBounds() else Modifier)
+                    .pointerInput(index, fitWidth) {
                         detectTapGestures(
                             onTap = { tap -> onTap(if (scale > 1f) TapZone.Center else tapZones.at(direction, tap.x / size.width)) },
                             onDoubleTap = { tap ->
                                 flingJob?.cancel()
-                                if (scale > 1f) {
-                                    scale = 1f
-                                    offset = Offset.Zero
-                                } else {
-                                    scale = DOUBLE_TAP_SCALE
-                                    offset = clampOffset(centeredOn(tap, size, DOUBLE_TAP_SCALE), size, DOUBLE_TAP_SCALE)
+                                when (PageFit.doubleTap(fitWidth, framedToWidth, zoomed = scale > 1f)) {
+                                    PageZoomAction.ToFitScreen -> {
+                                        keptWidthOffsetY = offsetAt(scale).y
+                                        framedToWidth = false
+                                        scale = 1f
+                                        offset = Offset.Zero
+                                    }
+                                    PageZoomAction.ToFitWidth -> {
+                                        framedToWidth = true
+                                        scale = 1f
+                                        offset = keptWidthOffsetY?.let { Offset(0f, it) }
+                                    }
+                                    PageZoomAction.ZoomOut -> {
+                                        scale = 1f
+                                        offset = Offset.Zero
+                                    }
+                                    PageZoomAction.ZoomIn -> {
+                                        scale = DOUBLE_TAP_SCALE
+                                        offset = PageFit.clamp(centeredOn(tap, size, DOUBLE_TAP_SCALE), boundsAt(DOUBLE_TAP_SCALE))
+                                    }
                                 }
                             },
                         )
                     }
-                    .pointerInput(index) {
+                    .pointerInput(index, fitWidth) {
                         awaitEachGesture {
                             awaitFirstDown(requireUnconsumed = false)
                             flingJob?.cancel()
@@ -159,17 +188,19 @@ fun ZoomablePage(
                             do {
                                 val event = awaitPointerEvent()
                                 val pressed = event.changes.count { it.pressed }
-                                if (pressed >= 2 || scale > 1f) {
+                                if (pressed >= 2 || boundsAt(scale) != Offset.Zero) {
                                     if (!pastSlop) {
                                         slop = slop.plus(event.calculatePan())
-                                        pastSlop = pressed >= 2 || slop.exceeds(viewConfiguration.touchSlop)
+                                        pastSlop = pressed >= 2 ||
+                                            (slop.exceeds(viewConfiguration.touchSlop) && (scale > 1f || !slop.isHorizontal()))
                                     }
                                     if (pastSlop) {
                                         val next = (scale * event.calculateZoom()).coerceIn(1f, MAX_SCALE)
                                         scale = next
-                                        if (next > 1f) {
+                                        val bounds = boundsAt(next)
+                                        if (bounds != Offset.Zero) {
                                             if (pressed == 1) event.changes.firstOrNull { it.pressed }?.let(tracker::addPointerInputChange)
-                                            offset = clampOffset(offset + event.calculatePan(), size, next)
+                                            offset = PageFit.clamp(offsetAt(next) + event.calculatePan(), bounds)
                                             panned = true
                                         } else {
                                             offset = Offset.Zero
@@ -179,33 +210,39 @@ fun ZoomablePage(
                                 }
                             } while (event.changes.any { it.pressed })
 
-                            if (panned && scale > 1f) {
+                            val bounds = boundsAt(scale)
+                            if (panned && bounds != Offset.Zero) {
                                 val velocity = tracker.calculateVelocity()
-                                val bounds = panBounds(size, scale)
                                 flingJob = scope.launch {
-                                    val fling = Animatable(offset, Offset.VectorConverter)
+                                    val fling = Animatable(offsetAt(scale), Offset.VectorConverter)
                                     fling.updateBounds(Offset(-bounds.x, -bounds.y), bounds)
                                     fling.animateDecay(Offset(velocity.x, velocity.y), decay) { offset = value }
                                 }
                             }
                         }
-                    }
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                        translationX = offset.x
-                        translationY = offset.y
-                    }
-                    .pageLook(pageLook),
+                    },
+                contentAlignment = Alignment.Center,
             ) {
-                Image(
-                    bitmap = page.image,
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize(),
-                )
-                (overlay as? BubbleOverlayState.Ready)?.let { ready ->
-                    BubbleLayer(page.image, ready.bubbles, cached = { scale <= 1f })
+                Box(
+                    modifier = (if (framedToWidth) Modifier.pageFrame(frameSize()) else Modifier.fillMaxSize())
+                        .graphicsLayer {
+                            val pan = offsetAt(scale)
+                            scaleX = scale
+                            scaleY = scale
+                            translationX = pan.x
+                            translationY = pan.y
+                        }
+                        .pageLook(pageLook),
+                ) {
+                    Image(
+                        bitmap = page.image,
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    (overlay as? BubbleOverlayState.Ready)?.let { ready ->
+                        BubbleLayer(page.image, ready.bubbles, cached = { scale <= 1f })
+                    }
                 }
             }
             if (overlay == BubbleOverlayState.Loading) {
@@ -218,6 +255,8 @@ fun ZoomablePage(
         }
     }
 }
+
+private fun PageArt.aspect(): Float = image.width.toFloat() / image.height
 
 private sealed interface BubbleOverlayState {
     data object None : BubbleOverlayState

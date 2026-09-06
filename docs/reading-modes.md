@@ -176,7 +176,8 @@ first three rows are the exclusive choice: the selected one is drawn in the
 accent colour with a trailing check, and picking one closes the panel, because
 choosing a layout is a one-shot decision. Below a hairline, "Enlarged bubbles"
 is a `Switch` row — a state you leave on, not a destination — and it disappears
-entirely in Guided View. Turning it on reveals the bubble-scale stepper
+entirely in Guided View. "Page fit" sits above it in the same block, visible only
+in Pages mode (see `Page fit` below). Turning it on reveals the bubble-scale stepper
 underneath it: `−` and `+` buttons around the current value, stepping by
 `BUBBLE_SCALE_STEP` (0.1) inside `BUBBLE_SCALE_RANGE` (1.1–2×), clamped at both
 ends. The stepper replaced a floating slider that used to sit under the HUD
@@ -277,8 +278,8 @@ direction, and the reader's direction toggle then writes the override instead
 of the global preference; `bubbleScale` works the same way for the HUD stepper
 (override wins, and stepping updates the override when one exists);
 `coverAlone` feeds the spread pairing above, `splitWidePages` the split
-described above, `verticalScroll` the continuous strip and `pageLook` the image
-adjustment below.
+described above, `verticalScroll` the continuous strip, `pageLook` the image
+adjustment and `fitWidth` the page fit, both below.
 Everything else stays global in `ReaderPreferencesRepository`.
 
 ## Reading direction
@@ -341,9 +342,9 @@ is unit-tested directly (`PageOrderTest`).
 - **The circle button's fill means "open", never "on".** It takes the accent
   colour only while its own panel is showing. Whether its contents are at the
   defaults is a separate signal: an 8 dp accent dot on the top-end corner of the
-  circle, shown while the panel is closed and the eye is off Pages or has
-  bubbles on, or the gear has night tint, a page look other than Original,
-  right-to-left or the split active.
+  circle, shown while the panel is closed and the eye is off Pages, has
+  bubbles on or is fit to width, or the gear has night tint, a page look other
+  than Original, right-to-left or the split active.
 - Center tap toggles a minimal overlay: progress, page number, quick settings.
   Both bars carry a scrim so their white content stays legible over light pages:
   the top bar fades black `0.6` → transparent downwards, the bottom chrome
@@ -404,6 +405,58 @@ is unit-tested directly (`PageOrderTest`).
 Regardless of surface, the reader preloads the next `N` page bitmaps (and, in
 spread mode, the next pair) through Coil so page turns have no decode latency. `N`
 scales down under memory pressure.
+
+## Page fit
+
+A dense page on the folded screen is unreadable whole, and pinching it open on
+every turn is not reading. The fit is therefore the **base scale of every page**,
+kept per comic (`ComicSettings.fitWidth`, a row in the eye panel that flips
+between Screen and Width and leaves the panel open, because it is a state you
+keep rather than a destination).
+
+- **Fit screen** (default) is today's `ContentScale.Fit` — the whole page
+  visible, unchanged in every respect. Nothing extra enters the modifier chain.
+- **Fit width** lays the page out as a box the width of the viewport with the
+  page's own aspect, inside the pannable container — the construction the strip
+  already uses — rather than hanging a scale off the zoom, whose pan bounds come
+  from the container and not from the drawn image. When it overflows vertically,
+  one finger pans it, clamped to the page and with the usual release fling.
+
+All of the geometry is one pure object, `PageFit` (`reader/domain`,
+unit-tested): the content size for a container and a page aspect, the pan bounds
+for a scale, the clamp, and the landing offset. Fit screen falls out of the same
+formulas with content size == container size, so there is one code path, not
+two.
+
+- **A page turn in fit width lands on the page's top edge**, horizontally
+  centred, at the fit-width scale — the previous page's scroll offset is never
+  carried over. That is free: the offset state is `null` until something moves
+  it and resolves to the top edge, so nothing has to be reset on a turn.
+- **Double-tap always means "show me the other framing."** Under fit screen it
+  is unchanged (2.5× on the tapped point, and back). Under fit width it zooms
+  *out* to fit screen, and a second double-tap returns to fit width **at the same
+  vertical position**. `PageFit.doubleTap` decides which of the four actions a
+  tap means.
+- **Pinch is unchanged:** free up to `MAX_SCALE` (5×) measured from the fit base,
+  reset on a page turn. The one-finger pan at the base scale only starts on a
+  drag that is past `touchSlop` and *not* horizontal, so a horizontal swipe still
+  reaches the pager and turns the page.
+- **Posture needs no special case**, because the fit applies to each rendered
+  page area: in `UnfoldedSpread` each half fits its own half-width (for a
+  portrait page that is visually identical to fit screen), in `Tabletop` it
+  applies to the short, wide area above the hinge, where it earns its keep, and
+  `CompactSingle` is the case the feature exists for. PDF and split halves behave
+  identically — the aspect comes from the decoded page.
+- **Guided View and the strip hide the row** (`mode == ReaderViewMode.Pages`
+  gates it, mirroring `mode.allowsBubbles()`): Guided View frames the panel and
+  the strip is fit to width by definition. The stored value is untouched and
+  returns with Pages.
+
+Reset is one tap of the row back to Screen. There is deliberately no fit height
+(on a portrait screen showing a portrait page it *is* fit screen), no remembered
+arbitrary pinch (a 4× state you cannot see, name or undo), and no global or
+per-posture default — the setting follows the comic's page density, not the
+device.
 
 ## Page look
 

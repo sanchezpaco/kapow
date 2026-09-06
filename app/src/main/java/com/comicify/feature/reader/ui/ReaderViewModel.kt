@@ -298,6 +298,11 @@ class ReaderViewModel(
         updateSettings { it.copy(pageLook = next.name) }
     }
 
+    fun toggleFitWidth() {
+        val fitWidth = !_state.value.fitWidth
+        updateSettings { it.copy(fitWidth = fitWidth) }
+    }
+
     private fun updateSettings(transform: (ComicSettingsEntity) -> ComicSettingsEntity) {
         viewModelScope.launch {
             val settings = comicSettingsDao.find(uri.toString()) ?: emptySettings()
@@ -326,6 +331,7 @@ class ReaderViewModel(
                     splitWidePages = settings?.splitWidePages ?: false,
                     verticalScroll = settings?.verticalScroll ?: false,
                     pageLook = PageLook.named(settings?.pageLook),
+                    fitWidth = settings?.fitWidth ?: false,
                 )
             }.collect { preferences ->
                 _state.update {
@@ -335,6 +341,7 @@ class ReaderViewModel(
                         splitWidePages = preferences.splitWidePages,
                         verticalScroll = preferences.verticalScroll,
                         pageLook = preferences.pageLook,
+                        fitWidth = preferences.fitWidth,
                     )
                 }
                 applySourceMode(SourceMode(preferences.splitWidePages, preferences.direction))
@@ -390,6 +397,7 @@ private data class ComicPreferences(
     val splitWidePages: Boolean,
     val verticalScroll: Boolean,
     val pageLook: PageLook,
+    val fitWidth: Boolean,
 )
 
 private fun effectiveDirection(

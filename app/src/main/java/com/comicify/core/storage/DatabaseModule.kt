@@ -127,5 +127,6 @@ private val MIGRATION_11_12 = object : Migration(11, 12) {
 private val MIGRATION_12_13 = object : Migration(12, 13) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE comic_settings ADD COLUMN pageLook TEXT NOT NULL DEFAULT 'Original'")
+        db.execSQL("ALTER TABLE comic_settings ADD COLUMN fitWidth INTEGER NOT NULL DEFAULT 0")
     }
 }

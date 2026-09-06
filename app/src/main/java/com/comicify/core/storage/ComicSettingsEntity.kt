@@ -16,4 +16,5 @@ data class ComicSettingsEntity(
     val splitSuggested: Boolean = false,
     val verticalScroll: Boolean = false,
     val pageLook: String = PageLook.Original.name,
+    val fitWidth: Boolean = false,
 )
