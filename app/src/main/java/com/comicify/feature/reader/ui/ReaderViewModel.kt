@@ -27,6 +27,7 @@ import com.comicify.feature.reader.data.PanelDetector
 import com.comicify.feature.reader.data.SplitPagesComicSource
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.ComicOpenError
+import com.comicify.feature.reader.domain.PageLook
 import com.comicify.feature.reader.domain.ReaderViewMode
 import com.comicify.feature.reader.domain.SplitSuggestion
 import dagger.hilt.android.EntryPointAccessors
@@ -292,6 +293,11 @@ class ReaderViewModel(
         updateSettings { it.copy(splitWidePages = split) }
     }
 
+    fun cyclePageLook() {
+        val next = _state.value.pageLook.next()
+        updateSettings { it.copy(pageLook = next.name) }
+    }
+
     private fun updateSettings(transform: (ComicSettingsEntity) -> ComicSettingsEntity) {
         viewModelScope.launch {
             val settings = comicSettingsDao.find(uri.toString()) ?: emptySettings()
@@ -319,6 +325,7 @@ class ReaderViewModel(
                     coverAlone = settings?.coverAlone ?: false,
                     splitWidePages = settings?.splitWidePages ?: false,
                     verticalScroll = settings?.verticalScroll ?: false,
+                    pageLook = PageLook.named(settings?.pageLook),
                 )
             }.collect { preferences ->
                 _state.update {
@@ -327,6 +334,7 @@ class ReaderViewModel(
                         coverAlone = preferences.coverAlone,
                         splitWidePages = preferences.splitWidePages,
                         verticalScroll = preferences.verticalScroll,
+                        pageLook = preferences.pageLook,
                     )
                 }
                 applySourceMode(SourceMode(preferences.splitWidePages, preferences.direction))
@@ -351,6 +359,7 @@ class ReaderViewModel(
             guided = current.guided,
             bubbleScale = current.bubbleScale.takeIf { current.bubblesEnlarged },
             posture = posture,
+            pageLook = current.pageLook,
         )
         viewModelScope.launch {
             val intent = withContext(Dispatchers.IO) { GlitchReport(getApplication()).compose(loader, request) }
@@ -380,6 +389,7 @@ private data class ComicPreferences(
     val coverAlone: Boolean,
     val splitWidePages: Boolean,
     val verticalScroll: Boolean,
+    val pageLook: PageLook,
 )
 
 private fun effectiveDirection(

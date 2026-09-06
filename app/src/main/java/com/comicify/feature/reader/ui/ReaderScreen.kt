@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Contrast
 import androidx.compose.material.icons.filled.CropPortrait
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.NightsStay
@@ -117,6 +118,7 @@ import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_STEP
 import com.comicify.feature.reader.domain.ComicOpenError
+import com.comicify.feature.reader.domain.PageLook
 import com.comicify.feature.reader.domain.ReaderViewMode
 import com.comicify.feature.reader.domain.TapZone
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -247,6 +249,7 @@ fun ReaderScreen(
                         },
                         onStripScrolled = viewModel::hideChrome,
                         bubbleScale = state.bubbleScale.takeIf { state.bubblesEnlarged },
+                        pageLook = state.pageLook,
                         direction = state.direction,
                         coverAlone = state.coverAlone,
                         initialPage = state.position.pageIndex,
@@ -280,6 +283,7 @@ fun ReaderScreen(
             bubblesEnlarged = state.bubblesEnlarged,
             bubbleScale = state.bubbleScale,
             nightTintEnabled = state.nightTintEnabled,
+            pageLook = state.pageLook,
             direction = state.direction,
             splitWidePages = state.splitWidePages,
             onViewMode = viewModel::setViewMode,
@@ -287,6 +291,7 @@ fun ReaderScreen(
             onBubbleScale = viewModel::setBubbleScale,
             onToggleGuidedFullScreen = viewModel::toggleGuidedFullScreen,
             onToggleNightTint = viewModel::toggleNightTint,
+            onCyclePageLook = viewModel::cyclePageLook,
             onToggleDirection = viewModel::toggleReadingDirection,
             onToggleSplitWidePages = viewModel::toggleSplitWidePages,
             onReportGlitch = { glitchDialogOpen = true },
@@ -438,6 +443,7 @@ private fun TopChrome(
     bubblesEnlarged: Boolean,
     bubbleScale: Float,
     nightTintEnabled: Boolean,
+    pageLook: PageLook,
     direction: ReadingDirection,
     splitWidePages: Boolean,
     onViewMode: (ReaderViewMode) -> Unit,
@@ -445,6 +451,7 @@ private fun TopChrome(
     onBubbleScale: (Float) -> Unit,
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
+    onCyclePageLook: () -> Unit,
     onToggleDirection: () -> Unit,
     onToggleSplitWidePages: () -> Unit,
     onReportGlitch: () -> Unit,
@@ -485,7 +492,8 @@ private fun TopChrome(
                     CircleControl(
                         icon = Icons.Filled.Settings,
                         open = openPanel == HudPanelKind.Settings,
-                        marked = nightTintEnabled || direction == ReadingDirection.RightToLeft || splitWidePages,
+                        marked = nightTintEnabled || pageLook != PageLook.Original ||
+                            direction == ReadingDirection.RightToLeft || splitWidePages,
                         contentDescription = stringResource(R.string.reader_action_settings),
                         onClick = { openPanel = openPanel.toggled(HudPanelKind.Settings) },
                     )
@@ -505,10 +513,12 @@ private fun TopChrome(
                         showGuidedLayout = viewMode == ReaderViewMode.Guided && posture == ReadingPosture.UnfoldedSpread,
                         guidedFullScreen = guidedFullScreen,
                         nightTintEnabled = nightTintEnabled,
+                        pageLook = pageLook,
                         direction = direction,
                         splitWidePages = splitWidePages,
                         onToggleGuidedFullScreen = onToggleGuidedFullScreen,
                         onToggleNightTint = onToggleNightTint,
+                        onCyclePageLook = onCyclePageLook,
                         onToggleDirection = onToggleDirection,
                         onToggleSplitWidePages = onToggleSplitWidePages,
                         onReportGlitch = { openPanel = null; onReportGlitch() },
@@ -517,6 +527,13 @@ private fun TopChrome(
             }
         }
     }
+}
+
+private fun PageLook.labelRes(): Int = when (this) {
+    PageLook.Original -> R.string.reader_page_look_original
+    PageLook.Brighter -> R.string.reader_page_look_brighter
+    PageLook.MoreContrast -> R.string.reader_page_look_contrast
+    PageLook.Paper -> R.string.reader_page_look_paper
 }
 
 private enum class HudPanelKind { ViewMode, Settings }
@@ -704,10 +721,12 @@ private fun ReaderSettingsPanel(
     showGuidedLayout: Boolean,
     guidedFullScreen: Boolean,
     nightTintEnabled: Boolean,
+    pageLook: PageLook,
     direction: ReadingDirection,
     splitWidePages: Boolean,
     onToggleGuidedFullScreen: () -> Unit,
     onToggleNightTint: () -> Unit,
+    onCyclePageLook: () -> Unit,
     onToggleDirection: () -> Unit,
     onToggleSplitWidePages: () -> Unit,
     onReportGlitch: () -> Unit,
@@ -719,6 +738,17 @@ private fun ReaderSettingsPanel(
             onClick = onToggleNightTint,
         ) {
             Switch(checked = nightTintEnabled, onCheckedChange = null)
+        }
+        PanelRow(
+            icon = Icons.Filled.Contrast,
+            label = stringResource(R.string.reader_page_look),
+            onClick = onCyclePageLook,
+        ) {
+            Text(
+                text = stringResource(pageLook.labelRes()),
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.labelLarge,
+            )
         }
         PanelRow(
             icon = Icons.Filled.SwapHoriz,

@@ -50,6 +50,7 @@ import com.comicify.core.input.PageTurnDirection
 import com.comicify.feature.reader.data.PageArt
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.data.PaintedBubble
+import com.comicify.feature.reader.domain.PageLook
 import com.comicify.feature.reader.domain.PanSlop
 import com.comicify.feature.reader.domain.StripChain
 import com.comicify.feature.reader.domain.StripItem
@@ -73,6 +74,7 @@ fun VerticalStripReader(
     loader: PageLoader,
     comic: StripComic?,
     bubbleScale: Float?,
+    pageLook: PageLook,
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
     pendingJump: Int?,
@@ -204,7 +206,7 @@ fun VerticalStripReader(
         ) {
             items(items = items, key = { it.key() }) { item ->
                 when (item) {
-                    is StripItem.Page -> StripPage(chain[item.link].loader, item, bubbleScale)
+                    is StripItem.Page -> StripPage(chain[item.link].loader, item, bubbleScale, pageLook)
                     is StripItem.Boundary -> StripBoundary(item)
                 }
             }
@@ -232,7 +234,7 @@ private fun StripItem.key(): Any = when (this) {
 }
 
 @Composable
-private fun StripPage(loader: PageLoader, item: StripItem.Page, bubbleScale: Float?) {
+private fun StripPage(loader: PageLoader, item: StripItem.Page, bubbleScale: Float?, pageLook: PageLook) {
     val art by produceState<PageArt?>(initialValue = null, loader, item.page) {
         value = runCatching { loader.load(item.page) }.getOrNull()
     }
@@ -240,7 +242,7 @@ private fun StripPage(loader: PageLoader, item: StripItem.Page, bubbleScale: Flo
         value = if (bubbleScale == null) emptyList()
         else runCatching { loader.overlay(item.page, bubbleScale) }.getOrDefault(emptyList())
     }
-    Box(modifier = Modifier.fillMaxWidth().aspectRatio(item.aspect)) {
+    Box(modifier = Modifier.fillMaxWidth().aspectRatio(item.aspect).pageLook(pageLook)) {
         art?.let { page ->
             Image(
                 bitmap = page.image,

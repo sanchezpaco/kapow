@@ -277,7 +277,8 @@ direction, and the reader's direction toggle then writes the override instead
 of the global preference; `bubbleScale` works the same way for the HUD stepper
 (override wins, and stepping updates the override when one exists);
 `coverAlone` feeds the spread pairing above, `splitWidePages` the split
-described above and `verticalScroll` the continuous strip.
+described above, `verticalScroll` the continuous strip and `pageLook` the image
+adjustment below.
 Everything else stays global in `ReaderPreferencesRepository`.
 
 ## Reading direction
@@ -332,7 +333,8 @@ is unit-tested directly (`PageOrderTest`).
   The panels live inside the chrome, so they slide away with it, and only one is
   open at a time: `TopChrome` owns a single nullable `HudPanelKind`, so opening
   one closes the other instead of letting two columns interleave.
-- The gear panel holds night tint, reading direction (trailing text, tapping
+- The gear panel holds night tint, page look (trailing text, tapping cycles it),
+  reading direction (trailing text, tapping
   flips it), split wide pages, the panel-layout toggle in the spread, and, below
   a hairline, "Report a visual glitch" as a plain action row that closes the
   panel.
@@ -340,7 +342,8 @@ is unit-tested directly (`PageOrderTest`).
   colour only while its own panel is showing. Whether its contents are at the
   defaults is a separate signal: an 8 dp accent dot on the top-end corner of the
   circle, shown while the panel is closed and the eye is off Pages or has
-  bubbles on, or the gear has night tint, right-to-left or the split active.
+  bubbles on, or the gear has night tint, a page look other than Original,
+  right-to-left or the split active.
 - Center tap toggles a minimal overlay: progress, page number, quick settings.
   Both bars carry a scrim so their white content stays legible over light pages:
   the top bar fades black `0.6` → transparent downwards, the bottom chrome
@@ -401,6 +404,56 @@ is unit-tested directly (`PageOrderTest`).
 Regardless of surface, the reader preloads the next `N` page bitmaps (and, in
 spread mode, the next pair) through Coil so page turns have no decode latency. `N`
 scales down under memory pressure.
+
+## Page look
+
+Scans differ far more than screens do: a dark 90s scan, a washed-out one and a
+yellowed newsprint one all want a different curve. The reader offers four named
+looks per comic (`PageLook` in `reader/domain`, persisted as
+`ComicSettings.pageLook` by enum name), cycled from one gear-panel row:
+Original → Brighter → More contrast → Paper → Original, so Original — the reset
+— is never more than three taps away.
+
+Each look is a `ColorMatrix` built by a pure function from a contrast about the
+mid level (128), an optional lift and optional per-channel gain:
+
+- **Original** — identity, and **nothing is installed in the modifier chain at
+  all**.
+- **Brighter** — a +20 lift, then contrast ×1.05 about mid.
+- **More contrast** — contrast ×1.25 about mid (which is exactly an offset of
+  −32 per channel) then saturation ×1.05.
+- **Paper** — contrast ×1.18 about mid, with channel gains R ×0.98, G ×1.00,
+  B ×1.06 to pull the yellow cast out of newsprint scans.
+
+They are unit-tested by applying the matrix to a colour rather than by
+comparing coefficients (`PageLookTest`): mid grey survives More contrast
+unchanged, Paper cools it, Brighter lifts black to 14.6.
+
+The filter is applied by wrapping the page content in **one** `saveLayer`
+(`Modifier.pageLook`: `drawWithContent` → `drawIntoCanvas` → `saveLayer(paint)`
+→ `drawContent()` → `restore()`), so the page bitmap, the enlarged-bubble copies
+and the crescent fill get the same treatment and can never diverge. It applies
+on every surface — single page, spread (both halves), tabletop, Guided View, the
+vertical strip, PDF and split halves — with no posture special cases.
+
+Two rules keep it cheap:
+
+- **In the strip the filter goes on each page item, never around the
+  `LazyColumn`** — a composited layer over a scrolling list is the 700 ms p99
+  regression described above.
+- **Original adds no layer**, the same discipline as the strip's zoom
+  `graphicsLayer`.
+
+It is a draw-time filter only: no decode is invalidated and no detection cache
+is keyed on it, so cycling is instant and costs no re-decode. It deliberately
+does **not** reach the thumbnail scrubber (navigation) or library covers
+(identity), and the glitch report's `page.jpg` stays unfiltered so it still
+shows what the detector saw — the look is recorded as a `pageLook` field in
+`report.json` instead.
+
+Night tint is orthogonal: it stays global and is drawn above the page and below
+the chrome, so it composes over an adjusted page. The two rows sit next to each
+other in the gear panel so the relationship is legible.
 
 ## Night tint
 

@@ -4,6 +4,7 @@ import com.comicify.domain.model.ReadingDirection
 import com.comicify.domain.model.ReadingPosition
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.ComicOpenError
+import com.comicify.feature.reader.domain.PageLook
 
 data class ReaderUiState(
     val loading: Boolean = true,
@@ -24,4 +25,5 @@ data class ReaderUiState(
     val splitWidePages: Boolean = false,
     val verticalScroll: Boolean = false,
     val splitSuggested: Boolean = false,
+    val pageLook: PageLook = PageLook.Original,
 )

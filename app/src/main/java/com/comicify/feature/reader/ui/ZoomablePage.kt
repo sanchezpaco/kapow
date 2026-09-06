@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import com.comicify.feature.reader.data.PageArt
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
+import com.comicify.feature.reader.domain.PageLook
 import com.comicify.feature.reader.domain.PanSlop
 import com.comicify.feature.reader.domain.TapZone
 import com.comicify.feature.reader.domain.TapZones
@@ -82,6 +83,7 @@ fun ZoomablePage(
     loader: PageLoader,
     index: Int,
     bubbleScale: Float?,
+    pageLook: PageLook,
     direction: ReadingDirection,
     tapZones: TapZones,
     onTap: (TapZone) -> Unit,
@@ -193,7 +195,8 @@ fun ZoomablePage(
                         scaleY = scale
                         translationX = offset.x
                         translationY = offset.y
-                    },
+                    }
+                    .pageLook(pageLook),
             ) {
                 Image(
                     bitmap = page.image,
