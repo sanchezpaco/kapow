@@ -91,6 +91,7 @@ private val SingleColumnMaxWidth = 640.dp
 private val SideColumnMaxWidth = 480.dp
 private val TwoColumnMinWidth = 840.dp
 private val SwatchSize = 44.dp
+private val SwatchGap = 12.dp
 private val SwatchRingWidth = 2.5.dp
 private val SwatchRingGap = 3.dp
 private val SwatchOutlineWidth = 1.dp
@@ -100,7 +101,6 @@ private val GroundTileCorner = 12.dp
 private val GroundTileRingWidth = 2.dp
 private val GroundTileDot = 10.dp
 private val GroundTileGap = 10.dp
-private val LauncherTileSize = 48.dp
 private val ActionCorner = 12.dp
 private val ActionPaddingHorizontal = 16.dp
 private val ActionPaddingVertical = 11.dp
@@ -314,7 +314,7 @@ private fun AppearanceSection(
         }
         SettingsDivider()
         SettingsStackedRow(label = stringResource(R.string.app_settings_accent)) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(SwatchGap), verticalArrangement = Arrangement.spacedBy(SwatchGap)) {
                 ThemeAccent.entries.forEach { accent ->
                     ThemeSwatch(
                         ground = theme.ground.background,
@@ -333,8 +333,8 @@ private fun AppearanceSection(
             supporting = stringResource(R.string.app_settings_launcher_icon_hint),
         ) {
             FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(GroundTileGap),
-                verticalArrangement = Arrangement.spacedBy(GroundTileGap),
+                horizontalArrangement = Arrangement.spacedBy(SwatchGap),
+                verticalArrangement = Arrangement.spacedBy(SwatchGap),
             ) {
                 LauncherIcon.entries.forEach { icon ->
                     LauncherIconTile(
@@ -361,7 +361,7 @@ private fun LauncherIconTile(icon: LauncherIcon, label: String, selected: Boolea
     ) {
         Canvas(
             modifier = Modifier
-                .size(LauncherTileSize)
+                .size(SwatchSize)
                 .clip(CircleShape)
                 .border(
                     width = if (selected) GroundTileRingWidth else SwatchOutlineWidth,

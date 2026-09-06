@@ -82,8 +82,10 @@ foreground mark is scaled by 72/90 to look like the 512 px store icon.
 ### Stages and the launcher aliases
 
 The page grid comes in five stages — `blue` (the shipped one), `ink` (near-black
-page, grey gutters), `red`, `violet` and `mix` (each panel a different hue of
-the palette, cycled deterministically over blue/red/violet/ink) — all with the
+page, grey gutters), `red`, `violet` and `mix` (a fixed hue per panel over
+blue/red/violet in two shades each, laid out so the tiles inside the launcher's
+circle carry colour — the earlier blue/red/violet/ink cycle put the ink tiles
+and the darkest shades exactly there and the icon read as grey) — all with the
 same bubble, K, halftone and vignette. `STAGES` at the top of `icon.py` is the
 whole definition; the script writes `ic_launcher_background_<stage>.xml` plus a
 mipmap pair `ic_launcher_<stage>{,_round}.xml` sharing the one foreground and

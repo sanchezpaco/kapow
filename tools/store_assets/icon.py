@@ -62,17 +62,13 @@ def one_hue(dark: str, mid: str) -> tuple:
     return tuple(dark if i % DARK_PANEL_EVERY == 0 else mid for i in range(len(PANELS)))
 
 
-MIX_HUES = [
-    (PANEL_DARK, "#1E4E90"), (RED_PANEL_DARK, "#8E1A28"),
-    (VIOLET_PANEL_DARK, "#552A9C"), (INK_PANEL_DARK, "#2B2B37"),
-]
-
-
-def mixed_hues() -> tuple:
-    return tuple(
-        MIX_HUES[i % len(MIX_HUES)][0 if i % DARK_PANEL_EVERY == 0 else 1]
-        for i in range(len(PANELS))
-    )
+MIX_BLUE = (PANEL_MID, "#2A62B0")
+MIX_RED = (RED_PANEL_MID, "#A32232")
+MIX_VIOLET = (VIOLET_PANEL_MID, "#6A38B8")
+MIX_PANELS = (
+    MIX_BLUE[0], MIX_RED[1], MIX_VIOLET[1], MIX_VIOLET[0], MIX_BLUE[1],
+    MIX_RED[0], MIX_RED[1], MIX_BLUE[0], MIX_VIOLET[1], MIX_RED[0],
+)
 
 
 DEFAULT_STAGE = "blue"
@@ -81,7 +77,7 @@ STAGES = {
     "ink": Stage(INK_GUTTER, one_hue(INK_PANEL_DARK, INK_PANEL_MID)),
     "red": Stage(RED_GUTTER, one_hue(RED_PANEL_DARK, RED_PANEL_MID)),
     "violet": Stage(VIOLET_GUTTER, one_hue(VIOLET_PANEL_DARK, VIOLET_PANEL_MID)),
-    "mix": Stage(MIX_GUTTER, mixed_hues()),
+    "mix": Stage(MIX_GUTTER, MIX_PANELS),
 }
 VIGNETTE_CENTRE = (54, 48.6)
 VIGNETTE_RADIUS = 81
