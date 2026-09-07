@@ -23,6 +23,7 @@ import com.comicify.domain.model.ReadingDirection
 import com.comicify.domain.model.ReadingPosition
 import com.comicify.feature.library.domain.ComicSettings
 import com.comicify.feature.library.domain.LibraryCatalog
+import com.comicify.feature.library.domain.effectiveReadingType
 import com.comicify.feature.library.domain.openModeOnOpen
 import com.comicify.feature.reader.data.ComicSource
 import com.comicify.feature.reader.data.ComicSourceException
@@ -102,7 +103,7 @@ class ReaderViewModel(
             bookmarkComic(comic?.id)
             val settings = comicSettingsDao.find(uri.toString())
             val defaults = preferencesRepository.openDefaults.first()
-            val type = effectiveType(defaults.readingType, comicReadingType.value, settings)
+            val type = effectiveReadingType(defaults.readingType, comicReadingType.value, settings?.readingType)
             applyOpenDefaults(defaults, settings, type)
             val mode = SourceMode(
                 splitWidePages = settings?.splitWidePages ?: false,
@@ -405,7 +406,7 @@ class ReaderViewModel(
                 comicSettingsDao.observe(uri.toString()),
             ) { global, comicDefault, settings ->
                 ComicPreferences(
-                    readingType = effectiveType(global, comicDefault, settings),
+                    readingType = effectiveReadingType(global, comicDefault, settings?.readingType),
                     coverAlone = settings?.coverAlone ?: false,
                     splitWidePages = settings?.splitWidePages ?: false,
                     verticalScroll = settings?.verticalScroll ?: false,
@@ -505,12 +506,6 @@ private data class ComicPreferences(
     val pageLook: PageLook,
     val fitWidth: Boolean,
 )
-
-private fun effectiveType(
-    global: ReadingType,
-    comicDefault: ReadingType?,
-    settings: ComicSettingsEntity?,
-): ReadingType = settings?.readingType ?: comicDefault ?: global
 
 private fun ComicSource?.sourcePage(page: Int): Int = (this as? SplitPagesComicSource)?.sourcePageOf(page) ?: page
 

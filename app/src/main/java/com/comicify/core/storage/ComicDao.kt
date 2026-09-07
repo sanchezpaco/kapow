@@ -19,6 +19,9 @@ interface ComicDao {
     @Query("SELECT * FROM comics WHERE id = :id")
     suspend fun findById(id: Long): ComicEntity?
 
+    @Query("SELECT * FROM comics WHERE id = :id")
+    fun observeById(id: Long): Flow<ComicEntity?>
+
     @Query("SELECT * FROM comics WHERE documentUri = :documentUri")
     suspend fun findByDocumentUri(documentUri: String): ComicEntity?
 

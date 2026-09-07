@@ -25,3 +25,6 @@ fun defaultOpenMode(type: ReadingType, guidedOnOpen: Boolean): ReaderViewMode = 
 
 fun ComicSettings.openModeOnOpen(type: ReadingType, guidedOnOpen: Boolean): ReaderViewMode =
     openMode() ?: defaultOpenMode(type, guidedOnOpen)
+
+fun effectiveReadingType(global: ReadingType, comicDefault: ReadingType?, override: ReadingType?): ReadingType =
+    override ?: comicDefault ?: global

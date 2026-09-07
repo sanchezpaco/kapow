@@ -4,11 +4,17 @@ import android.content.Context
 import com.comicify.core.storage.ComicDao
 import com.comicify.core.storage.ComicSettingsDao
 import com.comicify.core.storage.ComicSettingsEntity
+import com.comicify.core.storage.OpenDefaults
 import com.comicify.core.storage.ReadingSessionDao
 import com.comicify.core.storage.ReadingSessionEntity
 import com.comicify.core.storage.ReadingSessionRow
 import com.comicify.core.storage.ReaderPreferencesRepository
+import com.comicify.feature.library.domain.ComicSettings
+import com.comicify.feature.library.domain.LibraryComic
+import com.comicify.feature.library.domain.effectiveReadingType
+import com.comicify.feature.library.domain.openModeOnOpen
 import com.comicify.feature.reader.domain.ReaderViewMode
+import com.comicify.feature.reader.domain.ReadingType
 import com.comicify.feature.stats.domain.ReadingPace
 import com.comicify.feature.stats.domain.ReadingSession
 import com.comicify.feature.stats.domain.SeriesReading
@@ -36,14 +42,14 @@ class ReadingStatsRepositoryImpl @Inject constructor(
     override val readings: Flow<List<SeriesReading>> =
         sessionDao.observeRecentFirst().map { rows -> rows.map(ReadingSessionRow::toSeriesReading) }
 
-    override fun secondsPerPage(documentUri: String, series: String): Flow<Int> =
-        combine(readings, openMode(documentUri)) { sessions, mode ->
-            ReadingPace.secondsPerPage(sessions, series, mode)
+    override fun secondsPerPage(comic: LibraryComic): Flow<Int> =
+        combine(readings, openMode(comic)) { sessions, mode ->
+            ReadingPace.secondsPerPage(sessions, comic.series, mode)
         }
 
     override suspend fun openMode(comicId: Long): ReaderViewMode {
         val comic = comicDao.findById(comicId) ?: return ReaderViewMode.Pages
-        return openMode(comicSettingsDao.find(comic.documentUri), preferences.guidedOnOpen.first())
+        return openMode(comic.readingType, comicSettingsDao.find(comic.documentUri), preferences.openDefaults.first())
     }
 
     override suspend fun record(session: ReadingSession) {
@@ -55,14 +61,18 @@ class ReadingStatsRepositoryImpl @Inject constructor(
         sessionDao.deleteAll()
     }
 
-    private fun openMode(documentUri: String): Flow<ReaderViewMode> =
-        combine(comicSettingsDao.observe(documentUri), preferences.guidedOnOpen, ::openMode)
+    private fun openMode(comic: LibraryComic): Flow<ReaderViewMode> =
+        combine(
+            comicDao.observeById(comic.id),
+            comicSettingsDao.observe(comic.documentUri),
+            preferences.openDefaults,
+        ) { entity, settings, defaults -> openMode(entity?.readingType, settings, defaults) }
 
-    private fun openMode(settings: ComicSettingsEntity?, guidedOnOpen: Boolean): ReaderViewMode =
-        ReaderViewMode.of(
-            guided = settings?.guided ?: guidedOnOpen,
-            verticalScroll = settings?.verticalScroll ?: false,
-        )
+    private fun openMode(comicType: ReadingType?, settings: ComicSettingsEntity?, defaults: OpenDefaults): ReaderViewMode {
+        val explicit = ComicSettings(guided = settings?.guided, verticalScroll = settings?.verticalScroll ?: false)
+        val type = effectiveReadingType(defaults.readingType, comicType, settings?.readingType)
+        return explicit.openModeOnOpen(type, defaults.guidedOnOpen)
+    }
 }
 
 private fun ReadingSessionRow.toSeriesReading(): SeriesReading =

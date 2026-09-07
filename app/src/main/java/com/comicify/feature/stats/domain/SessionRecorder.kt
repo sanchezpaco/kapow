@@ -49,6 +49,12 @@ object SessionRecorder {
         )
     }
 
+    fun moveTo(draft: SessionDraft, comicId: Long, pageIndex: Int, now: Long): PageTurn {
+        val idle = now - draft.lastActivityAt >= SESSION_IDLE_TIMEOUT_MS
+        val ended = if (idle) draft else draft.copy(lastActivityAt = now)
+        return PageTurn(start(comicId, draft.mode, now, pageIndex), end(ended))
+    }
+
     fun end(draft: SessionDraft): ReadingSession? {
         if (draft.pages < 1) return null
         if (draft.lastActivityAt - draft.startedAt < MIN_SESSION_MS) return null

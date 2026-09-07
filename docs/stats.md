@@ -23,9 +23,10 @@ the UI. `finished` marks a session in which the comic reached its last page.
 
 - **Starts** when the reader composes for a comic (`RecordReadingSession` in
   `KapowRoot.kt`, driving `ReadingSessionViewModel`). The mode is the one the
-  comic opens in (`ReaderViewMode.of` over its `ComicSettings` and the global
-  default) and it never changes for that session, so a session's pace is always
-  comparable with the mode it belongs to.
+  comic opens in, resolved with the reader's own rule (`openModeOnOpen`: the
+  comic's explicit mode, else the strip for a Webcomic, else the global
+  Guided-on-open default) and it never changes for that session, so a
+  session's pace is always comparable with the mode it belongs to.
 - **Ends and is written** on the earliest of: the reader closing, `ON_STOP`
   (the app going to the background), or **10 idle minutes**. Coming back from
   the background starts a new session.
@@ -38,6 +39,13 @@ the UI. `finished` marks a session in which the comic reached its last page.
   1 per page (not per stop), the vertical strip counts 1 per dominant page and a
   scrubber jump is capped at 3. The first event after opening only anchors the
   position.
+- **The vertical strip chains issues**, and a session belongs to one comic, so
+  the first page event from the next issue closes the current session at that
+  moment (the crossing is a page turn, unless the idle timeout already passed)
+  and opens a new one for the next issue, in the same mode, anchored at its
+  first page. `ReadingSessionViewModel` keeps the comic the reader was opened
+  with apart from the comic the draft belongs to: closing the reader ends
+  whichever session is open.
 - **Discarded** (never written) when the session turned no page or lasted less
   than 20 s.
 

@@ -98,7 +98,7 @@ class LibraryViewModel @Inject constructor(
 
     private fun LibraryUiState.withHeroPace(): Flow<LibraryUiState> {
         val hero = continueReading.firstOrNull() ?: return flowOf(this)
-        return stats.secondsPerPage(hero.documentUri, hero.series).map { copy(heroSecondsPerPage = it) }
+        return stats.secondsPerPage(hero).map { copy(heroSecondsPerPage = it) }
     }
 
     init {

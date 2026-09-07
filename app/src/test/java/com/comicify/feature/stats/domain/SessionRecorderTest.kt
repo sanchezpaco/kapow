@@ -8,6 +8,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 private const val COMIC_ID = 7L
+private const val NEXT_COMIC_ID = 8L
 private const val MINUTE = 60_000L
 
 class SessionRecorderTest {
@@ -97,5 +98,29 @@ class SessionRecorderTest {
     fun keepsTheModeTheComicWasOpenedIn() {
         val draft = start(mode = ReaderViewMode.Guided).page(0, at = 0).page(1, at = MINUTE).page(2, at = 2 * MINUTE)
         assertEquals(ReaderViewMode.Guided, SessionRecorder.end(draft)!!.mode)
+    }
+
+    @Test
+    fun scrollingIntoTheNextIssueClosesTheSessionAtTheCrossingAndOpensOneForIt() {
+        val reading = start(mode = ReaderViewMode.Strip).page(21, at = 0).page(22, at = MINUTE).page(23, at = 2 * MINUTE, pageCount = 24)
+        val turn = SessionRecorder.moveTo(reading, NEXT_COMIC_ID, pageIndex = 0, now = 3 * MINUTE)
+        val closed = turn.ended
+        assertNotNull(closed)
+        assertEquals(COMIC_ID, closed!!.comicId)
+        assertEquals(2, closed.pages)
+        assertEquals(3 * MINUTE, closed.endedAt)
+        assertTrue(closed.finished)
+        assertEquals(NEXT_COMIC_ID, turn.draft.comicId)
+        assertEquals(ReaderViewMode.Strip, turn.draft.mode)
+        assertEquals(3 * MINUTE, turn.draft.startedAt)
+        assertEquals(0, turn.draft.lastPageIndex)
+        assertEquals(0, turn.draft.pages)
+    }
+
+    @Test
+    fun crossingIntoTheNextIssueAfterTheIdleTimeoutEndsTheSessionAtItsLastTurn() {
+        val reading = start().page(0, at = 0).page(1, at = MINUTE).page(2, at = 2 * MINUTE)
+        val turn = SessionRecorder.moveTo(reading, NEXT_COMIC_ID, pageIndex = 0, now = 2 * MINUTE + SESSION_IDLE_TIMEOUT_MS)
+        assertEquals(2 * MINUTE, turn.ended!!.endedAt)
     }
 }
