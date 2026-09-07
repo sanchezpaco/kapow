@@ -1,0 +1,2 @@
+• Las estadísticas siguen contando cuando el scroll vertical continúa con el siguiente número
+• El número que terminas al hacer scroll se marca como terminado en tus estadísticas

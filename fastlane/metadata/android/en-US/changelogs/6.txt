@@ -1,0 +1,2 @@
+• Reading stats keep counting when the vertical scroll continues into the next issue
+• The issue you finish while scrolling is marked as finished in your stats

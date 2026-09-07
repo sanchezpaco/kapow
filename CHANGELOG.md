@@ -7,6 +7,16 @@ All notable user-facing changes to Kapow. The format follows
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-09-07
+
+### Fixed
+- Reading stats now follow the vertical scroll into the next issue. Scrolling
+  from the end of one issue into the next closes the session of the one you
+  finished, marks it finished, and opens a session for the next issue; before,
+  everything read past the boundary was lost.
+- A session's mode is resolved with the same rule the reader uses to open the
+  comic, so a Webcomic that opens in the vertical scroll counts as such.
+
 ## [1.0.4] - 2026-09-06
 
 ### Added
