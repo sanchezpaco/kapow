@@ -1,25 +1,26 @@
-Kapow reads the comics you already own — CBZ, CBR, CB7, CBT and PDF — on any Android phone or tablet. On a foldable it adapts to the posture: folded, a clean one-page reader; unfolded, the double-page spread as printed; on the table, the page stays up.
+Kapow reads the comics you already own: CBZ, CBR, CB7, CBT and PDF. No accounts, no cloud, no ads.
 
 READ YOUR WAY
-• Guided View: panel by panel, detected on your device — nothing leaves your phone.
-• Bigger speech bubbles: the lettering grows so small print stops being a problem.
-• Comic, Manga (right to left) or Webcomic (vertical scroll), chosen per comic.
-• Page look for tired scans — Original, Brighter, More contrast or Paper — and fit to screen or to width.
-• Edge taps or volume keys turn the page, pinch to zoom, bookmark a page, share the page you are on.
-• Night tint and keep-screen-on while reading.
+• Guided View: panel by panel, each tap takes you to the next one. Detection runs on your phone.
+• Bigger speech bubbles, so you can read small lettering without zooming.
+• Comic, manga (right to left) or vertical scroll, per comic.
+• Brighter, more contrast or paper for yellowed scans. Fit to screen or to width.
+• Turn pages with edge taps or the volume keys. Bookmarks and share page.
+• Night tint and keep the screen on while reading.
+• Two-page spreads on tablets and open foldables.
 
 YOUR SHELF
-• Point Kapow at your comics folder; it builds the shelf, groups issues by series and keeps it up to date even when you rename or move a file.
-• Reading lists you order yourself, and "Next issue" follows them.
-• Search by field — writer:, series:, year>2015, rating:4+ — or tap a preset: In progress, Highly rated, Recently added.
-• ComicInfo.xml metadata: the real series, issue, year, story title and credits. Rate a comic, correct its details, make any page its cover.
-• Reading stats: pages, time and pace over the last 30 days, measured on this device only.
+• Pick your comics folder and Kapow sorts it by series. Move or rename a file and you keep your progress.
+• Continue reading, reading lists and unread, read and favourites filters.
+• Search by series, writer, year or rating: series:planet, year>1950, rating:4+.
+• Reads ComicInfo.xml: series, issue, title and credits. Rate each comic, fix its details and choose its cover.
+• Reading stats for the last 30 days.
 
 YOUR LOOK
-• Pure black (OLED), graphite or paper themes, seven accent colours or the wallpaper colour on Android 12+, and five launcher icons.
+• Pure black (OLED), graphite or paper background, seven accent colours or your wallpaper colour on Android 12+, and five icons.
+• Per-comic settings: each title remembers how you read it.
 • English and Spanish.
 
-PRIVACY
-Kapow collects no data and has no accounts, ads or trackers. It only reads the files you point it to. Guided View and enlarged bubbles run entirely on the device; they work best on comics with clearly drawn panels and may miss on some pages — both are still being improved.
+Kapow collects no data. It only reads the files you point it to.
 
 Kapow is free software (AGPL-3.0). Source code: https://github.com/sanchezpaco/kapow

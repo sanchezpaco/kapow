@@ -1,25 +1,26 @@
-Kapow lee los cómics que ya tienes — CBZ, CBR, CB7, CBT y PDF — en cualquier móvil o tablet Android. En un plegable se adapta a la postura: plegado, un lector limpio de una página; desplegado, la doble página tal y como se imprimió; sobre la mesa, la página se mantiene en alto.
+Kapow lee los cómics que ya tienes: CBZ, CBR, CB7, CBT y PDF. Sin cuentas, sin nube y sin anuncios.
 
 LEE A TU MANERA
-• Guided View: viñeta a viñeta, detectadas en tu dispositivo — nada sale de tu móvil.
-• Bocadillos más grandes: la rotulación crece y la letra pequeña deja de ser un problema.
-• Cómic, Manga (de derecha a izquierda) o Webcómic (scroll vertical), a elegir en cada cómic.
-• Aspecto de página para escaneos cansados — Original, Más claro, Más contraste o Papel — y ajuste a pantalla o a lo ancho.
-• Pasa página tocando los bordes o con el volumen, pellizca para ampliar, marca una página o comparte la que estás leyendo.
-• Filtro nocturno y pantalla encendida mientras lees.
+• Guided View: viñeta a viñeta, cada toque te lleva a la siguiente. La detección se hace en el móvil.
+• Bocadillos más grandes, para leer la letra pequeña sin hacer zoom.
+• Cómic, manga (de derecha a izquierda) o scroll vertical, según el cómic.
+• Más claro, más contraste o papel para los escaneos amarillentos. Ajuste a pantalla o a lo ancho.
+• Pasa página tocando los bordes o con las teclas de volumen. Marcadores y compartir página.
+• Filtro nocturno y pantalla siempre encendida mientras lees.
+• En tablets y plegables abiertos, doble página.
 
 TU ESTANTERÍA
-• Indica a Kapow tu carpeta de cómics: monta la estantería, agrupa los números por serie y la mantiene al día aunque renombres o muevas un archivo.
-• Listas de lectura ordenadas por ti, y "Siguiente número" las sigue.
-• Busca por campos — guionista:, serie:, año>2015, valoración:4+ — o toca un preajuste: Empezados, Mejor valorados, Añadidos hace poco.
-• Metadatos ComicInfo.xml: la serie, el número, el año, el título y los créditos reales. Valora un cómic, corrige su ficha o haz portada cualquier página.
-• Estadísticas de lectura: páginas, tiempo y ritmo de los últimos 30 días, medidos solo en este dispositivo.
+• Elige tu carpeta de cómics y Kapow la ordena por series. Si mueves o renombras un archivo, no pierdes el progreso.
+• Seguir leyendo, listas de lectura y filtros de sin leer, leídos y favoritos.
+• Busca por serie, guionista, año o valoración: serie:planet, año>1950, valoración:4+.
+• Lee el ComicInfo.xml: serie, número, título y créditos. Puedes valorar cada cómic, corregir su ficha y elegir su portada.
+• Estadísticas de lectura de los últimos 30 días.
 
 A TU GUSTO
-• Temas negro puro (OLED), grafito o papel, siete colores de acento o el color del fondo de pantalla en Android 12+, y cinco iconos de app.
+• Fondo negro puro (OLED), grafito o papel, siete colores de acento o el del fondo de pantalla en Android 12+, y cinco iconos.
+• Ajustes por cómic: cada título recuerda cómo lo lees.
 • Español e inglés.
 
-PRIVACIDAD
-Kapow no recopila datos y no tiene cuentas, anuncios ni rastreadores. Solo lee los archivos que le indicas. Guided View y los bocadillos ampliados funcionan por completo en el dispositivo; van mejor en cómics con viñetas bien marcadas y pueden fallar en algunas páginas — ambos siguen mejorando.
+Kapow no recopila datos. Solo lee los archivos que le indicas.
 
 Kapow es software libre (AGPL-3.0). Código fuente: https://github.com/sanchezpaco/kapow
