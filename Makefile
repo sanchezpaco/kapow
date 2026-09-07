@@ -74,6 +74,7 @@ deploy-bundle: bundle
 	"$(JAVA)" -jar "$(BUNDLETOOL)" install-apks --apks="$(BUNDLE_APKS)" --device-id="$$serial" --adb="$(ADB)"
 
 publish-internal: bundle
+	@test -n "$(PLAY_JSON_KEY)" || { echo "Set kapow.play.serviceAccountJson=/path/to/key.json in local.properties"; exit 1; }
 	fastlane supply --aab "$(BUNDLE)" --track internal --json_key "$(PLAY_JSON_KEY)" \
 		--package_name com.sanchezpaco.kapow \
 		--skip_upload_metadata --skip_upload_images --skip_upload_screenshots
