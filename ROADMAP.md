@@ -812,6 +812,72 @@ plaintext.
 
 ---
 
+## Autoplay and bulk selection — 1.0.x
+
+Two maintainer requests from 2026-09-10, built the same day: hands-free reading,
+and moving many comics into a reading list without tapping each one. Same shape
+as 1.2 — a Senior Designer wrote one spec per surface, an Opus implementer per
+feature worked in its own worktree, and the integrator merged and verified on
+the physical Z Fold. The designer's first two passes were written from code and
+ASCII sketches, and the selection UI they produced was rejected on sight once it
+was seen on a screen; the rework came from screenshots. **Review a UI against
+pixels, not against source.**
+
+- [x] Autoplay in all three reading modes: a Timer switch at the bottom of the
+      eye panel revealing a seconds-per-page stepper (3..120, one second per
+      tap, hold to repeat and it goes coarse in fives). Pages turns the page
+      (twice the dwell on the unfolded spread), Guided splits the page's seconds
+      between its panels with a 1.5 s floor counted from the settled camera, and
+      Strip creeps continuously at one on-screen page height per interval,
+      carrying on into the next issue. The first interval offered is the
+      reader's own median from `ReadingPace`; the value persists, autoplay
+      itself always starts off
+- [x] Autoplay's own pause model, chosen by the maintainer over the designer's
+      latch: a finger held anywhere freezes the dwell without resetting it and
+      releasing continues it, so turning a page, scrolling or zooming never
+      stops autoplay — only the panel switch, the pill, `ON_STOP` and the end of
+      the comic do. The hold is a passive, non-consuming pointer observer, never
+      a gesture, so `ZoomablePage`'s two-finger rule and `PanSlop` are untouched
+- [x] A 40 dp pause pill at the bottom end of the window, outside the sliding
+      chrome, that is both the countdown ring and a real Pause ⇄ Resume
+      transport. Opaque `PanelColor` ground: the translucent first version
+      vanished over cream pages, which is the same lesson that moved the HUD to
+      `HudPanel`
+- [x] Pages turned by autoplay no longer skew the reading pace or the "time
+      left" estimate: an `autoplayed` flag on `reading_session` (Room v19 → v20)
+      drops those sessions from `ReadingPace` while still counting as time read
+- [x] Library multi-select: long-press enters selection on every card type and
+      the shelf's sticky filter-pill row crossfades into a selection row (exit,
+      an issue count, add to list, read, favourite, delete, overflow). No new
+      chrome — the row is built from the ghost squares and pills the library
+      already had
+- [x] Drag from the long-press to select a run, with edge auto-scroll ramping
+      240 → 900 dp/s. The range is computed from an anchor rather than painted,
+      so overshooting and retreating shrinks the span instead of destroying it
+- [x] A series is selectable and contributes its issues: the selection is always
+      a set of comics, so the count reads issues, delete says how many complete
+      series it includes, and the drag range crosses stacks. This retired the
+      last exception — long-press means "select" on every card, and the series
+      menu now lives only on the series screen
+- [x] Add a whole series to a reading list from its menu, keeping issue order
+- [x] An opened reading list groups by series when the toggle is on. Grouping is
+      a view over the list and never writes `ordering`; Move up / Move down hide
+      while grouped, because a position inside a group is not a position in the
+      list
+
+Found only on the device, all fixed: selection mode could be entered invisibly,
+BACK exited the app instead of clearing the selection, and a tap failed to
+toggle a second card — one root cause, `LibraryCatalog.selectable` keeping only
+`LibraryEntry.Single` while the ungrouped shelf renders `state.comics`.
+
+Not adopted: series-worded twins of "mark read" and "favourite" in the selection
+overflow (the rows already there act on the stack's issues); promoting "select
+all" out of the overflow (the drag is the tool for a large partial selection);
+and a permanent hint in the selection row (a one-shot snackbar teaches the drag
+instead).
+
+---
+
 ## Non-goals
 
 - No online store, DRM, or downloading of copyrighted content. Kapow reads
