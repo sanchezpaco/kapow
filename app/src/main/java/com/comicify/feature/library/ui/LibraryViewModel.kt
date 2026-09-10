@@ -10,8 +10,10 @@ import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.domain.LibraryEntry
 import com.comicify.feature.library.domain.LibraryFilter
 import com.comicify.feature.library.domain.LibraryScanError
+import com.comicify.feature.library.domain.LibrarySelection
 import com.comicify.feature.library.domain.LibrarySort
 import com.comicify.feature.library.domain.ReadingList
+import com.comicify.feature.library.domain.ReadingListMembership
 import com.comicify.feature.library.domain.ReadingListOrder
 import com.comicify.feature.stats.data.ReadingStatsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -49,8 +51,9 @@ class LibraryViewModel @Inject constructor(
     private val query = MutableStateFlow("")
     private val openedSeries = MutableStateFlow<String?>(null)
     private val openedListId = MutableStateFlow<Long?>(null)
+    private val selection = MutableStateFlow<Set<Long>>(emptySet())
     private var foregroundScan: Job? = null
-    private var removed: RemovedEntry? = null
+    private var removed: List<RemovedEntry> = emptyList()
 
     private val listState: Flow<ListState> =
         combine(repository.readingLists, openedListId) { lists, openedId ->
@@ -92,7 +95,9 @@ class LibraryViewModel @Inject constructor(
             )
         }
 
-    val state: StateFlow<LibraryUiState> = shelf
+    val state: StateFlow<LibraryUiState> = combine(shelf, selection) { shelf, selected ->
+        shelf.copy(selection = LibrarySelection.reconcile(selected, shelf.comics))
+    }
         .flatMapLatest { shelf -> shelf.withHeroPace() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState())
 
@@ -127,6 +132,7 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun onFilterSelected(selected: LibraryFilter) {
+        onClearSelection()
         filter.value = selected
     }
 
@@ -135,17 +141,31 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun onOpenSeries(series: String?) {
+        onClearSelection()
         openedSeries.value = series
     }
 
     fun onOpenList(list: ReadingList?) {
+        onClearSelection()
         openedListId.value = list?.id
     }
 
-    fun onCreateList(name: String, comic: LibraryComic?) {
+    fun onToggleSelection(comic: LibraryComic) {
+        selection.value = LibrarySelection.toggle(selection.value, comic.id)
+    }
+
+    fun onSelectAll(comics: List<LibraryComic>) {
+        selection.value = comics.mapTo(mutableSetOf()) { it.id }
+    }
+
+    fun onClearSelection() {
+        selection.value = emptySet()
+    }
+
+    fun onCreateList(name: String, comics: List<LibraryComic>) {
         viewModelScope.launch {
             val listId = repository.createList(name.trim())
-            comic?.let { repository.addToList(listId, it.id) }
+            comics.forEach { repository.addToList(listId, it.id) }
         }
     }
 
@@ -162,24 +182,27 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch { repository.restoreList(list) }
     }
 
-    fun onToggleInList(list: ReadingList, comic: LibraryComic) {
+    fun onToggleInList(list: ReadingList, comics: List<LibraryComic>) {
+        val comicIds = comics.map { it.id }
         viewModelScope.launch {
-            if (comic.id in list.comicIds) repository.removeFromList(list.id, comic.id)
-            else repository.addToList(list.id, comic.id)
+            if (ReadingListMembership.holdsAll(list, comicIds)) comicIds.forEach { repository.removeFromList(list.id, it) }
+            else ReadingListMembership.missing(list, comicIds).forEach { repository.addToList(list.id, it) }
         }
     }
 
-    fun onRemoveFromList(list: ReadingList, comic: LibraryComic) {
+    fun onRemoveFromList(list: ReadingList, comics: List<LibraryComic>) {
         viewModelScope.launch {
-            removed = repository.removeFromList(list.id, comic.id)
-                ?.let { ordering -> RemovedEntry(listId = list.id, comicId = comic.id, ordering = ordering) }
+            removed = comics.mapNotNull { comic ->
+                repository.removeFromList(list.id, comic.id)
+                    ?.let { ordering -> RemovedEntry(listId = list.id, comicId = comic.id, ordering = ordering) }
+            }
         }
     }
 
     fun onUndoRemoveFromList() {
-        val entry = removed ?: return
-        removed = null
-        viewModelScope.launch { repository.addToList(entry.listId, entry.comicId, entry.ordering) }
+        val entries = removed
+        removed = emptyList()
+        viewModelScope.launch { entries.forEach { repository.addToList(it.listId, it.comicId, it.ordering) } }
     }
 
     fun onMoveInList(list: ReadingList, comic: LibraryComic, up: Boolean) {
@@ -190,15 +213,18 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun onQueryChanged(text: String) {
+        onClearSelection()
         query.value = text
     }
 
     fun onPresetQuery(text: String) {
+        onClearSelection()
         filter.value = LibraryFilter.ALL
         query.value = text
     }
 
     fun onToggleGrouped() {
+        onClearSelection()
         viewModelScope.launch { repository.setGrouped(!state.value.grouped) }
     }
 
@@ -210,28 +236,16 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch { repository.reshelve(comic.id) }
     }
 
-    fun onToggleRead(comic: LibraryComic) {
-        viewModelScope.launch { repository.setRead(comic.id, !comic.completed) }
-    }
-
-    fun onSetSeriesRead(comics: List<LibraryComic>, read: Boolean) {
+    fun onSetRead(comics: List<LibraryComic>, read: Boolean) {
         viewModelScope.launch { comics.forEach { repository.setRead(it.id, read) } }
     }
 
-    fun onSetSeriesFavorite(comics: List<LibraryComic>, favorite: Boolean) {
+    fun onSetFavorite(comics: List<LibraryComic>, favorite: Boolean) {
         viewModelScope.launch { comics.forEach { repository.setFavorite(it.id, favorite) } }
     }
 
-    fun onDeleteSeries(comics: List<LibraryComic>) {
+    fun onDeleteComics(comics: List<LibraryComic>) {
         viewModelScope.launch { comics.forEach { repository.deleteComic(it.id) } }
-    }
-
-    fun onToggleFavorite(comic: LibraryComic) {
-        viewModelScope.launch { repository.setFavorite(comic.id, !comic.favorite) }
-    }
-
-    fun onDeleteComic(comic: LibraryComic) {
-        viewModelScope.launch { repository.deleteComic(comic.id) }
     }
 
     private fun runScan(scan: suspend () -> Unit) {

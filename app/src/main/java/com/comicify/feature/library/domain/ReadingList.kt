@@ -7,6 +7,15 @@ data class ReadingList(
     val comicIds: List<Long> = emptyList(),
 )
 
+object ReadingListMembership {
+
+    fun holdsAll(list: ReadingList, comicIds: List<Long>): Boolean =
+        comicIds.isNotEmpty() && comicIds.all { it in list.comicIds }
+
+    fun missing(list: ReadingList, comicIds: List<Long>): List<Long> =
+        comicIds.filterNot { it in list.comicIds }
+}
+
 object ReadingListOrder {
 
     fun canMoveUp(comicIds: List<Long>, comicId: Long): Boolean = comicIds.indexOf(comicId) > 0

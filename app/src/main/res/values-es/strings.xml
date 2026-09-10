@@ -37,11 +37,24 @@
     <string name="library_add_favorite">Añadir a favoritos</string>
     <string name="library_remove_favorite">Quitar de favoritos</string>
     <string name="library_favorite">Favorito</string>
-    <string name="library_delete">Borrar cómic</string>
+    <plurals name="library_delete_selected">
+        <item quantity="one">Borrar cómic</item>
+        <item quantity="other">Borrar cómics</item>
+    </plurals>
     <string name="library_delete_confirm_title">¿Borrar cómic?</string>
     <string name="library_delete_confirm_body">%1$s se borrará permanentemente de tu dispositivo.</string>
+    <string name="library_delete_selection_title">¿Borrar %1$d cómics?</string>
+    <string name="library_delete_selection_body">Los %1$d cómics seleccionados se borrarán permanentemente de tu dispositivo.</string>
     <string name="library_delete_confirm">Borrar</string>
     <string name="library_delete_cancel">Cancelar</string>
+    <plurals name="library_selection_count">
+        <item quantity="one">%1$d seleccionado</item>
+        <item quantity="other">%1$d seleccionados</item>
+    </plurals>
+    <string name="library_selected">Seleccionado</string>
+    <string name="library_selection_close">Salir de la selección</string>
+    <string name="library_selection_menu">Opciones de la selección</string>
+    <string name="library_select_all">Seleccionar todo</string>
     <string name="library_group">Agrupar por serie</string>
     <string name="library_ungroup">Ver todos los cómics</string>
     <string name="library_group_read">%1$d/%2$d leídos</string>
@@ -77,7 +90,7 @@
     <string name="library_list_delete">Eliminar lista</string>
     <string name="library_list_deleted">Lista eliminada</string>
     <string name="library_list_menu">Opciones de la lista</string>
-    <string name="library_list_empty">Esta lista está vacía. Mantén pulsado un cómic para añadirlo.</string>
+    <string name="library_list_empty">Esta lista está vacía. Mantén pulsados los cómics para seleccionarlos y añádelos a la lista.</string>
     <string name="settings_series_eyebrow">Esta serie</string>
     <string name="detail_option_default_value">Por defecto (%1$s)</string>
     <string name="library_series_add_favorite">Añadir serie a favoritos</string>
