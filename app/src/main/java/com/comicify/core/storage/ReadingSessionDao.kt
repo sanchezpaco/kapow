@@ -13,13 +13,15 @@ data class ReadingSessionRow(
     val pages: Int,
     val mode: String,
     val finished: Boolean,
+    val autoplayed: Boolean,
 )
 
 @Dao
 interface ReadingSessionDao {
 
     @Query(
-        "SELECT s.comicId, c.series AS series, s.startedAt, s.endedAt, s.pages, s.mode, s.finished " +
+        "SELECT s.comicId, c.series AS series, s.startedAt, s.endedAt, s.pages, s.mode, s.finished, " +
+            "s.autoplayed " +
             "FROM reading_session s JOIN comics c ON c.id = s.comicId ORDER BY s.startedAt DESC",
     )
     fun observeRecentFirst(): Flow<List<ReadingSessionRow>>

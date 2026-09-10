@@ -33,7 +33,7 @@ class ReadingSessionViewModel @Inject constructor(
         }
     }
 
-    fun onPageChanged(comicId: Long, pageIndex: Int, pageCount: Int) {
+    fun onPageChanged(comicId: Long, pageIndex: Int, pageCount: Int, autoplayed: Boolean) {
         val current = draft
         if (current == null) {
             if (readerComicId == comicId) pendingPageIndex = pageIndex
@@ -50,7 +50,7 @@ class ReadingSessionViewModel @Inject constructor(
         } else {
             SessionRecorder.moveTo(current, comicId, pageIndex, now)
         }
-        draft = turn.draft
+        draft = if (autoplayed) SessionRecorder.onAutoplay(turn.draft) else turn.draft
         turn.ended?.let(::write)
     }
 

@@ -3,6 +3,7 @@ package com.comicify.feature.reader.ui
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -48,9 +49,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.repeatOnLifecycle
 import com.comicify.R
 import com.comicify.core.input.PageTurnDirection
 import com.comicify.feature.reader.data.PageArt
@@ -151,19 +149,15 @@ fun VerticalStripReader(
         onJumpApplied()
     }
 
-    LaunchedEffect(listState, autoplaySeconds) {
-        snapshotFlow { listState.isScrollInProgress }
-            .collect { scrolling -> if (scrolling && autoplaySeconds == null) onScrolled() }
+    LaunchedEffect(listState) {
+        listState.interactionSource.interactions.collect { if (it is DragInteraction.Start) onScrolled() }
     }
 
-    val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnAutoplayFinished by rememberUpdatedState(onAutoplayFinished)
-    LaunchedEffect(listState, autoplaySeconds, lifecycleOwner) {
+    LaunchedEffect(listState, autoplaySeconds) {
         val seconds = autoplaySeconds ?: return@LaunchedEffect
-        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            listState.creepDown(seconds)
-            currentOnAutoplayFinished()
-        }
+        listState.creepDown(seconds)
+        currentOnAutoplayFinished()
     }
 
     LaunchedEffect(listState) {

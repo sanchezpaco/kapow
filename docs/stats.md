@@ -71,6 +71,15 @@ value is clamped to **10…300 s** before the median, so one session left open o
 a page cannot poison the estimate. The string is unchanged: only the number
 becomes true.
 
+**Autoplayed sessions never contribute.** A session whose pages were turned by
+autoplay (`reading_session.autoplayed`, set on the draft by
+`SessionRecorder.onAutoplay` at the first autoplay-driven page event) is dropped
+by `ReadingPace.contributing`, because a comic left running at 8 s a page would
+rewrite the median that seeds autoplay's own default interval. Those sessions
+still count everywhere else on the stats screen — time read, pages, streaks, the
+series list — since the reader really was reading; they just do not get to say
+how fast.
+
 ## Retention
 
 Raw rows are kept — a personal library is a few hundred rows a year, and

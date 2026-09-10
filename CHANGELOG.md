@@ -8,15 +8,25 @@ All notable user-facing changes to Kapow. The format follows
 ## [Unreleased]
 
 ### Added
-- Autoplay: a play switch in the view-mode panel reads the comic on its own,
-  with a stepper for the seconds per page (5–120 s, one second per tap, or hold
-  a button down and it speeds up). It
-  turns the page in Pages, moves panel by panel in Guided View — sharing a
-  page's seconds between its panels, never faster than 1.5 s each — and scrolls
-  the vertical strip down continuously at one page per interval. Touch the strip
-  and it steps aside until you let go. The first interval it offers is your own
-  average from reading stats; it never starts by itself when you open a comic
-  and stops at the end.
+- Autoplay: a Timer switch in the reader's view-mode panel reads the comic on
+  its own, with a stepper for the seconds per page (3–120 s, one second per tap;
+  hold a button and it repeats, then moves in fives so the number stays
+  readable). It turns the page in Pages — twice the time on the unfolded spread,
+  where two pages are on screen — moves panel by panel in Guided View, sharing a
+  page's seconds between its panels and never going below 1.5 s each, and
+  scrolls the vertical strip down continuously at one page per interval,
+  carrying on into the next issue. The first interval it offers is your own
+  average from reading stats.
+- While autoplay runs, a pause pill at the top of the screen counts the page
+  down and stays put when the rest of the HUD hides. Touch the page anywhere and
+  autoplay holds — turn the page, scroll, zoom or read on at your own speed, and
+  it picks up again from a full page when you lift your finger. It stops for
+  good from the pill, the switch, leaving the app, or the end of the comic.
+
+### Fixed
+- Pages turned by autoplay no longer skew the reading pace behind "≈ 13 min
+  left" and the stats screen's pace tiles. Those sessions still count as time
+  and pages read.
 
 ## [1.0.5] - 2026-09-07
 

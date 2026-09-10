@@ -93,7 +93,7 @@ class ReaderPreferencesRepository(private val context: Context) {
         val READING_TYPE = stringPreferencesKey("reading_type")
         val LEGACY_DIRECTION_RTL = booleanPreferencesKey("reading_direction_rtl")
         val BUBBLE_SCALE = floatPreferencesKey("bubble_scale")
-        val AUTOPLAY_SECONDS = intPreferencesKey("autoplay_seconds")
+        val AUTOPLAY_SECONDS = intPreferencesKey("autoplay_seconds_per_page")
         val THEME_GROUND = stringPreferencesKey("theme_ground")
         val THEME_ACCENT = stringPreferencesKey("theme_accent")
     }

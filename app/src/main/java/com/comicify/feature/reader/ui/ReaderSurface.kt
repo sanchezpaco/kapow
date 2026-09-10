@@ -77,6 +77,7 @@ fun ReaderSurface(
     onJumpApplied: () -> Unit,
     onPageChanged: (Int) -> Unit,
     onGuidedStop: (Int, Int, Rect) -> Unit,
+    onGuidedSettled: () -> Unit,
     onTap: (TapZone) -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
@@ -106,7 +107,7 @@ fun ReaderSurface(
     if (guided) {
         val spread = posture == ReadingPosture.UnfoldedSpread && !guidedFullScreen
         key(loader, spread) {
-            GuidedReader(loader, spread, pageLook, direction, coverAlone, initialPage, pageTurnRequests, onPageChanged, onGuidedStop, { onTap(TapZone.Center) }, onAmbient)
+            GuidedReader(loader, spread, pageLook, direction, coverAlone, initialPage, pageTurnRequests, onPageChanged, onGuidedStop, onGuidedSettled, { onTap(TapZone.Center) }, onAmbient)
         }
         return
     }

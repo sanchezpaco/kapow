@@ -7,6 +7,8 @@ import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -31,6 +33,7 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -55,10 +58,11 @@ import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.NightsStay
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.VerticalSplit
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material.icons.filled.ViewDay
@@ -88,38 +92,49 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.comicify.R
 import com.comicify.core.ui.KapowSnackbarHost
@@ -131,9 +146,13 @@ import com.comicify.core.window.ReadingPosture
 import com.comicify.core.window.rememberReadingWindowState
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
+import com.comicify.feature.reader.domain.AUTOPLAY_COARSE_AFTER_MS
+import com.comicify.feature.reader.domain.AUTOPLAY_REPEAT_DELAY_MS
+import com.comicify.feature.reader.domain.AUTOPLAY_REPEAT_INTERVAL_MS
 import com.comicify.feature.reader.domain.AUTOPLAY_SECONDS_RANGE
 import com.comicify.feature.reader.domain.AUTOPLAY_SECONDS_STEP
 import com.comicify.feature.reader.domain.Autoplay
+import com.comicify.feature.reader.domain.AutoplayDwell
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_STEP
 import com.comicify.feature.reader.domain.Bookmarks
@@ -145,6 +164,7 @@ import com.comicify.feature.reader.domain.TapZone
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlin.math.roundToInt
 
 private const val CHROME_SLIDE_MS = 200
@@ -159,13 +179,32 @@ private val PanelHairlineWidth = 1.dp
 private val PanelShape = RoundedCornerShape(20.dp)
 private val PanelRowShape = RoundedCornerShape(12.dp)
 private val PanelWidth = 280.dp
+private val ChromeEdgePadding = 12.dp
+private val ChromeTopPadding = 10.dp
+private val ChromeCircleSize = 48.dp
 private val PanelScreenMargin = 24.dp
 private val PanelPadding = 8.dp
 private val PanelRowHeight = 48.dp
 private val PanelRowPadding = 12.dp
 private val PanelRowGap = 12.dp
 private val PanelIconSize = 24.dp
-private val StepperValueWidth = 52.dp
+private val BubbleScaleValueWidth = 44.dp
+private val AutoplayValueWidth = 56.dp
+private val AutoplayPillSize = 40.dp
+private val AutoplayPillGap = 10.dp
+private val AutoplayPillTop = ChromeTopPadding + ChromeCircleSize + AutoplayPillGap
+private val AutoplayRingWidth = 3.dp
+private val AutoplayGlyphSize = 20.dp
+private val AutoplayRingTrackColor = Color.White.copy(alpha = 0.16f)
+private val AutoplayGround = Color.White.copy(alpha = 0.12f)
+private val AutoplayHeldGround = Color.White.copy(alpha = 0.22f)
+private val AutoplayHeldEdge = Color.White.copy(alpha = 0.35f)
+private val AutoplayHeldRingColor = Color.White.copy(alpha = 0.45f)
+private val AutoplayEdgeWidth = 1.dp
+private const val AUTOPLAY_HELD_FADE_MS = 120
+private val PanelCaptionColor = Color.White.copy(alpha = 0.5f)
+private const val AUTOPLAY_RING_START_ANGLE = -90f
+private const val AUTOPLAY_RING_SWEEP = 360f
 private val MarkerDotSize = 8.dp
 private val MarkerDotInset = 3.dp
 private val BottomChromeScrim = Brush.verticalGradient(
@@ -188,7 +227,7 @@ fun ReaderScreen(
     initialPage: Int = 0,
     comic: StripComic? = null,
     nextInSeries: (StripComic) -> StripComic? = { null },
-    onPageChanged: (comicId: Long?, pageIndex: Int, pageCount: Int) -> Unit = { _, _, _ -> },
+    onPageChanged: (comicId: Long?, pageIndex: Int, pageCount: Int, autoplayed: Boolean) -> Unit = { _, _, _, _ -> },
     onOpenIssue: (StripComic) -> Unit = {},
     initialAmbient: Color? = null,
 ) {
@@ -210,7 +249,9 @@ fun ReaderScreen(
     val readingPageCount = if (state.verticalScroll && activePageCount > 0) activePageCount else state.pageCount
 
     LaunchedEffect(state.position.pageIndex, readingPageCount, activeComic) {
-        if (readingPageCount > 0) onPageChanged(activeComic?.id, state.position.pageIndex, readingPageCount)
+        if (readingPageCount > 0) {
+            onPageChanged(activeComic?.id, state.position.pageIndex, readingPageCount, state.autoplay)
+        }
     }
 
     LaunchedEffect(viewModel) { viewModel.shareRequests.collect(context::startActivity) }
@@ -226,6 +267,10 @@ fun ReaderScreen(
     var guidedIndex by remember { mutableIntStateOf(0) }
     var guidedCount by remember { mutableIntStateOf(1) }
     var guidedStop by remember { mutableStateOf<Rect?>(null) }
+    var guidedSettled by remember { mutableStateOf(false) }
+    var shownPage by remember { mutableIntStateOf(initialPage) }
+    var readyPage by remember { mutableIntStateOf(-1) }
+    var autoplayFingerDown by remember { mutableStateOf(false) }
     val glow by animateColorAsState(
         targetValue = lerp(Color.Black, ambient, 0.5f),
         animationSpec = tween(700),
@@ -234,21 +279,6 @@ fun ReaderScreen(
 
     val mode = ReaderViewMode.of(state.guided, state.verticalScroll)
     val atLastPage = readingPageCount > 0 && state.position.pageIndex >= readingPageCount - 1
-    val atLastStop = mode != ReaderViewMode.Guided || guidedIndex >= guidedCount - 1
-    val autoplayExhausted = state.autoplay && mode != ReaderViewMode.Strip && atLastPage && atLastStop
-    LaunchedEffect(autoplayExhausted) { if (autoplayExhausted) viewModel.stopAutoplay() }
-
-    AutoplayPageTurns(
-        enabled = state.autoplay && mode != ReaderViewMode.Strip,
-        intervalMillis = when (mode) {
-            ReaderViewMode.Guided -> Autoplay.stopMillis(state.autoplaySeconds, guidedCount)
-            else -> Autoplay.pageMillis(state.autoplaySeconds)
-        },
-        dwellOn = listOf(state.position.pageIndex, guidedIndex),
-    ) {
-        pageTurnRequests.tryEmit(PageTurnDirection.Next)
-    }
-
     val nextIssue = activeComic?.let(nextInSeries)
     var atEnd by remember { mutableStateOf(false) }
     LaunchedEffect(atLastPage) { if (!atLastPage) atEnd = false }
@@ -263,12 +293,53 @@ fun ReaderScreen(
         vertical = state.verticalScroll,
     ) { atEnd = true }
 
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.stopAutoplay() }
+
+    val pagesOnScreen = if (mode == ReaderViewMode.Pages && posture == ReadingPosture.UnfoldedSpread) {
+        Autoplay.spreadPages(shownPage, readingPageCount, state.coverAlone)
+    } else {
+        1
+    }
+    val autoplayDwellMillis = when (mode) {
+        ReaderViewMode.Guided -> Autoplay.stopMillis(state.autoplaySeconds, guidedCount)
+        else -> Autoplay.pageMillis(state.autoplaySeconds, pagesOnScreen)
+    }
+    val autoplayCounting = mode != ReaderViewMode.Strip
+    val autoplayWatchingTouches = state.autoplay && autoplayCounting
+    LaunchedEffect(autoplayWatchingTouches) { if (!autoplayWatchingTouches) autoplayFingerDown = false }
+    val autoplayHeld = autoplayFingerDown || state.chromeVisible
+    val autoplayProgress = remember { Animatable(0f) }
+
+    AutoplayDwellClock(
+        running = state.autoplay && autoplayCounting && readyPage == shownPage &&
+            (mode != ReaderViewMode.Guided || guidedSettled),
+        held = autoplayHeld,
+        dwellMillis = autoplayDwellMillis,
+        dwellOn = listOf(mode, shownPage, guidedIndex),
+        progress = autoplayProgress,
+    ) {
+        val atLastStop = mode != ReaderViewMode.Guided || guidedIndex >= guidedCount - 1
+        if (atLastPage && atLastStop) {
+            viewModel.stopAutoplay()
+            atEnd = true
+        } else {
+            pageTurnRequests.tryEmit(PageTurnDirection.Next)
+        }
+    }
+
     ImmersiveReadingMode(keepScreenOn = state.keepScreenOn || state.autoplay)
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .nestedScroll(endOverscroll)
+            .then(
+                if (autoplayWatchingTouches) {
+                    Modifier.observeAutoplayHold { autoplayFingerDown = it }
+                } else {
+                    Modifier
+                }
+            )
             .background(Color.Black),
     ) {
         AmbientBackdrop(glow)
@@ -292,12 +363,13 @@ fun ReaderScreen(
                             activeComic = issue
                             activeLoader = issueLoader
                             activePageCount = pageCount
+                            shownPage = pageIndex
                             viewModel.onStripIssueChanged(issue?.id)
                             viewModel.onPageChanged(pageIndex)
                         },
                         onStripScrolled = viewModel::hideChrome,
                         bubbleScale = state.bubbleScale.takeIf { state.bubblesEnlarged },
-                        autoplaySeconds = state.autoplaySeconds.takeIf { state.autoplay },
+                        autoplaySeconds = state.autoplaySeconds.takeIf { state.autoplay && !state.chromeVisible },
                         onAutoplayFinished = viewModel::stopAutoplay,
                         pageLook = state.pageLook,
                         fitWidth = state.fitWidth,
@@ -307,8 +379,14 @@ fun ReaderScreen(
                         pageTurnRequests = pageTurnRequests,
                         pendingJump = state.pendingJump,
                         onJumpApplied = viewModel::onJumpApplied,
-                        onPageChanged = viewModel::onPageChanged,
-                        onGuidedStop = { index, count, view -> guidedIndex = index; guidedCount = count; guidedStop = view },
+                        onPageChanged = { page -> shownPage = page; viewModel.onPageChanged(page) },
+                        onGuidedStop = { index, count, view ->
+                            guidedIndex = index
+                            guidedCount = count
+                            guidedStop = view
+                            guidedSettled = false
+                        },
+                        onGuidedSettled = { guidedSettled = true },
                         onTap = { zone ->
                             when (zone) {
                                 TapZone.Center -> viewModel.toggleChrome()
@@ -316,7 +394,7 @@ fun ReaderScreen(
                                 TapZone.Previous -> pageTurnRequests.tryEmit(PageTurnDirection.Previous)
                             }
                         },
-                        onAmbient = { ambient = it },
+                        onAmbient = { ambient = it; readyPage = shownPage },
                     )
                 }
             }
@@ -374,6 +452,15 @@ fun ReaderScreen(
             modifier = Modifier.align(Alignment.BottomCenter),
         )
 
+        AutoplayPill(
+            visible = state.autoplay && !atEnd,
+            held = autoplayHeld,
+            counting = autoplayCounting,
+            progress = autoplayProgress,
+            onStop = viewModel::stopAutoplay,
+            modifier = Modifier.align(Alignment.TopStart),
+        )
+
         EndOfComicOverlay(
             visible = atEnd,
             hasNext = nextIssue != null,
@@ -403,23 +490,112 @@ fun ReaderScreen(
 }
 
 @Composable
-private fun AutoplayPageTurns(
-    enabled: Boolean,
-    intervalMillis: Long,
+private fun AutoplayDwellClock(
+    running: Boolean,
+    held: Boolean,
+    dwellMillis: Long,
     dwellOn: Any,
+    progress: Animatable<Float, AnimationVector1D>,
     onAdvance: () -> Unit,
 ) {
-    val lifecycleOwner = LocalLifecycleOwner.current
+    val frozen by rememberUpdatedState(held)
     val advance by rememberUpdatedState(onAdvance)
-    LaunchedEffect(enabled, intervalMillis, dwellOn, lifecycleOwner) {
-        if (!enabled) return@LaunchedEffect
-        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            while (true) {
-                delay(intervalMillis)
-                advance()
+    LaunchedEffect(running, dwellMillis, dwellOn) {
+        if (!running) return@LaunchedEffect
+        progress.snapTo(0f)
+        var dwell = AutoplayDwell(dwellMillis)
+        var frame = withFrameNanos { it }
+        while (!dwell.done) {
+            if (frozen) {
+                snapshotFlow { frozen }.first { !it }
+                frame = withFrameNanos { it }
             }
+            val now = withFrameNanos { it }
+            dwell = dwell.ticked(now - frame, frozen)
+            frame = now
+            progress.snapTo(dwell.progress)
+        }
+        advance()
+    }
+}
+
+private fun Modifier.observeAutoplayHold(onHeld: (Boolean) -> Unit): Modifier = pointerInput(Unit) {
+    awaitPointerEventScope {
+        while (true) {
+            if (awaitPointerEvent(PointerEventPass.Initial).changes.any { it.pressed }) onHeld(true)
+            if (!awaitPointerEvent(PointerEventPass.Final).changes.any { it.pressed }) onHeld(false)
         }
     }
+}
+
+@Composable
+private fun AutoplayPill(
+    visible: Boolean,
+    held: Boolean,
+    counting: Boolean,
+    progress: Animatable<Float, AnimationVector1D>,
+    onStop: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (!visible) return
+    val ring by animateColorAsState(
+        targetValue = if (held) AutoplayHeldRingColor else MaterialTheme.colorScheme.primary,
+        animationSpec = tween(AUTOPLAY_HELD_FADE_MS),
+        label = "autoplayRing",
+    )
+    val ground by animateColorAsState(
+        targetValue = if (held) AutoplayHeldGround else AutoplayGround,
+        animationSpec = tween(AUTOPLAY_HELD_FADE_MS),
+        label = "autoplayGround",
+    )
+    val edge by animateColorAsState(
+        targetValue = if (held) AutoplayHeldEdge else Color.Transparent,
+        animationSpec = tween(AUTOPLAY_HELD_FADE_MS),
+        label = "autoplayEdge",
+    )
+    val playing = stringResource(if (held) R.string.reader_autoplay_held else R.string.reader_autoplay_playing)
+    Box(
+        modifier = modifier
+            .windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout))
+            .padding(start = ChromeEdgePadding, top = AutoplayPillTop),
+    ) {
+        IconButton(
+            onClick = onStop,
+            modifier = Modifier
+                .size(AutoplayPillSize)
+                .background(ground, CircleShape)
+                .border(AutoplayEdgeWidth, edge, CircleShape)
+                .semantics { stateDescription = playing }
+                .drawBehind { drawAutoplayRing(counting, ring, progress.value) },
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Pause,
+                contentDescription = stringResource(R.string.reader_autoplay_stop),
+                tint = Color.White,
+                modifier = Modifier.size(AutoplayGlyphSize),
+            )
+        }
+    }
+}
+
+private fun DrawScope.drawAutoplayRing(counting: Boolean, color: Color, progress: Float) {
+    val width = AutoplayRingWidth.toPx()
+    val topLeft = Offset(width / 2f, width / 2f)
+    val diameter = Size(size.width - width, size.height - width)
+    if (!counting) {
+        drawArc(color, 0f, AUTOPLAY_RING_SWEEP, false, topLeft, diameter, style = Stroke(width))
+        return
+    }
+    drawArc(AutoplayRingTrackColor, 0f, AUTOPLAY_RING_SWEEP, false, topLeft, diameter, style = Stroke(width))
+    drawArc(
+        color = color,
+        startAngle = AUTOPLAY_RING_START_ANGLE,
+        sweepAngle = AUTOPLAY_RING_SWEEP * progress,
+        useCenter = false,
+        topLeft = topLeft,
+        size = diameter,
+        style = Stroke(width, cap = StrokeCap.Round),
+    )
 }
 
 @Composable
@@ -566,7 +742,7 @@ private fun TopChrome(
                 .fillMaxWidth()
                 .background(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent)))
                 .windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout))
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = ChromeEdgePadding, vertical = ChromeTopPadding),
             verticalAlignment = Alignment.Top,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -585,7 +761,7 @@ private fun TopChrome(
                     CircleControl(
                         icon = Icons.Filled.Visibility,
                         open = openPanel == HudPanelKind.ViewMode,
-                        marked = viewMode != ReaderViewMode.Pages || bubblesEnlarged || fitWidth || autoplay,
+                        marked = viewMode != ReaderViewMode.Pages || bubblesEnlarged || fitWidth,
                         contentDescription = stringResource(R.string.reader_action_view_mode),
                         onClick = { openPanel = openPanel.toggled(HudPanelKind.ViewMode) },
                     )
@@ -679,7 +855,7 @@ private fun PanelRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(PanelRowHeight)
+            .heightIn(min = PanelRowHeight)
             .clip(PanelRowShape)
             .clickable(onClick = onClick)
             .padding(horizontal = PanelRowPadding),
@@ -764,7 +940,7 @@ private fun ViewModePanel(
         }
         PanelDivider()
         PanelRow(
-            icon = Icons.Filled.PlayArrow,
+            icon = Icons.Filled.Timer,
             label = stringResource(R.string.reader_autoplay),
             onClick = onToggleAutoplay,
         ) {
@@ -798,95 +974,159 @@ private fun ViewModeChoice(icon: ImageVector, labelRes: Int, selected: Boolean, 
 
 @Composable
 private fun BubbleScaleStepper(scale: Float, onScale: (Float) -> Unit) {
-    PanelStepper(
-        value = "%.1f×".format(scale),
-        decreaseDescription = stringResource(R.string.reader_bubble_scale_smaller),
-        increaseDescription = stringResource(R.string.reader_bubble_scale_bigger),
-        canDecrease = scale > BUBBLE_SCALE_RANGE.start,
-        canIncrease = scale < BUBBLE_SCALE_RANGE.endInclusive,
-        repeatOnHold = false,
-        onDecrease = { onScale(scale.steppedBy(-BUBBLE_SCALE_STEP)) },
-        onIncrease = { onScale(scale.steppedBy(BUBBLE_SCALE_STEP)) },
-    )
-}
-
-@Composable
-private fun AutoplayIntervalStepper(seconds: Int, onSeconds: (Int) -> Unit) {
-    PanelStepper(
-        value = stringResource(R.string.reader_autoplay_seconds, seconds),
-        decreaseDescription = stringResource(R.string.reader_autoplay_faster),
-        increaseDescription = stringResource(R.string.reader_autoplay_slower),
-        canDecrease = seconds > AUTOPLAY_SECONDS_RANGE.first,
-        canIncrease = seconds < AUTOPLAY_SECONDS_RANGE.last,
-        repeatOnHold = true,
-        onDecrease = { onSeconds(Autoplay.stepped(seconds, -AUTOPLAY_SECONDS_STEP)) },
-        onIncrease = { onSeconds(Autoplay.stepped(seconds, AUTOPLAY_SECONDS_STEP)) },
-    )
-}
-
-@Composable
-private fun PanelStepper(
-    value: String,
-    decreaseDescription: String,
-    increaseDescription: String,
-    canDecrease: Boolean,
-    canIncrease: Boolean,
-    repeatOnHold: Boolean,
-    onDecrease: () -> Unit,
-    onIncrease: () -> Unit,
-) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(PanelRowHeight)
+            .heightIn(min = PanelRowHeight)
             .padding(horizontal = PanelRowPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End,
     ) {
-        PanelStep(
+        StepButton(
             icon = Icons.Filled.Remove,
-            contentDescription = decreaseDescription,
-            enabled = canDecrease,
-            repeatOnHold = repeatOnHold,
-            onStep = onDecrease,
+            contentDescription = stringResource(R.string.reader_bubble_scale_smaller),
+            enabled = scale > BUBBLE_SCALE_RANGE.start,
+            onClick = { onScale(scale.steppedBy(-BUBBLE_SCALE_STEP)) },
         )
-        Text(
-            text = value,
-            color = Color.White,
-            style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = TabularFigures),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.width(StepperValueWidth),
-        )
-        PanelStep(
+        StepperValue(text = "%.1f\u00D7".format(scale), width = BubbleScaleValueWidth)
+        StepButton(
             icon = Icons.Filled.Add,
-            contentDescription = increaseDescription,
-            enabled = canIncrease,
-            repeatOnHold = repeatOnHold,
-            onStep = onIncrease,
+            contentDescription = stringResource(R.string.reader_bubble_scale_bigger),
+            enabled = scale < BUBBLE_SCALE_RANGE.endInclusive,
+            onClick = { onScale(scale.steppedBy(BUBBLE_SCALE_STEP)) },
         )
     }
 }
 
 @Composable
-private fun PanelStep(
+private fun AutoplayIntervalStepper(seconds: Int, onSeconds: (Int) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = PanelRowHeight)
+            .padding(horizontal = PanelRowPadding),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = stringResource(R.string.reader_autoplay_per_page),
+            color = PanelCaptionColor,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.weight(1f),
+        )
+        AutoplayStep(
+            icon = Icons.Filled.Remove,
+            contentDescription = stringResource(R.string.reader_autoplay_less),
+            direction = -1,
+            enabled = seconds > AUTOPLAY_SECONDS_RANGE.first,
+            seconds = seconds,
+            onSeconds = onSeconds,
+        )
+        StepperValue(text = stringResource(R.string.reader_autoplay_seconds, seconds), width = AutoplayValueWidth)
+        AutoplayStep(
+            icon = Icons.Filled.Add,
+            contentDescription = stringResource(R.string.reader_autoplay_more),
+            direction = 1,
+            enabled = seconds < AUTOPLAY_SECONDS_RANGE.last,
+            seconds = seconds,
+            onSeconds = onSeconds,
+        )
+    }
+}
+
+@Composable
+private fun StepperValue(text: String, width: Dp) {
+    Text(
+        text = text,
+        color = Color.White,
+        style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = TabularFigures),
+        textAlign = TextAlign.Center,
+        modifier = Modifier.width(width),
+    )
+}
+
+@Composable
+private fun AutoplayStep(
     icon: ImageVector,
     contentDescription: String,
+    direction: Int,
     enabled: Boolean,
-    repeatOnHold: Boolean,
-    onStep: () -> Unit,
+    seconds: Int,
+    onSeconds: (Int) -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     var repeated by remember { mutableStateOf(false) }
-    if (repeatOnHold) {
-        RepeatWhileHeld(
-            interactionSource = interactionSource,
-            enabled = enabled,
-            onPress = { repeated = false },
-            onRepeat = { repeated = true; onStep() },
-        )
+    HoldToStep(
+        interactionSource = interactionSource,
+        enabled = enabled,
+        direction = direction,
+        seconds = seconds,
+        onStepped = { repeated = true; onSeconds(it) },
+    )
+    StepButton(
+        icon = icon,
+        contentDescription = contentDescription,
+        enabled = enabled,
+        interactionSource = interactionSource,
+        onClick = { if (repeated) repeated = false else onSeconds(Autoplay.stepped(seconds, direction * AUTOPLAY_SECONDS_STEP)) },
+    )
+}
+
+@Composable
+private fun HoldToStep(
+    interactionSource: InteractionSource,
+    enabled: Boolean,
+    direction: Int,
+    seconds: Int,
+    onStepped: (Int) -> Unit,
+) {
+    val current by rememberUpdatedState(seconds)
+    val step by rememberUpdatedState(onStepped)
+    val haptics = LocalHapticFeedback.current
+    LaunchedEffect(interactionSource, enabled, direction) {
+        if (!enabled) return@LaunchedEffect
+        interactionSource.interactions.collectLatest { interaction ->
+            if (interaction !is PressInteraction.Press) return@collectLatest
+            var value = Autoplay.stepped(current, direction * AUTOPLAY_SECONDS_STEP)
+            step(value)
+            if (value.atAutoplayBound()) return@collectLatest
+            delay(AUTOPLAY_REPEAT_DELAY_MS)
+            var repeating = 0L
+            var coarse = false
+            while (true) {
+                if (!coarse && Autoplay.coarseAfter(repeating)) {
+                    coarse = true
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                }
+                value = if (coarse) {
+                    Autoplay.coarseStepped(value, direction)
+                } else {
+                    Autoplay.stepped(value, direction * AUTOPLAY_SECONDS_STEP)
+                }
+                step(value)
+                if (value.atAutoplayBound()) {
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    return@collectLatest
+                }
+                delay(AUTOPLAY_REPEAT_INTERVAL_MS)
+                repeating += AUTOPLAY_REPEAT_INTERVAL_MS
+            }
+        }
     }
+}
+
+private fun Int.atAutoplayBound(): Boolean =
+    this == AUTOPLAY_SECONDS_RANGE.first || this == AUTOPLAY_SECONDS_RANGE.last
+
+@Composable
+private fun StepButton(
+    icon: ImageVector,
+    contentDescription: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    interactionSource: MutableInteractionSource? = null,
+) {
     IconButton(
-        onClick = { if (repeated) repeated = false else onStep() },
+        onClick = onClick,
         enabled = enabled,
         interactionSource = interactionSource,
         modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape),
@@ -896,30 +1136,6 @@ private fun PanelStep(
             contentDescription = contentDescription,
             tint = if (enabled) Color.White else Color.White.copy(alpha = 0.3f),
         )
-    }
-}
-
-@Composable
-private fun RepeatWhileHeld(
-    interactionSource: InteractionSource,
-    enabled: Boolean,
-    onPress: () -> Unit,
-    onRepeat: () -> Unit,
-) {
-    val press by rememberUpdatedState(onPress)
-    val repeat by rememberUpdatedState(onRepeat)
-    LaunchedEffect(interactionSource, enabled) {
-        if (!enabled) return@LaunchedEffect
-        interactionSource.interactions.collectLatest { interaction ->
-            if (interaction !is PressInteraction.Press) return@collectLatest
-            press()
-            var repeats = 0
-            while (true) {
-                delay(Autoplay.holdWaitMillis(repeats))
-                repeat()
-                repeats++
-            }
-        }
     }
 }
 
