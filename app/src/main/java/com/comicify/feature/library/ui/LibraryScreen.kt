@@ -19,7 +19,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -161,6 +160,7 @@ import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.domain.LibraryEntry
 import com.comicify.feature.library.domain.LibraryFilter
+import com.comicify.feature.library.domain.members
 import com.comicify.feature.library.domain.ReadingList
 import java.io.File
 
@@ -201,6 +201,7 @@ private val SelectionPillCompact = 76.dp
 private val SelectionPillWide = 184.dp
 private val BadgeSize = 28.dp
 private val BadgeGlyphSize = 16.dp
+private val PartialBadgeDot = 10.dp
 private val BadgeGround = Color(0xD2060608)
 
 private val CoverGradients = listOf(
@@ -238,7 +239,7 @@ fun LibraryScreen(
     onPresetQuery: (String) -> Unit,
     onSortSelected: (LibrarySort) -> Unit,
     onOpenSeries: (String?) -> Unit,
-    onToggleSelection: (LibraryComic) -> Unit,
+    onToggleSelection: (List<LibraryComic>) -> Unit,
     onSelectRange: (Set<Long>) -> Unit,
     onDragSelecting: (Boolean) -> Unit,
     onDragHintShown: () -> Unit,
@@ -285,9 +286,20 @@ fun LibraryScreen(
         ),
     )
     val shelf = state.visibleComics
+    val drawn = remember(state.entries, state.comics, state.grouped, state.openedSeries, shelf) {
+        when {
+            state.openedSeries != null -> shelf.map(LibraryEntry::Single)
+            state.grouped -> state.entries
+            else -> state.comics.map(LibraryEntry::Single)
+        }
+    }
+    val spans = remember(drawn) { selectionSpans(drawn) }
     val selection = SelectionUi(
         selected = LibrarySelection.comics(state.selection, shelf),
         shelf = shelf,
+        entries = drawn,
+        spans = spans,
+        grouped = state.grouped,
         lists = lists,
         openSettings = onOpenSettings,
         openDetails = onOpenDetails,
@@ -359,7 +371,7 @@ private fun LibraryContent(
     onPresetQuery: (String) -> Unit,
     onSortSelected: (LibrarySort) -> Unit,
     onOpenSeries: (String?) -> Unit,
-    onToggleSelection: (LibraryComic) -> Unit,
+    onToggleSelection: (List<LibraryComic>) -> Unit,
     selection: SelectionUi,
     lists: ReadingListsUi,
 ) {
@@ -466,9 +478,10 @@ private fun LibraryContent(
                     )
                     is LibraryEntry.Group -> GroupCard(
                         group = entry,
-                        inert = selecting,
+                        selecting = selecting,
+                        selectedIds = state.selection,
                         onOpen = { onOpenSeries(it.series) },
-                        selection = selection,
+                        onToggleSelection = onToggleSelection,
                     )
                 }
             }
@@ -510,7 +523,7 @@ private fun SeriesScreen(
     selection: SelectionUi,
     onBack: () -> Unit,
     onOpenComic: (LibraryComic) -> Unit,
-    onToggleSelection: (LibraryComic) -> Unit,
+    onToggleSelection: (List<LibraryComic>) -> Unit,
 ) {
     val selecting = selectedIds.isNotEmpty()
     val gridState = rememberLazyGridState()
@@ -1082,7 +1095,7 @@ private fun ComicCard(
     selecting: Boolean,
     selected: Boolean,
     onOpenComic: (LibraryComic) -> Unit,
-    onToggleSelection: (LibraryComic) -> Unit,
+    onToggleSelection: (List<LibraryComic>) -> Unit,
     title: String = comic.storyTitle ?: comic.title,
     subtitle: String? = null,
 ) {
@@ -1091,7 +1104,7 @@ private fun ComicCard(
         modifier = Modifier
             .fillMaxWidth()
             .semantics { this.selected = selected }
-            .clickable { if (selecting) onToggleSelection(comic) else onOpenComic(comic) },
+            .clickable { if (selecting) onToggleSelection(listOf(comic)) else onOpenComic(comic) },
         verticalArrangement = Arrangement.spacedBy(11.dp),
     ) {
         Box(
@@ -1176,7 +1189,16 @@ private fun SelectionBadge(modifier: Modifier = Modifier) {
     }
 }
 
-private data class DragSelect(val anchor: Int, val base: Set<Long>, val position: Offset)
+private data class DragSelect(val anchor: IntRange, val base: Set<Long>, val position: Offset)
+
+private fun selectionSpans(drawn: List<LibraryEntry>): Map<String, IntRange> {
+    var next = 0
+    return drawn.associate { entry ->
+        val span = next..next + entry.members().size - 1
+        next = span.last + 1
+        entry.gridKey() to span
+    }
+}
 
 @Composable
 private fun Modifier.dragToSelect(
@@ -1185,6 +1207,7 @@ private fun Modifier.dragToSelect(
     selection: SelectionUi,
 ): Modifier {
     val shelf = rememberUpdatedState(selection.shelf)
+    val spans = rememberUpdatedState(selection.spans)
     val selected = rememberUpdatedState(selection.selected)
     val selectRange = rememberUpdatedState(selection.selectRange)
     val dragging = rememberUpdatedState(selection.dragging)
@@ -1215,10 +1238,10 @@ private fun Modifier.dragToSelect(
                 previousFrame = frame
                 val rate = gridState.edgeScrollRate(current.position.y, pinnedKey, hotZone, minRate, maxRate)
                 if (elapsed > 0f && gridState.canScroll(rate)) gridState.scrollBy(rate * elapsed)
-                val index = gridState.selectableIndexAt(current.position, shelf.value)
-                if (index < 0 || index == applied) continue
-                applied = index
-                val next = SelectionDrag.rangeFromAnchor(current.base, shelf.value, current.anchor, index)
+                val span = gridState.selectableSpanAt(current.position, spans.value)
+                if (span == null || span == applied) continue
+                applied = span
+                val next = SelectionDrag.rangeFromAnchor(current.base, shelf.value, current.anchor, span)
                 if (next.size != appliedCount && frame - lastTick > DragSelectHapticNanos) {
                     lastTick = frame
                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -1234,8 +1257,7 @@ private fun Modifier.dragToSelect(
     return pointerInput(gridState) {
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-            val anchor = gridState.selectableIndexAt(down.position, shelf.value)
-            if (anchor < 0) return@awaitEachGesture
+            val anchor = gridState.selectableSpanAt(down.position, spans.value) ?: return@awaitEachGesture
             if (!awaitLongPress(down)) return@awaitEachGesture
             val base = selected.value.mapTo(mutableSetOf()) { it.id }
             selectRange.value(SelectionDrag.rangeFromAnchor(base, shelf.value, anchor, anchor))
@@ -1245,8 +1267,14 @@ private fun Modifier.dragToSelect(
                 val change = awaitPointerEvent(PointerEventPass.Initial).changes
                     .firstOrNull { it.id == down.id } ?: break
                 change.consume()
-                if (!change.pressed) break
                 drag = drag?.copy(position = change.position)
+                if (!change.pressed) break
+            }
+            drag?.let { last ->
+                val span = gridState.selectableSpanAt(last.position, spans.value)
+                if (span != null) {
+                    selectRange.value(SelectionDrag.rangeFromAnchor(last.base, shelf.value, last.anchor, span))
+                }
             }
             drag = null
         }
@@ -1267,19 +1295,12 @@ private suspend fun AwaitPointerEventScope.awaitLongPress(down: PointerInputChan
     return cancelled == null
 }
 
-private fun LazyGridState.selectableIndexAt(position: Offset, shelf: List<LibraryComic>): Int {
+private fun LazyGridState.selectableSpanAt(position: Offset, spans: Map<String, IntRange>): IntRange? {
     val hit = layoutInfo.visibleItemsInfo.firstOrNull { item ->
         position.x >= item.offset.x && position.x <= item.offset.x + item.size.width &&
             position.y >= item.offset.y && position.y <= item.offset.y + item.size.height
     }
-    val id = hit?.key?.comicKeyId() ?: return -1
-    return shelf.indexOfFirst { it.id == id }
-}
-
-private fun Any.comicKeyId(): Long? {
-    val key = this as? String ?: return null
-    if (!key.startsWith(ComicKeyPrefix)) return null
-    return key.removePrefix(ComicKeyPrefix).toLongOrNull()
+    return spans[hit?.key as? String]
 }
 
 private fun LazyGridState.canScroll(rate: Float): Boolean = when {
@@ -1319,6 +1340,9 @@ private fun dragScrollRate(distance: Float, hotZone: Float, minRate: Float, maxR
 internal data class SelectionUi(
     val selected: List<LibraryComic>,
     val shelf: List<LibraryComic>,
+    val entries: List<LibraryEntry>,
+    val spans: Map<String, IntRange>,
+    val grouped: Boolean,
     val lists: ReadingListsUi,
     val openSettings: (List<LibraryComic>) -> Unit,
     val openDetails: (LibraryComic) -> Unit,
@@ -1447,6 +1471,10 @@ private fun SelectionRow(selection: SelectionUi) {
     if (confirmDelete) {
         DeleteConfirmDialog(
             comics = selected,
+            completeSeries = LibraryCatalog.completeSeries(
+                selection.entries,
+                selected.mapTo(mutableSetOf()) { it.id },
+            ),
             onConfirm = {
                 confirmDelete = false
                 selection.clear()
@@ -1503,7 +1531,8 @@ private fun SelectionMenu(
 ) {
     val selected = selection.selected
     val single = selected.singleOrNull()
-    val allSelected = LibrarySelection.allSelected(selected.mapTo(mutableSetOf()) { it.id }, selection.shelf)
+    val selectedIds = selected.mapTo(mutableSetOf()) { it.id }
+    val allSelected = LibrarySelection.allSelected(selectedIds, selection.shelf)
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         MenuHeader(title = pluralStringResource(R.plurals.library_selected_count, selected.size, selected.size))
         DropdownMenuItem(
@@ -1539,14 +1568,23 @@ private fun SelectionMenu(
                 leadingIcon = { Icon(imageVector = Icons.Outlined.Settings, contentDescription = null) },
                 onClick = { onDismiss(); selection.clear(); selection.openSettings(selected) },
             )
-            selection.lists.opened?.let { list ->
-                ReadingListMoveItems(
-                    list = list,
-                    comic = single,
-                    actions = selection.lists.actions,
-                    onDismiss = onDismiss,
-                )
+            if (!selection.grouped) {
+                selection.lists.opened?.let { list ->
+                    ReadingListMoveItems(
+                        list = list,
+                        comic = single,
+                        actions = selection.lists.actions,
+                        onDismiss = onDismiss,
+                    )
+                }
             }
+        }
+        if (LibraryCatalog.wholeSeries(selection.entries, selectedIds) != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.library_series_settings)) },
+                leadingIcon = { Icon(imageVector = Icons.Outlined.Settings, contentDescription = null) },
+                onClick = { onDismiss(); selection.clear(); selection.openSettings(selected) },
+            )
         }
         if (overflow.isEmpty()) return@DropdownMenu
         HorizontalDivider(color = CardLine)
@@ -1568,6 +1606,7 @@ private fun SelectionMenu(
 @Composable
 private fun DeleteConfirmDialog(
     comics: List<LibraryComic>,
+    completeSeries: Int,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -1581,10 +1620,22 @@ private fun DeleteConfirmDialog(
             )
         },
         text = {
-            Text(
-                text = single?.let { stringResource(R.string.library_delete_confirm_body, it.title) }
-                    ?: pluralStringResource(R.plurals.library_selection_delete_body, comics.size, comics.size),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = single?.let { stringResource(R.string.library_delete_confirm_body, it.title) }
+                        ?: pluralStringResource(R.plurals.library_selection_delete_body, comics.size, comics.size),
+                )
+                if (completeSeries > 0) {
+                    Text(
+                        text = pluralStringResource(
+                            R.plurals.library_selection_delete_series_note,
+                            completeSeries,
+                            completeSeries,
+                        ),
+                        color = InkDim,
+                    )
+                }
+            }
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
@@ -1694,24 +1745,30 @@ private fun SeriesMenu(
 @Composable
 private fun GroupCard(
     group: LibraryEntry.Group,
-    inert: Boolean,
+    selecting: Boolean,
+    selectedIds: Set<Long>,
     onOpen: (LibraryEntry.Group) -> Unit,
-    selection: SelectionUi,
+    onToggleSelection: (List<LibraryComic>) -> Unit,
 ) {
     val representative = group.comics.firstOrNull { !it.completed && it.pageIndex > 0 } ?: group.comics.first()
     val readCount = group.comics.count { it.completed }
-    var menuExpanded by remember { mutableStateOf(false) }
+    val ticked = group.comics.count { it.id in selectedIds }
+    val selected = ticked == group.comics.size
+    val partial = ticked in 1 until group.comics.size
+    val scale by animateFloatAsState(targetValue = if (selected) SelectionScale else 1f, animationSpec = spring())
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .inertWhile(inert)
-            .combinedClickable(
-                onClick = { onOpen(group) },
-                onLongClick = { menuExpanded = true },
-            ),
+            .semantics { this.selected = selected }
+            .clickable { if (selecting) onToggleSelection(group.comics) else onOpen(group) },
         verticalArrangement = Arrangement.spacedBy(11.dp),
     ) {
-        Box(modifier = Modifier.fillMaxWidth().aspectRatio(2f / 3f)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(2f / 3f)
+                .graphicsLayer { scaleX = scale; scaleY = scale },
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -1723,7 +1780,15 @@ private fun GroupCard(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(top = 12.dp, end = 12.dp)
-                    .clip(CardShape),
+                    .clip(CardShape)
+                    .then(
+                        when {
+                            selected -> Modifier.border(SelectionBorder, Accent, CardShape)
+                            partial -> Modifier.border(SelectableBorder, Accent, CardShape)
+                            selecting -> Modifier.border(SelectableBorder, CardLine, CardShape)
+                            else -> Modifier
+                        },
+                    ),
             ) {
                 CoverArt(comic = representative, showArtwork = true)
                 Box(
@@ -1734,6 +1799,10 @@ private fun GroupCard(
                 CountBadge(count = group.comics.size, modifier = Modifier.align(Alignment.BottomStart).padding(9.dp))
                 if (readCount == group.comics.size) {
                     CompletedBadge(modifier = Modifier.align(Alignment.BottomEnd).padding(9.dp))
+                }
+                when {
+                    selected -> SelectionBadge(modifier = Modifier.align(Alignment.TopStart).padding(9.dp))
+                    partial -> PartialSelectionBadge(modifier = Modifier.align(Alignment.TopStart).padding(9.dp))
                 }
             }
         }
@@ -1753,7 +1822,20 @@ private fun GroupCard(
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
-        SeriesMenu(expanded = menuExpanded, group = group, selection = selection, onDismiss = { menuExpanded = false })
+    }
+}
+
+@Composable
+private fun PartialSelectionBadge(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(BadgeSize)
+            .clip(CircleShape)
+            .background(BadgeGround)
+            .border(SelectionBorder, Accent, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(modifier = Modifier.size(PartialBadgeDot).clip(CircleShape).background(Accent))
     }
 }
 

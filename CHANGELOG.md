@@ -17,6 +17,13 @@ All notable user-facing changes to Kapow. The format follows
   Works on the shelf and inside a series, folded and unfolded.
 - The series menu can add a whole series to a reading list, keeping the issue
   order, instead of adding its issues one by one.
+- Series stacks can be selected: ticking a stack takes every issue in it, so a
+  drag across ten Spider-Man stacks builds a Spider-Man list in one gesture. A
+  half-ticked stack shows it, the count always counts issues, and deleting a
+  selection that contains whole series says so before it does it.
+- The group-by-series toggle now works inside a reading list: the list groups
+  into stacks without ever changing its order, and opening a stack shows those
+  issues in list order. Reordering stays in the ungrouped view.
 - Drag to select: keep the finger down after the long-press and sweep across
   the covers to take a whole run at once, with the grid auto-scrolling while the
   finger rests near an edge. Dragging back over your own path gives the run

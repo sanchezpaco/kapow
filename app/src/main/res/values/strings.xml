@@ -55,6 +55,10 @@
         <item quantity="one">Delete comic?</item>
         <item quantity="other">Delete %1$d comics?</item>
     </plurals>
+    <plurals name="library_selection_delete_series_note">
+        <item quantity="one">This includes 1 complete series.</item>
+        <item quantity="other">This includes %1$d complete series.</item>
+    </plurals>
     <plurals name="library_selection_delete_body">
         <item quantity="one">The selected comic will be permanently deleted from your device.</item>
         <item quantity="other">The %1$d selected comics will be permanently deleted from your device.</item>

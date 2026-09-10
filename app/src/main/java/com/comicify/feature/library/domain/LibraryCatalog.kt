@@ -90,7 +90,15 @@ object LibraryCatalog {
     }
 
     fun selectable(entries: List<LibraryEntry>, comics: List<LibraryComic>, grouped: Boolean): List<LibraryComic> =
-        if (!grouped) comics else entries.filterIsInstance<LibraryEntry.Single>().map { it.comic }
+        if (!grouped) comics else entries.flatMap(LibraryEntry::members)
+
+    fun completeSeries(entries: List<LibraryEntry>, selected: Set<Long>): Int =
+        entries.count { entry -> entry is LibraryEntry.Group && entry.comics.all { it.id in selected } }
+
+    fun wholeSeries(entries: List<LibraryEntry>, selected: Set<Long>): LibraryEntry.Group? =
+        entries.filterIsInstance<LibraryEntry.Group>().firstOrNull { group ->
+            group.comics.size == selected.size && group.comics.all { it.id in selected }
+        }
 
     fun openGroup(entries: List<LibraryEntry>, series: String?): LibraryEntry.Group? {
         if (series == null) return null
