@@ -5,7 +5,7 @@ All notable user-facing changes to Kapow. The format follows
 `versionName` in `app/build.gradle.kts` and the `v*` git tags. The Play
 "What's new" text lives in `fastlane/metadata/android/*/changelogs/`.
 
-## [Unreleased]
+## [1.1.0] - 2026-09-10
 
 ### Added
 - Multi-select in the library: long-press a cover to start selecting, then tap

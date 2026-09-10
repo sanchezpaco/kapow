@@ -1,0 +1,6 @@
+• Autoplay: the comic reads itself, at the seconds per page you choose
+• Works in every mode: page turns, panel by panel, and the vertical strip
+• A pause button counts the page down; touch the page and it waits for you
+• Long-press a cover to select several comics, or drag across a run of them
+• Send the selection to a reading list, mark it read, favourite it or delete it
+• Tick a whole series at once, and group a reading list by series

@@ -1,0 +1,6 @@
+• Avance automático: el cómic se lee solo, a los segundos por página que elijas
+• Funciona en todos los modos: pasando página, viñeta a viñeta y en tira vertical
+• Un botón de pausa cuenta la página; toca la página y te espera
+• Mantén pulsada una portada para seleccionar varios cómics, o arrastra sobre ellos
+• Manda la selección a una lista, márcala leída, hazla favorita o bórrala
+• Marca una serie entera de una vez, y agrupa una lista de lectura por series
