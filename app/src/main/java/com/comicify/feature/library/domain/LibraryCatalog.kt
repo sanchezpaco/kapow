@@ -89,8 +89,8 @@ object LibraryCatalog {
         }
     }
 
-    fun selectable(entries: List<LibraryEntry>): List<LibraryComic> =
-        entries.filterIsInstance<LibraryEntry.Single>().map { it.comic }
+    fun selectable(entries: List<LibraryEntry>, comics: List<LibraryComic>, grouped: Boolean): List<LibraryComic> =
+        if (!grouped) comics else entries.filterIsInstance<LibraryEntry.Single>().map { it.comic }
 
     fun openGroup(entries: List<LibraryEntry>, series: String?): LibraryEntry.Group? {
         if (series == null) return null

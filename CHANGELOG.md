@@ -9,12 +9,12 @@ All notable user-facing changes to Kapow. The format follows
 
 ### Added
 - Multi-select in the library: long-press a cover to start selecting, then tap
-  to tick more. A bar at the top counts the selection and selects everything
-  you are looking at; a bar at the bottom adds the selection to a reading list
-  (or a new one), takes it out of the open list, marks it read or unread,
-  favourites it, or deletes it behind one confirmation. Marking read and
-  favouriting can be undone from the snackbar. Works on the shelf and inside a
-  series, folded and unfolded.
+  to tick more. The filter chips turn into the selection row — a count and the
+  actions — and turn back when you leave it; nothing else on the shelf moves.
+  From there the selection goes into a reading list (or a new one), out of the
+  open list, gets marked read or unread, favourited, or deleted behind one
+  confirmation. Marking read and favouriting can be undone from the snackbar.
+  Works on the shelf and inside a series, folded and unfolded.
 - The series menu can add a whole series to a reading list, keeping the issue
   order, instead of adding its issues one by one.
 - "Add to list" now works on a set of comics: a list is ticked only when every
