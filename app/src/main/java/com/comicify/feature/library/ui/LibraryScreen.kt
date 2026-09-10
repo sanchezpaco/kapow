@@ -6,9 +6,10 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -36,10 +37,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -70,7 +68,6 @@ import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material.icons.outlined.RemoveDone
-import androidx.compose.material.icons.outlined.SelectAll
 import com.comicify.feature.library.domain.LibraryScanError
 import com.comicify.feature.library.domain.LibrarySelection
 import com.comicify.feature.library.domain.LibrarySort
@@ -103,6 +100,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -130,6 +128,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
@@ -167,13 +166,16 @@ private val SearchPresetGap = 8.dp
 internal val MenuHeaderMaxWidth = 260.dp
 private val ProgressRingSize = 26.dp
 private val SelectionBorder = 2.dp
+private val SelectableBorder = 1.dp
 private const val SelectionScale = 0.92f
 private const val InertAlpha = 0.4f
-private val SelectionBarHeight = 64.dp
-private val SelectionBarMaxWidth = 640.dp
-private val SelectionSlotWidth = 64.dp
-private val SelectionSlotIconWidth = 48.dp
-private const val LABELLED_SLOT_MIN_WIDTH_DP = 360
+private const val SELECTION_CROSSFADE_MS = 150
+private const val TabularNumbers = "tnum"
+private val SelectionSquare = TouchTargetSize
+private const val GhostToneAlpha = 0.15f
+private val SelectionGap = 10.dp
+private val SelectionPillCompact = 76.dp
+private val SelectionPillWide = 184.dp
 private val BadgeSize = 28.dp
 private val BadgeGlyphSize = 16.dp
 private val BadgeGround = Color(0xD2060608)
@@ -258,7 +260,19 @@ fun LibraryScreen(
         ),
     )
     val shelf = state.visibleComics
-    val selected = LibrarySelection.comics(state.selection, shelf)
+    val selection = SelectionUi(
+        selected = LibrarySelection.comics(state.selection, shelf),
+        shelf = shelf,
+        lists = lists,
+        openSettings = onOpenSettings,
+        openDetails = onOpenDetails,
+        chooseCover = onChooseCover,
+        setRead = setReadWithUndo,
+        setFavorite = setFavoriteWithUndo,
+        delete = onDeleteComics,
+        selectAll = onSelectAll,
+        clear = onClearSelection,
+    )
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { KapowSnackbarHost(snackbarHost) },
@@ -268,44 +282,20 @@ fun LibraryScreen(
                 state = state,
                 onFolderPicked = onFolderPicked,
                 onOpenComic = onOpenComic,
-                onOpenSettings = onOpenSettings,
                 onOpenStats = onOpenStats,
                 onOpenAppSettings = onOpenAppSettings,
                 onOpenFile = onOpenFile,
                 onFilterSelected = onFilterSelected,
                 onToggleGrouped = onToggleGrouped,
                 onUnshelve = unshelveWithUndo,
-                onSetRead = setReadWithUndo,
-                onSetFavorite = setFavoriteWithUndo,
-                onDeleteComics = onDeleteComics,
                 onQueryChanged = onQueryChanged,
                 onPresetQuery = onPresetQuery,
                 onSortSelected = onSortSelected,
                 onOpenSeries = onOpenSeries,
                 onToggleSelection = onToggleSelection,
+                selection = selection,
                 lists = lists,
             )
-            if (selected.isNotEmpty()) {
-                SelectionTopBar(
-                    selected = selected,
-                    shelf = shelf,
-                    onSelectAll = onSelectAll,
-                    onClearSelection = onClearSelection,
-                    modifier = Modifier.align(Alignment.TopCenter),
-                )
-                SelectionActionBar(
-                    selected = selected,
-                    lists = lists,
-                    onOpenSettings = onOpenSettings,
-                    onOpenDetails = onOpenDetails,
-                    onChooseCover = onChooseCover,
-                    onSetRead = setReadWithUndo,
-                    onSetFavorite = setFavoriteWithUndo,
-                    onDeleteComics = onDeleteComics,
-                    onClearSelection = onClearSelection,
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                )
-            }
         }
     }
 }
@@ -327,21 +317,18 @@ private fun LibraryContent(
     state: LibraryUiState,
     onFolderPicked: (Uri) -> Unit,
     onOpenComic: (LibraryComic) -> Unit,
-    onOpenSettings: (List<LibraryComic>) -> Unit,
     onOpenStats: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onOpenFile: (Uri) -> Unit,
     onFilterSelected: (LibraryFilter) -> Unit,
     onToggleGrouped: () -> Unit,
     onUnshelve: (LibraryComic) -> Unit,
-    onSetRead: (List<LibraryComic>, Boolean) -> Unit,
-    onSetFavorite: (List<LibraryComic>, Boolean) -> Unit,
-    onDeleteComics: (List<LibraryComic>) -> Unit,
     onQueryChanged: (String) -> Unit,
     onPresetQuery: (String) -> Unit,
     onSortSelected: (LibrarySort) -> Unit,
     onOpenSeries: (String?) -> Unit,
     onToggleSelection: (LibraryComic) -> Unit,
+    selection: SelectionUi,
     lists: ReadingListsUi,
 ) {
     val folderLauncher = rememberLauncherForActivityResult(
@@ -360,21 +347,18 @@ private fun LibraryContent(
     }
 
     val selecting = state.selection.isNotEmpty()
+    BackHandler(enabled = selecting) { selection.clear() }
     BackHandler(enabled = !selecting && openGroup != null) { onOpenSeries(null) }
     BackHandler(enabled = !selecting && openGroup == null && lists.opened != null) { lists.actions.open(null) }
 
     if (openGroup != null) {
         SeriesScreen(
             group = openGroup,
-            selection = state.selection,
+            selectedIds = state.selection,
+            selection = selection,
             onBack = { onOpenSeries(null) },
             onOpenComic = onOpenComic,
-            onOpenSettings = onOpenSettings,
-            onSetRead = onSetRead,
-            onSetFavorite = onSetFavorite,
-            onDeleteComics = onDeleteComics,
             onToggleSelection = onToggleSelection,
-            lists = lists,
         )
         return
     }
@@ -387,12 +371,7 @@ private fun LibraryContent(
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = gridMinCell()),
         modifier = Modifier.fillMaxSize().statusBarsPadding(),
-        contentPadding = PaddingValues(
-            top = selectionBarInset(selecting),
-            start = 20.dp,
-            end = 20.dp,
-            bottom = 20.dp + selectionBarInset(selecting),
-        ),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
         verticalArrangement = Arrangement.spacedBy(SectionGap),
     ) {
@@ -413,7 +392,7 @@ private fun LibraryContent(
             )
         }
         stickyHeader {
-            FilterHeader(filter = state.filter, onFilterSelected = onFilterSelected)
+            FilterHeader(filter = state.filter, onFilterSelected = onFilterSelected, selection = selection)
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column {
@@ -452,11 +431,7 @@ private fun LibraryContent(
                         group = entry,
                         inert = selecting,
                         onOpen = { onOpenSeries(it.series) },
-                        onOpenSettings = onOpenSettings,
-                        onSetRead = onSetRead,
-                        onSetFavorite = onSetFavorite,
-                        onDeleteComics = onDeleteComics,
-                        lists = lists,
+                        selection = selection,
                     )
                 }
             }
@@ -483,55 +458,43 @@ private fun Modifier.inertWhile(inert: Boolean): Modifier =
         }
     }
 
-@Composable
-private fun selectionBarInset(selecting: Boolean): Dp {
-    val navigationBar = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    val inset by animateDpAsState(targetValue = if (selecting) SelectionBarHeight + navigationBar else 0.dp)
-    return inset
-}
-
 private fun LibraryEntry.gridKey(): String = when (this) {
     is LibraryEntry.Single -> "comic-${comic.id}"
     is LibraryEntry.Group -> "group-$series"
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SeriesScreen(
     group: LibraryEntry.Group,
-    selection: Set<Long>,
+    selectedIds: Set<Long>,
+    selection: SelectionUi,
     onBack: () -> Unit,
     onOpenComic: (LibraryComic) -> Unit,
-    onOpenSettings: (List<LibraryComic>) -> Unit,
-    onSetRead: (List<LibraryComic>, Boolean) -> Unit,
-    onSetFavorite: (List<LibraryComic>, Boolean) -> Unit,
-    onDeleteComics: (List<LibraryComic>) -> Unit,
     onToggleSelection: (LibraryComic) -> Unit,
-    lists: ReadingListsUi,
 ) {
-    val selecting = selection.isNotEmpty()
+    val selecting = selectedIds.isNotEmpty()
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = gridMinCell()),
         modifier = Modifier.fillMaxSize().statusBarsPadding(),
-        contentPadding = PaddingValues(
-            top = 20.dp + selectionBarInset(selecting),
-            start = 20.dp,
-            end = 20.dp,
-            bottom = 20.dp + selectionBarInset(selecting),
-        ),
+        contentPadding = PaddingValues(20.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
         verticalArrangement = Arrangement.spacedBy(SectionGap),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
-            SeriesHeader(
-                group = group,
-                selecting = selecting,
-                onBack = onBack,
-                onOpenSettings = onOpenSettings,
-                onSetRead = onSetRead,
-                onSetFavorite = onSetFavorite,
-                onDeleteComics = onDeleteComics,
-                lists = lists,
-            )
+            SeriesHeader(group = group, selecting = selecting, onBack = onBack, selection = selection)
+        }
+        if (selecting) {
+            stickyHeader {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(vertical = 10.dp),
+                ) {
+                    SelectionRow(selection = rememberHeldSelection(selection))
+                }
+            }
         }
         items(items = group.comics, key = { it.id }) { comic ->
             ComicCard(
@@ -539,7 +502,7 @@ private fun SeriesScreen(
                 title = comic.issueNumber?.let { "#$it" } ?: comic.title,
                 subtitle = comic.storyTitle,
                 selecting = selecting,
-                selected = comic.id in selection,
+                selected = comic.id in selectedIds,
                 onOpenComic = onOpenComic,
                 onToggleSelection = onToggleSelection,
             )
@@ -552,11 +515,7 @@ private fun SeriesHeader(
     group: LibraryEntry.Group,
     selecting: Boolean,
     onBack: () -> Unit,
-    onOpenSettings: (List<LibraryComic>) -> Unit,
-    onSetRead: (List<LibraryComic>, Boolean) -> Unit,
-    onSetFavorite: (List<LibraryComic>, Boolean) -> Unit,
-    onDeleteComics: (List<LibraryComic>) -> Unit,
-    lists: ReadingListsUi,
+    selection: SelectionUi,
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -594,16 +553,7 @@ private fun SeriesHeader(
         if (selecting) return@Row
         Box {
             GhostAction(icon = Icons.Filled.MoreVert, contentDescription = stringResource(R.string.library_series_menu), onClick = { menuExpanded = true })
-            SeriesMenu(
-                expanded = menuExpanded,
-                group = group,
-                lists = lists,
-                onDismiss = { menuExpanded = false },
-                onOpenSettings = onOpenSettings,
-                onSetRead = onSetRead,
-                onSetFavorite = onSetFavorite,
-                onDeleteComics = onDeleteComics,
-            )
+            SeriesMenu(expanded = menuExpanded, group = group, selection = selection, onDismiss = { menuExpanded = false })
         }
     }
 }
@@ -813,19 +763,25 @@ internal fun GhostAction(
     contentDescription: String,
     onClick: () -> Unit,
     active: Boolean = false,
+    destructive: Boolean = false,
 ) {
+    val tint = when {
+        destructive -> Danger
+        active -> Accent
+        else -> InkDim
+    }
     Box(
         modifier = Modifier
             .size(TouchTargetSize)
             .clip(RoundedCornerShape(12.dp))
-            .background(if (active) Accent.copy(alpha = 0.16f) else Surface2)
+            .background(if (active || destructive) tint.copy(alpha = GhostToneAlpha) else Surface2)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = if (active) Accent else InkDim,
+            tint = tint,
             modifier = Modifier.size(19.dp),
         )
     }
@@ -1105,7 +1061,13 @@ private fun ComicCard(
                 .sharedCover(comic.id)
                 .graphicsLayer { scaleX = scale; scaleY = scale }
                 .clip(CardShape)
-                .then(if (selected) Modifier.border(SelectionBorder, Accent, CardShape) else Modifier),
+                .then(
+                    when {
+                        selected -> Modifier.border(SelectionBorder, Accent, CardShape)
+                        selecting -> Modifier.border(SelectableBorder, CardLine, CardShape)
+                        else -> Modifier
+                    },
+                ),
         ) {
             CoverArt(comic = comic, showArtwork = true)
             Box(
@@ -1174,159 +1136,131 @@ private fun SelectionBadge(modifier: Modifier = Modifier) {
     }
 }
 
+internal data class SelectionUi(
+    val selected: List<LibraryComic>,
+    val shelf: List<LibraryComic>,
+    val lists: ReadingListsUi,
+    val openSettings: (List<LibraryComic>) -> Unit,
+    val openDetails: (LibraryComic) -> Unit,
+    val chooseCover: (LibraryComic) -> Unit,
+    val setRead: (List<LibraryComic>, Boolean) -> Unit,
+    val setFavorite: (List<LibraryComic>, Boolean) -> Unit,
+    val delete: (List<LibraryComic>) -> Unit,
+    val selectAll: (List<LibraryComic>) -> Unit,
+    val clear: () -> Unit,
+)
+
+private class SelectionAction(
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val label: String,
+    val destructive: Boolean = false,
+    val onClick: () -> Unit,
+)
+
 @Composable
-private fun SelectionTopBar(
-    selected: List<LibraryComic>,
-    shelf: List<LibraryComic>,
-    onSelectAll: (List<LibraryComic>) -> Unit,
-    onClearSelection: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    BackHandler { onClearSelection() }
-    val allSelected = selected.size == shelf.size
-    Column(modifier = modifier.fillMaxWidth().background(Surface2).statusBarsPadding()) {
+private fun rememberHeldSelection(selection: SelectionUi): SelectionUi {
+    val held = remember { mutableStateOf(selection.selected) }
+    if (selection.selected.isNotEmpty()) held.value = selection.selected
+    return selection.copy(selected = held.value)
+}
+
+@Composable
+private fun SelectionRow(selection: SelectionUi) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    var addingToList by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
+    val selected = selection.selected
+    val openList = selection.lists.opened
+    val allRead = selected.all { it.completed }
+    val allFavorite = selected.all { it.favorite }
+    val actions = buildList {
+        add(
+            SelectionAction(
+                icon = Icons.AutoMirrored.Filled.PlaylistAdd,
+                label = stringResource(R.string.library_list_add_to),
+                onClick = { addingToList = true },
+            ),
+        )
+        openList?.let { list ->
+            add(
+                SelectionAction(
+                    icon = Icons.Outlined.RemoveCircleOutline,
+                    label = stringResource(R.string.library_list_remove),
+                    onClick = { selection.clear(); selection.lists.actions.remove(list, selected) },
+                ),
+            )
+        }
+        add(
+            SelectionAction(
+                icon = if (allRead) Icons.Outlined.RemoveDone else Icons.Outlined.DoneAll,
+                label = stringResource(
+                    if (allRead) R.string.library_selection_mark_unread else R.string.library_selection_mark_read,
+                ),
+                onClick = { selection.setRead(selected, !allRead) },
+            ),
+        )
+        add(
+            SelectionAction(
+                icon = if (allFavorite) Icons.Outlined.StarBorder else Icons.Filled.Star,
+                label = stringResource(
+                    if (allFavorite) R.string.library_selection_remove_favorite
+                    else R.string.library_selection_add_favorite,
+                ),
+                onClick = { selection.setFavorite(selected, !allFavorite) },
+            ),
+        )
+        add(
+            SelectionAction(
+                icon = Icons.Outlined.Delete,
+                label = stringResource(R.string.library_selection_delete),
+                destructive = true,
+                onClick = { confirmDelete = true },
+            ),
+        )
+    }
+    BoxWithConstraints {
+        val inline = actions.take(inlineActionCount(maxWidth, actions.size, isCompactWidth()))
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(SelectionGap),
         ) {
             GhostAction(
                 icon = Icons.Filled.Close,
                 contentDescription = stringResource(R.string.library_selection_close),
-                onClick = onClearSelection,
+                onClick = selection.clear,
             )
-            Text(
-                text = pluralStringResource(R.plurals.library_selected_count, selected.size, selected.size),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-            )
-            GhostAction(
-                icon = Icons.Outlined.SelectAll,
-                contentDescription = stringResource(
-                    if (allSelected) R.string.library_select_none else R.string.library_select_all,
-                ),
-                onClick = { if (allSelected) onClearSelection() else onSelectAll(shelf) },
-                active = allSelected,
-            )
-        }
-        HorizontalDivider(color = CardLine)
-    }
-}
-
-@Composable
-private fun SelectionActionBar(
-    selected: List<LibraryComic>,
-    lists: ReadingListsUi,
-    onOpenSettings: (List<LibraryComic>) -> Unit,
-    onOpenDetails: (LibraryComic) -> Unit,
-    onChooseCover: (LibraryComic) -> Unit,
-    onSetRead: (List<LibraryComic>, Boolean) -> Unit,
-    onSetFavorite: (List<LibraryComic>, Boolean) -> Unit,
-    onDeleteComics: (List<LibraryComic>) -> Unit,
-    onClearSelection: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var menuExpanded by remember { mutableStateOf(false) }
-    var addingToList by remember { mutableStateOf(false) }
-    var confirmDelete by remember { mutableStateOf(false) }
-    val openList = lists.opened
-    val labelled = LocalConfiguration.current.screenWidthDp >= LABELLED_SLOT_MIN_WIDTH_DP
-    val bothListVerbs = !isCompactWidth() && openList != null
-    val allRead = selected.all { it.completed }
-    val allFavorite = selected.all { it.favorite }
-    val single = selected.singleOrNull()
-    val overflowsAddToList = openList != null && !bothListVerbs
-    Column(modifier = modifier.fillMaxWidth().background(Surface2).navigationBarsPadding()) {
-        HorizontalDivider(color = CardLine)
-        Row(
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .widthIn(max = SelectionBarMaxWidth)
-                .height(SelectionBarHeight)
-                .padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            if (openList == null || bothListVerbs) {
-                SelectionSlot(
-                    icon = Icons.AutoMirrored.Filled.PlaylistAdd,
-                    label = stringResource(R.string.library_selection_list),
-                    contentDescription = stringResource(R.string.library_list_add_to),
-                    labelled = labelled,
-                    onClick = { addingToList = true },
+            SelectionCountPill(count = selected.size)
+            Spacer(modifier = Modifier.weight(1f))
+            inline.forEach { action ->
+                GhostAction(
+                    icon = action.icon,
+                    contentDescription = action.label,
+                    onClick = action.onClick,
+                    destructive = action.destructive,
                 )
             }
-            openList?.let { list ->
-                SelectionSlot(
-                    icon = Icons.Outlined.RemoveCircleOutline,
-                    label = stringResource(R.string.library_selection_remove),
-                    contentDescription = stringResource(R.string.library_list_remove),
-                    labelled = labelled,
-                    onClick = { onClearSelection(); lists.actions.remove(list, selected) },
+            Box {
+                GhostAction(
+                    icon = Icons.Filled.MoreVert,
+                    contentDescription = stringResource(R.string.library_selection_more_actions),
+                    onClick = { menuExpanded = true },
                 )
-            }
-            SelectionSlot(
-                icon = if (allRead) Icons.Outlined.RemoveDone else Icons.Outlined.DoneAll,
-                label = stringResource(R.string.library_selection_read),
-                contentDescription = stringResource(
-                    if (allRead) R.string.library_selection_mark_unread else R.string.library_selection_mark_read,
-                ),
-                labelled = labelled,
-                onClick = { onSetRead(selected, !allRead) },
-            )
-            SelectionSlot(
-                icon = if (allFavorite) Icons.Outlined.StarBorder else Icons.Filled.Star,
-                label = stringResource(R.string.library_selection_favorite),
-                contentDescription = stringResource(
-                    if (allFavorite) R.string.library_selection_remove_favorite
-                    else R.string.library_selection_add_favorite,
-                ),
-                labelled = labelled,
-                onClick = { onSetFavorite(selected, !allFavorite) },
-            )
-            SelectionSlot(
-                icon = Icons.Outlined.Delete,
-                label = stringResource(R.string.library_selection_delete),
-                contentDescription = stringResource(R.string.library_selection_delete),
-                labelled = labelled,
-                tint = Danger,
-                onClick = { confirmDelete = true },
-            )
-            if (single != null || overflowsAddToList) {
-                Box {
-                    SelectionSlot(
-                        icon = Icons.Filled.MoreVert,
-                        label = stringResource(R.string.library_selection_more),
-                        contentDescription = stringResource(R.string.library_selection_more_actions),
-                        labelled = labelled,
-                        onClick = { menuExpanded = true },
-                    )
-                    SelectionMenu(
-                        expanded = menuExpanded,
-                        single = single,
-                        openList = openList,
-                        showAddToList = overflowsAddToList,
-                        actions = lists.actions,
-                        onDismiss = { menuExpanded = false },
-                        onAddToList = { addingToList = true },
-                        onOpenSettings = { onClearSelection(); onOpenSettings(selected) },
-                        onOpenDetails = { onClearSelection(); onOpenDetails(it) },
-                        onChooseCover = { onClearSelection(); onChooseCover(it) },
-                    )
-                }
+                SelectionMenu(
+                    expanded = menuExpanded,
+                    selection = selection,
+                    overflow = actions.drop(inline.size),
+                    onDismiss = { menuExpanded = false },
+                )
             }
         }
     }
     if (addingToList) {
         AddToListDialog(
-            title = single?.title ?: pluralStringResource(R.plurals.library_selected_count, selected.size, selected.size),
-            subtitle = null,
+            name = null,
             comics = selected,
-            lists = lists,
-            onDismiss = { addingToList = false; onClearSelection() },
+            lists = selection.lists,
+            onDismiss = { addingToList = false; selection.clear() },
         )
     }
     if (confirmDelete) {
@@ -1334,81 +1268,119 @@ private fun SelectionActionBar(
             comics = selected,
             onConfirm = {
                 confirmDelete = false
-                onClearSelection()
-                onDeleteComics(selected)
+                selection.clear()
+                selection.delete(selected)
             },
             onDismiss = { confirmDelete = false },
         )
     }
 }
 
+private fun inlineActionCount(available: Dp, actions: Int, compact: Boolean): Int {
+    val fixed = SelectionSquare + SelectionGap + selectionPillWidth(compact) + SelectionGap + SelectionSquare
+    val slot = SelectionSquare + SelectionGap
+    return (((available - fixed) + SelectionGap) / slot).toInt().coerceIn(0, actions)
+}
+
+private fun selectionPillWidth(compact: Boolean): Dp =
+    if (compact) SelectionPillCompact else SelectionPillWide
+
 @Composable
-private fun SelectionSlot(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    contentDescription: String,
-    labelled: Boolean,
-    onClick: () -> Unit,
-    tint: Color = InkDim,
-) {
-    Column(
+private fun SelectionCountPill(count: Int) {
+    val spoken = pluralStringResource(R.plurals.library_selected_count, count, count)
+    Row(
         modifier = Modifier
-            .width(if (labelled) SelectionSlotWidth else SelectionSlotIconWidth)
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+            .clip(CircleShape)
+            .background(Accent)
+            .padding(horizontal = 14.dp, vertical = 9.dp)
+            .semantics { contentDescription = spoken },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Icon(imageVector = icon, contentDescription = contentDescription, tint = tint, modifier = Modifier.size(20.dp))
-        if (labelled) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = tint,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
+        Icon(
+            imageVector = Icons.Filled.Check,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(15.dp),
+        )
+        Text(
+            text = if (isCompactWidth()) "$count" else spoken,
+            style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = TabularNumbers),
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White,
+            maxLines = 1,
+        )
     }
 }
 
 @Composable
 private fun SelectionMenu(
     expanded: Boolean,
-    single: LibraryComic?,
-    openList: ReadingList?,
-    showAddToList: Boolean,
-    actions: ReadingListActions,
+    selection: SelectionUi,
+    overflow: List<SelectionAction>,
     onDismiss: () -> Unit,
-    onAddToList: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenDetails: (LibraryComic) -> Unit,
-    onChooseCover: (LibraryComic) -> Unit,
 ) {
+    val selected = selection.selected
+    val single = selected.singleOrNull()
+    val allSelected = LibrarySelection.allSelected(selected.mapTo(mutableSetOf()) { it.id }, selection.shelf)
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
-        if (showAddToList) AddToListMenuItem(onClick = { onDismiss(); onAddToList() })
-        if (single == null) return@DropdownMenu
-        MenuHeader(title = single.title)
+        MenuHeader(title = pluralStringResource(R.plurals.library_selected_count, selected.size, selected.size))
         DropdownMenuItem(
-            text = { Text(stringResource(R.string.detail_info)) },
-            leadingIcon = { Icon(imageVector = Icons.Outlined.Info, contentDescription = null) },
-            onClick = { onDismiss(); onOpenDetails(single) },
+            text = {
+                Text(
+                    stringResource(
+                        if (allSelected) R.string.library_select_none else R.string.library_select_all,
+                    ),
+                )
+            },
+            leadingIcon = { Icon(imageVector = Icons.Filled.Check, contentDescription = null) },
+            onClick = {
+                onDismiss()
+                if (allSelected) selection.clear() else selection.selectAll(selection.shelf)
+            },
         )
-        if (single.pageCount != null) {
+        if (single != null) {
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.library_choose_cover)) },
-                leadingIcon = { Icon(imageVector = Icons.Outlined.Image, contentDescription = null) },
-                onClick = { onDismiss(); onChooseCover(single) },
+                text = { Text(stringResource(R.string.detail_info)) },
+                leadingIcon = { Icon(imageVector = Icons.Outlined.Info, contentDescription = null) },
+                onClick = { onDismiss(); selection.clear(); selection.openDetails(single) },
+            )
+            if (single.pageCount != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.library_choose_cover)) },
+                    leadingIcon = { Icon(imageVector = Icons.Outlined.Image, contentDescription = null) },
+                    onClick = { onDismiss(); selection.clear(); selection.chooseCover(single) },
+                )
+            }
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.detail_settings)) },
+                leadingIcon = { Icon(imageVector = Icons.Outlined.Settings, contentDescription = null) },
+                onClick = { onDismiss(); selection.clear(); selection.openSettings(selected) },
+            )
+            selection.lists.opened?.let { list ->
+                ReadingListMoveItems(
+                    list = list,
+                    comic = single,
+                    actions = selection.lists.actions,
+                    onDismiss = onDismiss,
+                )
+            }
+        }
+        if (overflow.isEmpty()) return@DropdownMenu
+        HorizontalDivider(color = CardLine)
+        overflow.forEach { action ->
+            DropdownMenuItem(
+                text = { Text(text = action.label, color = if (action.destructive) Danger else Color.Unspecified) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = action.icon,
+                        contentDescription = null,
+                        tint = if (action.destructive) Danger else LocalContentColor.current,
+                    )
+                },
+                onClick = { onDismiss(); action.onClick() },
             )
         }
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.detail_settings)) },
-            leadingIcon = { Icon(imageVector = Icons.Outlined.Settings, contentDescription = null) },
-            onClick = { onDismiss(); onOpenSettings() },
-        )
-        openList?.let { ReadingListMoveItems(list = it, comic = single, actions = actions, onDismiss = onDismiss) }
     }
 }
 @Composable
@@ -1481,12 +1453,8 @@ internal fun MenuHeader(title: String) {
 private fun SeriesMenu(
     expanded: Boolean,
     group: LibraryEntry.Group,
-    lists: ReadingListsUi,
+    selection: SelectionUi,
     onDismiss: () -> Unit,
-    onOpenSettings: (List<LibraryComic>) -> Unit,
-    onSetRead: (List<LibraryComic>, Boolean) -> Unit,
-    onSetFavorite: (List<LibraryComic>, Boolean) -> Unit,
-    onDeleteComics: (List<LibraryComic>) -> Unit,
 ) {
     val allRead = group.comics.all { it.completed }
     val allFavorite = group.comics.all { it.favorite }
@@ -1497,18 +1465,18 @@ private fun SeriesMenu(
         DropdownMenuItem(
             text = { Text(stringResource(R.string.library_series_settings)) },
             leadingIcon = { Icon(imageVector = Icons.Outlined.Settings, contentDescription = null) },
-            onClick = { onDismiss(); onOpenSettings(group.comics) },
+            onClick = { onDismiss(); selection.openSettings(group.comics) },
         )
         SeriesAddToListMenuItem(onClick = { onDismiss(); addingToList = true })
         DropdownMenuItem(
             text = { Text(stringResource(if (allRead) R.string.library_mark_series_unread else R.string.library_mark_series_read)) },
             leadingIcon = { Icon(imageVector = if (allRead) Icons.Outlined.RemoveDone else Icons.Outlined.DoneAll, contentDescription = null) },
-            onClick = { onDismiss(); onSetRead(group.comics, !allRead) },
+            onClick = { onDismiss(); selection.setRead(group.comics, !allRead) },
         )
         DropdownMenuItem(
             text = { Text(stringResource(if (allFavorite) R.string.library_series_remove_favorite else R.string.library_series_add_favorite)) },
             leadingIcon = { Icon(imageVector = if (allFavorite) Icons.Outlined.StarBorder else Icons.Filled.Star, contentDescription = null) },
-            onClick = { onDismiss(); onSetFavorite(group.comics, !allFavorite) },
+            onClick = { onDismiss(); selection.setFavorite(group.comics, !allFavorite) },
         )
         DropdownMenuItem(
             text = { Text(stringResource(R.string.library_delete_series), color = Danger) },
@@ -1518,10 +1486,9 @@ private fun SeriesMenu(
     }
     if (addingToList) {
         AddToListDialog(
-            title = group.series,
-            subtitle = pluralStringResource(R.plurals.library_selected_count, group.comics.size, group.comics.size),
+            name = group.series,
             comics = group.comics,
-            lists = lists,
+            lists = selection.lists,
             onDismiss = { addingToList = false },
         )
     }
@@ -1531,7 +1498,7 @@ private fun SeriesMenu(
             title = { Text(stringResource(R.string.library_delete_series_confirm_title)) },
             text = { Text(stringResource(R.string.library_delete_series_confirm_body, group.comics.size, group.series)) },
             confirmButton = {
-                TextButton(onClick = { confirmDelete = false; onDeleteComics(group.comics) }) {
+                TextButton(onClick = { confirmDelete = false; selection.delete(group.comics) }) {
                     Text(stringResource(R.string.library_delete_confirm), color = Danger)
                 }
             },
@@ -1547,11 +1514,7 @@ private fun GroupCard(
     group: LibraryEntry.Group,
     inert: Boolean,
     onOpen: (LibraryEntry.Group) -> Unit,
-    onOpenSettings: (List<LibraryComic>) -> Unit,
-    onSetRead: (List<LibraryComic>, Boolean) -> Unit,
-    onSetFavorite: (List<LibraryComic>, Boolean) -> Unit,
-    onDeleteComics: (List<LibraryComic>) -> Unit,
-    lists: ReadingListsUi,
+    selection: SelectionUi,
 ) {
     val representative = group.comics.firstOrNull { !it.completed && it.pageIndex > 0 } ?: group.comics.first()
     val readCount = group.comics.count { it.completed }
@@ -1608,16 +1571,7 @@ private fun GroupCard(
                 modifier = Modifier.padding(top = 2.dp),
             )
         }
-        SeriesMenu(
-            expanded = menuExpanded,
-            group = group,
-            lists = lists,
-            onDismiss = { menuExpanded = false },
-            onOpenSettings = onOpenSettings,
-            onSetRead = onSetRead,
-            onSetFavorite = onSetFavorite,
-            onDeleteComics = onDeleteComics,
-        )
+        SeriesMenu(expanded = menuExpanded, group = group, selection = selection, onDismiss = { menuExpanded = false })
     }
 }
 
@@ -1642,14 +1596,24 @@ private fun CountBadge(count: Int, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun FilterHeader(filter: LibraryFilter, onFilterSelected: (LibraryFilter) -> Unit) {
+private fun FilterHeader(
+    filter: LibraryFilter,
+    onFilterSelected: (LibraryFilter) -> Unit,
+    selection: SelectionUi,
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
             .padding(vertical = 10.dp),
     ) {
-        FilterBar(selected = filter, onFilterSelected = onFilterSelected)
+        Crossfade(
+            targetState = selection.selected.isNotEmpty(),
+            animationSpec = tween(SELECTION_CROSSFADE_MS),
+        ) { selecting ->
+            if (selecting) SelectionRow(selection = rememberHeldSelection(selection))
+            else FilterBar(selected = filter, onFilterSelected = onFilterSelected)
+        }
     }
 }
 

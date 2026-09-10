@@ -254,12 +254,14 @@ cannot express. Lists are hand-ordered, never re-sorted.
   ignored — a crossover is exactly what you do not want folded back into series
   stacks. The Layers toggle stays enabled and applies again on All comics.
 - **Adding** is `Add to list…`, and it always works on a *set* of comics: the
-  selection bar's first slot (one comic or twenty — see "Selection mode"), or
+  selection row's first square (one comic or twenty — see "Selection mode"), or
   the series menu, which passes the whole group in its shelf order. The dialog
   is headed by the comic's title (one comic), by the series name with the
   selected count under it (from a series), or by the count itself (from the
-  selection bar), and holds a **`TriStateCheckbox`** per list plus a "New list…"
-  row that swaps the body for one text field. Creating a list from that dialog creates it *and*
+  selection row), and holds a **`TriStateCheckbox`** per list plus a "New list…"
+  row that swaps the body for one text field — and while that field is up the
+  dialog retitles itself *New list*, with the count moving to the subtitle, so
+  it never reads "2 selected" over a name box. Creating a list from that dialog creates it *and*
   adds every comic in order. The box is `On` when all of the payload is already
   in that list, `Indeterminate` when only some of it is and `Off` when none is
   (`ReadingListMembership.of`); tapping `Off` or `Indeterminate` adds the ones
@@ -374,7 +376,7 @@ re-shelves it, so a comic reappears as soon as it is read again.
   (`LibraryCatalog.search` → `SearchQuery`). See "Search syntax" below.
 - **Long-pressing a cover** starts **selection mode** with that comic ticked
   (see "Selection mode" below); every per-comic action moved into the selection
-  bar, so a cover has one menu instead of two. **Long-pressing a series stack**
+  row that takes over the filter chips, so a cover has one menu instead of two. **Long-pressing a series stack**
   opens the series menu: series settings, add the whole series to a list, mark
   the whole series read/unread,
   add/remove every issue from favorites and delete the series (confirmation
@@ -408,40 +410,45 @@ one code path: the batch one.
   platform gesture (Photos, Files, Drive), and it costs no extra tap for the
   batch the user actually wanted. While selection is on, a plain tap toggles a
   cover instead of opening it; outside selection a tap still opens the comic.
-  **Out:** the "×" in the top bar, deselecting the last comic, or system BACK —
-  a `BackHandler` in `SelectionTopBar` that wins because the series and
-  open-list back handlers are disabled while `state.selection` is not empty.
-- **A selected card** keeps the card vocabulary: a 2 dp `Accent` border on the
-  cover, the cover box springing to 0.92 on a `graphicsLayer` **inside** the
-  `sharedCover` node (so the shared-element bounds never animate and neighbours
-  never move), and an `Accent`-filled check badge top-start with
-  `FavoriteBadge`'s exact geometry. Top-start is the one collision: while a card
-  is selected its favourite badge yields and the check takes the slot. The
-  progress ring, the completed tick and `#01` are untouched, and unselected
-  cards gain nothing — the two bars are the mode indicator, and dimming
-  thirty-nine covers to find one is worse than a clean grid. The card carries
-  `semantics { selected = … }` rather than a separate checkbox target.
-- **Two bars, overlaying the grid.** The **top bar** (`palette.raised`, hairline
-  under it, `statusBarsPadding`) is "×", "*n* selected"
-  (`library_selected_count`, a plural) and select-all — `GhostAction` with
-  `active = allSelected`, flipping to "clear selection" once everything is
-  ticked. The **action bar** sits above the navigation bar, five slots at thumb
-  height: add to / remove from list, read, favourite, delete (`Danger`) and
-  "⋮". Both grids grow `contentPadding` by the bar height at **both** edges
-  (`selectionBarInset`, an `animateDpAsState`), so neither bar ever covers the
-  sticky filter chips or the last row.
-- **Slot rules.** Slot 1 is list membership and its meaning is stable, only the
-  verb flips: outside a list it is *Add to list*; inside an open list, *Remove
-  from list*, with *Add to list* moving into "⋮" on folded widths and staying
-  inline from 600 dp. Labels drop below 360 dp and the slots become 48 dp icons.
-  Read and favourite are toggles over the whole set — they turn *off* only when
-  every selected comic is already read/favourite, so a mixed selection turns on.
-- **The "⋮"** carries what cannot be batched: *Details*, *Choose cover*,
-  *Reading settings* and *Move up / Move down*, all shown only when exactly one
-  comic is ticked, plus *Add to list* when the narrow layout pushed it there.
-  With nothing to show — several comics, no open list — the slot is not drawn.
-  The comic detail sheet therefore stays three taps from the shelf: long-press,
-  "⋮", *Details*.
+  **Out:** the "✕" square, deselecting the last comic, or system BACK.
+- **Selection has no chrome of its own. It takes over the filter row.** The
+  pinned `stickyHeader` that normally holds *Todos / Sin leer / Leídos /
+  Favoritos* crossfades (150 ms) to the selection row and back. Nothing else on
+  the screen moves: the toolbar keeps scrolling, the shelf title stays put, the
+  grid's `contentPadding` is exactly what it is without selection, and no bar is
+  inserted above or below anything. Losing the filter pills for the duration
+  costs nothing — changing the filter would only have narrowed the selection
+  anyway (see below). The series screen has no filter row, so there the same row
+  is added as its own `stickyHeader` while a selection is live.
+- **The row** is built from parts the shelf already uses, so it reads as the
+  same app: a `GhostAction` "✕" identical to the search/layers/stats squares one
+  line above, then the count as a *selected* `FilterPill` — `Accent` ground,
+  white `Check` glyph and a tabular-figures number, `✓ 3` folded and
+  `✓ 3 seleccionados` from 600 dp, not tappable — then `weight(1f)`, then the
+  actions as `GhostAction` squares: add to list, remove from list (only inside
+  an open list), read/unread, favourite, delete, "⋮". Delete is the same square
+  in the destructive key (`Danger` ground at 15 %, `Danger` glyph), the exact
+  mirror of `GhostAction(active = true)`, so no red word idles in the row.
+- **Overflow is measured, not guessed.** `BoxWithConstraints` gives the row its
+  width and `inlineActionCount` spends it on 48 dp squares in the order above;
+  whatever does not fit falls into "⋮", which is always present. On the folded
+  475 dp screen four actions fit, so inside an open list *delete* is the one
+  that overflows — the safe failure. Unfolded, all five fit.
+- **The "⋮"** leads with select-all / clear-selection (as a labelled row, not a
+  dashed-square icon that exists nowhere else in this app), then *Details*,
+  *Choose cover*, *Reading settings* and *Move up / Move down* when exactly one
+  comic is ticked, then whatever actions overflowed. The comic detail sheet
+  stays three taps from the shelf: long-press, "⋮", *Details*.
+- **The grid states selectability in two tokens.** While selecting, every
+  unselected cover takes a 1 dp `CardLine` hairline on `CardShape` — almost
+  invisible, but the whole grid becomes outlined tiles that say "these are all
+  pickable" with no dimming, no glyphs and no Material checkbox. A selected
+  cover keeps 2 dp `Accent`, springs to 0.92 on a `graphicsLayer` **inside** the
+  `sharedCover` node (so shared-element bounds never animate and neighbours
+  never move), and takes an `Accent` check badge top-start with `FavoriteBadge`'s
+  geometry — the one collision, so a selected card's favourite badge yields. The
+  progress ring, the completed tick and `#01` are untouched. Hairline =
+  selectable, 2 dp `Accent` = selected.
 - **What clears the selection and what does not.** *Add to list* (when its
   dialog closes), *Remove from list*, *Delete* and the "⋮" navigations exit the
   mode; **mark read/unread and favourite keep it**, because read-then-favourite
@@ -452,6 +459,18 @@ one code path: the batch one.
   comics the new filter hides simply drop out of it instead of being silently
   batched, and a delete, a rescan that drops a file or a relink can never leave
   a stale id behind.
+- **What "select all" means** is `LibraryCatalog.selectable(entries, comics,
+  grouped)` — exactly the covers the grid is drawing. Grouped, that is the loose
+  covers only, never issues hidden inside a stack; ungrouped, it is every comic
+  on the shelf. Getting this wrong once made the mode enterable but invisible:
+  the shelf renders `state.comics` when grouping is off while `entries` is
+  always the *grouped* structure, so long-pressing an issue of a multi-issue
+  series selected a comic that the row then could not find. Pinned by
+  `LibrarySelectionTest`.
+- **BACK** lives in `LibraryContent`, gated on `state.selection` and registered
+  before the series and open-list handlers (which stay gated on `!selecting`) —
+  never inside the row it protects, or a row that fails to render takes the
+  escape hatch down with it and BACK leaves the app.
 - **Undo where it is honest**, through the shelf's existing
   `SnackbarHostState.undoable`: batch mark read/unread and batch
   favourite/unfavourite restore each comic's previous flag, and remove-from-list
@@ -469,12 +488,11 @@ one code path: the batch one.
   — they stay laid out, so nothing jumps, but a stray tap can no longer open the
   reader and throw away a selection being built. Inside a series screen the
   header's "⋮" hides for the same reason: "Delete series" must not sit one tap
-  from a three-issue selection. `LibraryCatalog.selectable(entries)` is what
-  "select all" ticks, so in grouped mode it covers the loose covers only, never
-  issues hidden in a stack.
+  from a three-issue selection.
 - **State.** `LibraryUiState.selection` is a `Set<Long>` of comic ids owned by
-  `LibraryViewModel`. `LibrarySelection` and `ReadingListMembership` are pure
-  and unit tested.
+  `LibraryViewModel`; the UI carries it around as one `SelectionUi` value the
+  way reading lists travel as `ReadingListsUi`. `LibrarySelection` and
+  `ReadingListMembership` are pure and unit tested.
 
 ### Search syntax
 

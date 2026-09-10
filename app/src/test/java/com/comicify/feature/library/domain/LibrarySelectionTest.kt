@@ -56,9 +56,17 @@ class LibrarySelectionTest {
     }
 
     @Test
-    fun onlyLooseCoversAreSelectable_issuesInsideAStackAreNot() {
-        val entries = LibraryCatalog.grouped(listOf(comic(1, "Venom"), comic(2, "Hulk"), comic(3, "Hulk")))
-        assertEquals(listOf(1L), LibraryCatalog.selectable(entries).map { it.id })
+    fun groupedShelfOffersOnlyLooseCovers_issuesInsideAStackAreNot() {
+        val comics = listOf(comic(1, "Venom"), comic(2, "Hulk"), comic(3, "Hulk"))
+        val entries = LibraryCatalog.grouped(comics)
+        assertEquals(listOf(1L), LibraryCatalog.selectable(entries, comics, grouped = true).map { it.id })
+    }
+
+    @Test
+    fun ungroupedShelfOffersEveryComic_evenOnesWhoseSeriesHasSiblings() {
+        val comics = listOf(comic(1, "Venom"), comic(2, "Hulk"), comic(3, "Hulk"))
+        val entries = LibraryCatalog.grouped(comics)
+        assertEquals(listOf(1L, 2L, 3L), LibraryCatalog.selectable(entries, comics, grouped = false).map { it.id })
     }
 
     @Test

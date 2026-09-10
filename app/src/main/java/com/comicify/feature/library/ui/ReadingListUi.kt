@@ -247,14 +247,17 @@ private fun AddToListMenuItem(labelRes: Int, onClick: () -> Unit) {
 
 @Composable
 internal fun AddToListDialog(
-    title: String,
-    subtitle: String?,
+    name: String?,
     comics: List<LibraryComic>,
     lists: ReadingListsUi,
     onDismiss: () -> Unit,
 ) {
     var creating by remember { mutableStateOf(lists.lists.isEmpty()) }
-    var name by remember { mutableStateOf("") }
+    var listName by remember { mutableStateOf("") }
+    val count = pluralStringResource(R.plurals.library_selected_count, comics.size, comics.size)
+    val heading = name ?: comics.singleOrNull()?.title
+    val title = if (creating) stringResource(R.string.library_list_new) else heading ?: count
+    val subtitle = count.takeIf { comics.size > 1 && (creating || heading != null) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -273,7 +276,7 @@ internal fun AddToListDialog(
         },
         text = {
             if (creating) {
-                ListNameField(name = name, onNameChanged = { name = it })
+                ListNameField(name = listName, onNameChanged = { listName = it })
             } else {
                 ListCheckboxes(
                     comics = comics,
@@ -285,8 +288,8 @@ internal fun AddToListDialog(
         confirmButton = {
             if (creating) {
                 TextButton(
-                    enabled = name.isNotBlank(),
-                    onClick = { lists.actions.create(name, comics); onDismiss() },
+                    enabled = listName.isNotBlank(),
+                    onClick = { lists.actions.create(listName, comics); onDismiss() },
                 ) {
                     Text(stringResource(R.string.library_list_create))
                 }

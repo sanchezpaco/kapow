@@ -32,4 +32,5 @@ data class LibraryUiState(
 )
 
 internal val LibraryUiState.visibleComics: List<LibraryComic>
-    get() = LibraryCatalog.openGroup(entries, openedSeries)?.comics ?: LibraryCatalog.selectable(entries)
+    get() = LibraryCatalog.openGroup(entries, openedSeries)?.comics
+        ?: LibraryCatalog.selectable(entries, comics, grouped)
