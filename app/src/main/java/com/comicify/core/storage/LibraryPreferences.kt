@@ -15,6 +15,7 @@ private val Context.libraryDataStore by preferencesDataStore(name = "library")
 private val folderUriKey = stringPreferencesKey("folder_uri")
 private val groupedKey = booleanPreferencesKey("grouped_by_series")
 private val sampleSeededKey = booleanPreferencesKey("sample_seeded")
+private val dragHintSeenKey = booleanPreferencesKey("drag_hint_seen")
 
 @Singleton
 class LibraryPreferences @Inject constructor(
@@ -25,6 +26,12 @@ class LibraryPreferences @Inject constructor(
     val grouped: Flow<Boolean> = context.libraryDataStore.data.map { it[groupedKey] ?: false }
 
     val sampleSeeded: Flow<Boolean> = context.libraryDataStore.data.map { it[sampleSeededKey] ?: false }
+
+    val dragHintSeen: Flow<Boolean> = context.libraryDataStore.data.map { it[dragHintSeenKey] ?: false }
+
+    suspend fun setDragHintSeen() {
+        context.libraryDataStore.edit { it[dragHintSeenKey] = true }
+    }
 
     suspend fun setSampleSeeded() {
         context.libraryDataStore.edit { it[sampleSeededKey] = true }
