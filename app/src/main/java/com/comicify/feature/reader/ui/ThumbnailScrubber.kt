@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.comicify.R
 import com.comicify.feature.reader.data.PageLoader
@@ -47,6 +48,7 @@ private val ThumbHeight = 66.dp
 private val ThumbSpacing = 6.dp
 private val ThumbCorner = RoundedCornerShape(4.dp)
 private val ThumbRibbonSize = 14.dp
+private val ThumbStripPadding = 4.dp
 
 @Composable
 fun ThumbnailScrubber(
@@ -57,6 +59,7 @@ fun ThumbnailScrubber(
     bookmarks: Set<Int>,
     filtered: Boolean,
     onSelect: (Int) -> Unit,
+    endInset: Dp = 0.dp,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -75,7 +78,7 @@ fun ThumbnailScrubber(
         state = listState,
         modifier = modifier.fillMaxWidth().height(ThumbHeight),
         horizontalArrangement = Arrangement.spacedBy(ThumbSpacing),
-        contentPadding = PaddingValues(horizontal = 4.dp),
+        contentPadding = PaddingValues(start = ThumbStripPadding, end = ThumbStripPadding + endInset),
     ) {
         items(items = pages, key = { it }) { index ->
             ThumbnailCell(

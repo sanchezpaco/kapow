@@ -140,6 +140,36 @@ class AutoplayTest {
     }
 
     @Test
+    fun theSwitchTurnsAutoplayOnAndOffFromEitherPlaybackState() {
+        assertEquals(AutoplayState.Running, AutoplayState.Off.switched())
+        assertEquals(AutoplayState.Off, AutoplayState.Running.switched())
+        assertEquals(AutoplayState.Off, AutoplayState.Paused.switched())
+    }
+
+    @Test
+    fun theSwitchAlwaysComesBackOnRunningNeverPaused() {
+        assertTrue(AutoplayState.Off.switched().running)
+    }
+
+    @Test
+    fun thePillMovesBetweenRunningAndPausedBothWays() {
+        assertEquals(AutoplayState.Paused, AutoplayState.Running.transported())
+        assertEquals(AutoplayState.Running, AutoplayState.Paused.transported())
+    }
+
+    @Test
+    fun thePillDoesNothingWhileAutoplayIsOff() {
+        assertEquals(AutoplayState.Off, AutoplayState.Off.transported())
+    }
+
+    @Test
+    fun aPausedAutoplayIsStillOn() {
+        assertTrue(AutoplayState.Paused.on)
+        assertFalse(AutoplayState.Paused.running)
+        assertFalse(AutoplayState.Off.on)
+    }
+
+    @Test
     fun theStripCoversOnePageHeightPerInterval() {
         val pageHeight = 2400f
         val seconds = 30

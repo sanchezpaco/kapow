@@ -118,7 +118,7 @@ panel segmentation and reading-order errors. Full detail in `speech-bubbles.md`.
 A **Timer** switch at the bottom of the view-mode (eye) panel reads the comic on
 its own, at a pace you set in seconds per page. Turning it on reveals a stepper —
 a `−` circle, the value, a `+` circle, with `Per page` in the empty left half of
-the row — that walks `AUTOPLAY_SECONDS_RANGE` (3–120 s) in
+the row (`Paused` while it is) — that walks `AUTOPLAY_SECONDS_RANGE` (3–120 s) in
 `AUTOPLAY_SECONDS_STEP` (1 s) steps, disabled at the bounds. A second is the
 right grain to *tune* a pace with and a poor way to *cross* the range, so a held
 button repeats and then coarsens: one step on press, then after
@@ -190,27 +190,70 @@ drag pre-empts it at `MutatePriority.UserInput` and the loop waits for
 the page. That already *is* the dead-man switch, and a second one would only
 fight it.
 
-**Stopping is always deliberate**: the panel switch, the pill, `ON_STOP`
+**Turning it off is always deliberate**: the panel switch, `ON_STOP`
 (backgrounding latches it off — you do not come back to a page mid-turn), and
 the end of the comic, where the tick that would advance past the last page
-switches autoplay off and raises the end-of-comic card instead.
+switches autoplay off and raises the end-of-comic card instead. Off is
+deliberately **not** reachable from the reader surface: a hidden long-press on
+the one visible control is exactly how the pill went wrong the first time.
 
-The **pill** is the running indicator and the stop control in one: a 40 dp
-circle at the top-start of the window, a sibling of `TopChrome` but **outside
-`SlidingChrome`**, so it survives the chrome auto-hiding — once the HUD is gone
-it is the only thing on screen that says the page is about to turn. It sits
-under the close button and never moves. Its ring is the countdown: a `White
-0.16` track and a `colorScheme.primary` arc sweeping from −90° over the current
-dwell, driven by an `Animatable` read **inside `drawBehind`**, so a progressing
-countdown redraws 40 dp and recomposes nothing (`performance.md` records what
-compositing the reader's scrolling content once cost). Held, the ring stops
-exactly where it is and its colour crossfades to `White 0.45` while the ground
-lifts to `White 0.22` with a hairline: **only colour changes, nothing moves or
-resizes**, because a frozen frame that animates reads as progress. In the strip
-there is no ring at all — there is no discrete next turn to promise, and the
-page visibly stopping is its own feedback — so the pill wears a static accent
-outline. Tapping it turns autoplay off; TalkBack reads "Stop autoplay" with a
-Playing / Held state.
+## The pill
+
+The pill is the running indicator and the playback transport: a 40 dp circle
+that is a sibling of `TopChrome` but **outside `SlidingChrome`**, so it survives
+the chrome auto-hiding — once the HUD is gone it is the only thing on screen
+that says the page is about to turn, and the only way to interrupt it. It is
+declared after the night-tint layer, like the chrome, so the amber scrim never
+washes it.
+
+It sits at the **bottom-end** corner (`navigationBarsPadding()`, 20 dp in, 84 dp
+up) and **never moves** — the 84 dp is a constant, not derived from whether the
+chrome is up, so it is the same pixel either way. Top-start was tried first and
+was wrong three ways: unreachable one-handed on the 475 dp cover screen, sitting
+on the page's reading entry point, and landing on the page half rather than the
+controls half in Tabletop. At 84 dp it shares a band with the thumbnail
+scrubber, which **yields rather than moves**: `ThumbnailScrubber` takes an
+`endInset` of the pill plus 12 dp while autoplay is on. A near miss lands in the
+"next page" tap zone, which is harmless under the dead-man rule — autoplay just
+carries on from wherever you land.
+
+**The ground is opaque** (`PanelColor`, the same near-black the `HudPanel`
+uses), clipped to a circle, with the ring drawn inside that clip so a round cap
+never spills past the rim. The first version used a `White 0.12` ground with a
+`White 0.16` ring and a white glyph, and over a cream page every one of them
+disappeared — the only surviving mark was the red arc, which itself died over
+red art. This screen already learned that lesson once when the HUD moved to
+`HudPanel` because a solid panel reads over any page. It is `PanelColor` and not
+`palette.raised` because the reader keeps black chrome on every theme, Paper
+included (see `settings.md`); there is no theme branch and no scrim, which would
+otherwise leave a permanent dark smudge in the corner of every autoplayed page.
+
+Three states share that one disc:
+
+| | arc | glyph | motion |
+|---|---|---|---|
+| **Running** | sweeps, `colorScheme.primary` | `Pause` | the arc sweeps |
+| **Held** | frozen in place, crossfades to `White 0.45` over 120 ms | `Pause` | none |
+| **Paused** | frozen in place, stays `colorScheme.primary` | `PlayArrow` | glyph and arc pulse 1.0 → 0.55 → 1.0, 1600 ms |
+
+Held and Paused differ on three axes at once — arc colour, glyph and motion — so
+they cannot be read for each other. The pulse is applied to the **glyph and the
+arc only, never the disc**: dropping the ground's opacity at the trough would
+undo the legibility fix twice a second. Resuming rebases the dwell to a full
+interval. The ring is a `White 0.16` track with a `colorScheme.primary` arc
+sweeping from −90°, its progress read from an `Animatable` **inside the `Canvas`
+draw**, so a running countdown redraws 40 dp and recomposes nothing
+(`performance.md` records what compositing the reader's scrolling content once
+cost). In the strip the pill draws the track ring and nothing else, ever: there
+is no discrete next turn to promise, and a full accent ring would read as a
+countdown that had already finished. TalkBack reads "Pause autoplay" /
+"Resume autoplay" with a Playing / Held / Paused state.
+
+The **switch in the eye panel is the mode** — the rare, deliberate on/off — and
+the pill is the transport. Turning the switch off while paused clears the pause;
+turning it on always enters Running. While paused, the stepper's caption slot
+doubles as the state line: `Per page` becomes `Paused` in the accent colour. One
+word, no new row, no new control.
 
 ## Where the interval comes from
 
