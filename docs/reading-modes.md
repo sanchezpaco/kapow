@@ -113,6 +113,67 @@ pinch/double-tap zoom). It is a static render enhancement — no page zoom, no
 bubble-to-bubble navigation, nothing to order — so it deliberately sidesteps
 panel segmentation and reading-order errors. Full detail in `speech-bubbles.md`.
 
+## Autoplay
+
+A play switch at the bottom of the view-mode (eye) panel reads the comic on its
+own, at a pace you set in seconds per page. Turning it on reveals a stepper —
+built exactly like the bubble-scale one — that walks the interval over
+`AUTOPLAY_SECONDS_RANGE` (5–120 s) in `AUTOPLAY_SECONDS_STEP` (1 s) steps, with
+the − and + circles disabled at the bounds. A second is the right grain to tune
+a pace with, but it is a poor way to cross a 115-second range, so **holding a
+button repeats and accelerates**: `Autoplay.holdWaitMillis` waits 400 ms before
+the first repeat, then shortens each wait by 20 ms from 220 ms down to a 45 ms
+floor, so a hold covers the whole range in a few seconds and a tap still moves
+exactly one second. The repeat is driven off the button's own
+`MutableInteractionSource` (a `PressInteraction.Press` starts the loop,
+`collectLatest` ends it on release or cancel), so the ripple, the disabled state
+and the accessibility semantics stay `IconButton`'s. The bubble-scale stepper
+shares the widget but not the hold — 0.1× at a time over 1.1–2× needs no
+shortcut. Unlike enlarged bubbles, autoplay is offered in **all three view
+modes**, because every one of them has something to advance.
+
+What "advance" means is the only thing that changes per mode:
+
+- **Pages.** Every N seconds one `PageTurnDirection.Next` is emitted into the
+  same `pageTurnRequests` flow the volume keys and the tap zones feed, so the
+  single page, the spread and the tabletop surface all get autoplay from one
+  driver and keep their page-turn animation. Nothing about paging is duplicated.
+- **Guided View.** The same flow, but the beat is a *stop*, not a page: a page
+  with four panels gets N/4 per panel, so a page still takes N seconds however
+  it is cut up. `Autoplay.stopMillis` floors that at 1.5 s so a page of eight
+  small panels does not machine-gun; the floor also sits comfortably above the
+  longest camera move `DirectorCut` can ask for (700 ms), so the pan always
+  lands before the next stop is requested.
+- **Continuous vertical scroll.** Not a jump per page — a continuous creep. A
+  frame-paced loop (`withFrameNanos` inside `LazyListState.scroll`) scrolls by
+  `Autoplay.scrollPixels`, which spends exactly one visible item height per N
+  seconds, so the felt speed matches the other two modes on the same setting.
+  The scroll is taken at `MutatePriority.Default`, so a finger on the screen
+  wins it away with no explicit gesture handling of ours; the loop then waits
+  for `isScrollInProgress` to go quiet (drag *and* fling) and picks the creep
+  back up where the reader left it. While autoplay is on, the strip's own motion
+  no longer hides the chrome — otherwise pressing play would close the panel
+  holding the stepper you are trying to adjust.
+
+The interval is **global and persisted** (`autoplay_seconds` in the reader
+DataStore, beside `bubble_scale`). Until you set one, it is seeded from what
+reading stats already know about you: `ReadingPace.secondsPerPage` for this
+comic's series **in the mode it opened in**, clamped into the range, falling
+back to `ReadingPace.FALLBACK_SECONDS_PER_PAGE` when there is no usable history.
+`ReaderViewModel` reaches the stats repository through `StatsEntryPoint`, the
+same `EntryPointAccessors` pattern it already uses for the DAOs, since it is
+built by a plain factory rather than by Hilt.
+
+Autoplay itself is **never persisted** and never on at open: it is session
+state, switched off again every time a comic is opened. It stops on its own at
+the end — the last page in Pages, the last stop of the last page in Guided, the
+bottom of the chain in the strip (which is why the strip reports the end itself
+instead of trusting the page index: `firstVisibleItemIndex` reaches the last
+page while a whole page of it is still unread). It pauses with the app: the
+driver runs inside `repeatOnLifecycle(RESUMED)`, so backgrounding stops the
+clock and returning restarts the current dwell. While it is on the screen is
+kept awake regardless of the keep-screen-on setting.
+
 ## Split wide pages
 
 Some PDFs and scans store two comic pages side by side in one landscape file
@@ -182,7 +243,9 @@ underneath it: `−` and `+` buttons around the current value, stepping by
 `BUBBLE_SCALE_STEP` (0.1) inside `BUBBLE_SCALE_RANGE` (1.1–2×), clamped at both
 ends. The stepper replaced a floating slider that used to sit under the HUD
 buttons over the art: the setting now lives next to the switch that enables it,
-and nothing permanently covers the page.
+and nothing permanently covers the page. Below one more hairline, "Autoplay"
+repeats that shape — a `Switch` row that reveals its own seconds-per-page
+stepper — but is offered in every mode (see `Autoplay` above).
 
 ## Continuous vertical scroll
 
@@ -404,8 +467,9 @@ is unit-tested directly (`PageOrderTest`).
   colour only while its own panel is showing. Whether its contents are at the
   defaults is a separate signal: an 8 dp accent dot on the top-end corner of the
   circle, shown while the panel is closed and the eye is off Pages, has
-  bubbles on or is fit to width, or the gear has night tint, a page look other
-  than Original, a reading type other than Comic, or the split active.
+  bubbles on, autoplay on or is fit to width, or the gear has night tint, a page
+  look other than Original, a reading type other than Comic, or the split
+  active.
 - Center tap toggles a minimal overlay: progress, page number, quick settings.
   Both bars carry a scrim so their white content stays legible over light pages:
   the top bar fades black `0.6` → transparent downwards, the bottom chrome

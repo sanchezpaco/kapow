@@ -244,6 +244,10 @@
     <string name="reader_mode_bubbles">Enlarged bubbles</string>
     <string name="reader_bubble_scale_smaller">Smaller bubbles</string>
     <string name="reader_bubble_scale_bigger">Bigger bubbles</string>
+    <string name="reader_autoplay">Autoplay</string>
+    <string name="reader_autoplay_seconds">%1$d s</string>
+    <string name="reader_autoplay_faster">Faster autoplay</string>
+    <string name="reader_autoplay_slower">Slower autoplay</string>
     <string name="reader_page_fit">Page fit</string>
     <string name="reader_page_fit_screen">Screen</string>
     <string name="reader_page_fit_width">Width</string>

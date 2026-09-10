@@ -17,6 +17,9 @@ import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +55,7 @@ import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -112,7 +116,10 @@ import androidx.compose.ui.unit.min
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.comicify.R
 import com.comicify.core.ui.KapowSnackbarHost
@@ -124,6 +131,9 @@ import com.comicify.core.window.ReadingPosture
 import com.comicify.core.window.rememberReadingWindowState
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.feature.reader.data.PageLoader
+import com.comicify.feature.reader.domain.AUTOPLAY_SECONDS_RANGE
+import com.comicify.feature.reader.domain.AUTOPLAY_SECONDS_STEP
+import com.comicify.feature.reader.domain.Autoplay
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_RANGE
 import com.comicify.feature.reader.domain.BUBBLE_SCALE_STEP
 import com.comicify.feature.reader.domain.Bookmarks
@@ -132,7 +142,9 @@ import com.comicify.feature.reader.domain.PageLook
 import com.comicify.feature.reader.domain.ReaderViewMode
 import com.comicify.feature.reader.domain.ReadingType
 import com.comicify.feature.reader.domain.TapZone
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlin.math.roundToInt
 
 private const val CHROME_SLIDE_MS = 200
@@ -153,7 +165,7 @@ private val PanelRowHeight = 48.dp
 private val PanelRowPadding = 12.dp
 private val PanelRowGap = 12.dp
 private val PanelIconSize = 24.dp
-private val BubbleScaleValueWidth = 44.dp
+private val StepperValueWidth = 52.dp
 private val MarkerDotSize = 8.dp
 private val MarkerDotInset = 3.dp
 private val BottomChromeScrim = Brush.verticalGradient(
@@ -220,7 +232,23 @@ fun ReaderScreen(
         label = "ambient",
     )
 
+    val mode = ReaderViewMode.of(state.guided, state.verticalScroll)
     val atLastPage = readingPageCount > 0 && state.position.pageIndex >= readingPageCount - 1
+    val atLastStop = mode != ReaderViewMode.Guided || guidedIndex >= guidedCount - 1
+    val autoplayExhausted = state.autoplay && mode != ReaderViewMode.Strip && atLastPage && atLastStop
+    LaunchedEffect(autoplayExhausted) { if (autoplayExhausted) viewModel.stopAutoplay() }
+
+    AutoplayPageTurns(
+        enabled = state.autoplay && mode != ReaderViewMode.Strip,
+        intervalMillis = when (mode) {
+            ReaderViewMode.Guided -> Autoplay.stopMillis(state.autoplaySeconds, guidedCount)
+            else -> Autoplay.pageMillis(state.autoplaySeconds)
+        },
+        dwellOn = listOf(state.position.pageIndex, guidedIndex),
+    ) {
+        pageTurnRequests.tryEmit(PageTurnDirection.Next)
+    }
+
     val nextIssue = activeComic?.let(nextInSeries)
     var atEnd by remember { mutableStateOf(false) }
     LaunchedEffect(atLastPage) { if (!atLastPage) atEnd = false }
@@ -235,7 +263,7 @@ fun ReaderScreen(
         vertical = state.verticalScroll,
     ) { atEnd = true }
 
-    ImmersiveReadingMode(keepScreenOn = state.keepScreenOn)
+    ImmersiveReadingMode(keepScreenOn = state.keepScreenOn || state.autoplay)
 
     Box(
         modifier = Modifier
@@ -269,6 +297,8 @@ fun ReaderScreen(
                         },
                         onStripScrolled = viewModel::hideChrome,
                         bubbleScale = state.bubbleScale.takeIf { state.bubblesEnlarged },
+                        autoplaySeconds = state.autoplaySeconds.takeIf { state.autoplay },
+                        onAutoplayFinished = viewModel::stopAutoplay,
                         pageLook = state.pageLook,
                         fitWidth = state.fitWidth,
                         direction = state.direction,
@@ -299,10 +329,12 @@ fun ReaderScreen(
         TopChrome(
             visible = chromeVisible,
             posture = posture,
-            viewMode = ReaderViewMode.of(state.guided, state.verticalScroll),
+            viewMode = mode,
             guidedFullScreen = state.guidedFullScreen,
             bubblesEnlarged = state.bubblesEnlarged,
             bubbleScale = state.bubbleScale,
+            autoplay = state.autoplay,
+            autoplaySeconds = state.autoplaySeconds,
             fitWidth = state.fitWidth,
             nightTintEnabled = state.nightTintEnabled,
             pageLook = state.pageLook,
@@ -310,6 +342,8 @@ fun ReaderScreen(
             splitWidePages = state.splitWidePages,
             onViewMode = viewModel::setViewMode,
             onToggleBubblesEnlarged = viewModel::toggleBubblesEnlarged,
+            onToggleAutoplay = viewModel::toggleAutoplay,
+            onAutoplaySeconds = viewModel::setAutoplaySeconds,
             onToggleFitWidth = viewModel::toggleFitWidth,
             onBubbleScale = viewModel::setBubbleScale,
             onToggleGuidedFullScreen = viewModel::toggleGuidedFullScreen,
@@ -365,6 +399,26 @@ fun ReaderScreen(
             onDismiss = viewModel::dismissWebcomicHint,
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding(),
         )
+    }
+}
+
+@Composable
+private fun AutoplayPageTurns(
+    enabled: Boolean,
+    intervalMillis: Long,
+    dwellOn: Any,
+    onAdvance: () -> Unit,
+) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val advance by rememberUpdatedState(onAdvance)
+    LaunchedEffect(enabled, intervalMillis, dwellOn, lifecycleOwner) {
+        if (!enabled) return@LaunchedEffect
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                delay(intervalMillis)
+                advance()
+            }
+        }
     }
 }
 
@@ -482,6 +536,8 @@ private fun TopChrome(
     guidedFullScreen: Boolean,
     bubblesEnlarged: Boolean,
     bubbleScale: Float,
+    autoplay: Boolean,
+    autoplaySeconds: Int,
     fitWidth: Boolean,
     nightTintEnabled: Boolean,
     pageLook: PageLook,
@@ -489,6 +545,8 @@ private fun TopChrome(
     splitWidePages: Boolean,
     onViewMode: (ReaderViewMode) -> Unit,
     onToggleBubblesEnlarged: () -> Unit,
+    onToggleAutoplay: () -> Unit,
+    onAutoplaySeconds: (Int) -> Unit,
     onToggleFitWidth: () -> Unit,
     onBubbleScale: (Float) -> Unit,
     onToggleGuidedFullScreen: () -> Unit,
@@ -527,7 +585,7 @@ private fun TopChrome(
                     CircleControl(
                         icon = Icons.Filled.Visibility,
                         open = openPanel == HudPanelKind.ViewMode,
-                        marked = viewMode != ReaderViewMode.Pages || bubblesEnlarged || fitWidth,
+                        marked = viewMode != ReaderViewMode.Pages || bubblesEnlarged || fitWidth || autoplay,
                         contentDescription = stringResource(R.string.reader_action_view_mode),
                         onClick = { openPanel = openPanel.toggled(HudPanelKind.ViewMode) },
                     )
@@ -546,9 +604,13 @@ private fun TopChrome(
                         mode = viewMode,
                         bubblesEnlarged = bubblesEnlarged,
                         bubbleScale = bubbleScale,
+                        autoplay = autoplay,
+                        autoplaySeconds = autoplaySeconds,
                         fitWidth = fitWidth,
                         onMode = { openPanel = null; onViewMode(it) },
                         onToggleBubbles = onToggleBubblesEnlarged,
+                        onToggleAutoplay = onToggleAutoplay,
+                        onAutoplaySeconds = onAutoplaySeconds,
                         onToggleFitWidth = onToggleFitWidth,
                         onBubbleScale = onBubbleScale,
                     )
@@ -654,9 +716,13 @@ private fun ViewModePanel(
     mode: ReaderViewMode,
     bubblesEnlarged: Boolean,
     bubbleScale: Float,
+    autoplay: Boolean,
+    autoplaySeconds: Int,
     fitWidth: Boolean,
     onMode: (ReaderViewMode) -> Unit,
     onToggleBubbles: () -> Unit,
+    onToggleAutoplay: () -> Unit,
+    onAutoplaySeconds: (Int) -> Unit,
     onToggleFitWidth: () -> Unit,
     onBubbleScale: (Float) -> Unit,
 ) {
@@ -696,6 +762,17 @@ private fun ViewModePanel(
                 BubbleScaleStepper(scale = bubbleScale, onScale = onBubbleScale)
             }
         }
+        PanelDivider()
+        PanelRow(
+            icon = Icons.Filled.PlayArrow,
+            label = stringResource(R.string.reader_autoplay),
+            onClick = onToggleAutoplay,
+        ) {
+            Switch(checked = autoplay, onCheckedChange = null)
+        }
+        RevealedPanel(visible = autoplay) {
+            AutoplayIntervalStepper(seconds = autoplaySeconds, onSeconds = onAutoplaySeconds)
+        }
     }
 }
 
@@ -721,6 +798,43 @@ private fun ViewModeChoice(icon: ImageVector, labelRes: Int, selected: Boolean, 
 
 @Composable
 private fun BubbleScaleStepper(scale: Float, onScale: (Float) -> Unit) {
+    PanelStepper(
+        value = "%.1f×".format(scale),
+        decreaseDescription = stringResource(R.string.reader_bubble_scale_smaller),
+        increaseDescription = stringResource(R.string.reader_bubble_scale_bigger),
+        canDecrease = scale > BUBBLE_SCALE_RANGE.start,
+        canIncrease = scale < BUBBLE_SCALE_RANGE.endInclusive,
+        repeatOnHold = false,
+        onDecrease = { onScale(scale.steppedBy(-BUBBLE_SCALE_STEP)) },
+        onIncrease = { onScale(scale.steppedBy(BUBBLE_SCALE_STEP)) },
+    )
+}
+
+@Composable
+private fun AutoplayIntervalStepper(seconds: Int, onSeconds: (Int) -> Unit) {
+    PanelStepper(
+        value = stringResource(R.string.reader_autoplay_seconds, seconds),
+        decreaseDescription = stringResource(R.string.reader_autoplay_faster),
+        increaseDescription = stringResource(R.string.reader_autoplay_slower),
+        canDecrease = seconds > AUTOPLAY_SECONDS_RANGE.first,
+        canIncrease = seconds < AUTOPLAY_SECONDS_RANGE.last,
+        repeatOnHold = true,
+        onDecrease = { onSeconds(Autoplay.stepped(seconds, -AUTOPLAY_SECONDS_STEP)) },
+        onIncrease = { onSeconds(Autoplay.stepped(seconds, AUTOPLAY_SECONDS_STEP)) },
+    )
+}
+
+@Composable
+private fun PanelStepper(
+    value: String,
+    decreaseDescription: String,
+    increaseDescription: String,
+    canDecrease: Boolean,
+    canIncrease: Boolean,
+    repeatOnHold: Boolean,
+    onDecrease: () -> Unit,
+    onIncrease: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -729,38 +843,52 @@ private fun BubbleScaleStepper(scale: Float, onScale: (Float) -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End,
     ) {
-        BubbleScaleStep(
+        PanelStep(
             icon = Icons.Filled.Remove,
-            contentDescription = stringResource(R.string.reader_bubble_scale_smaller),
-            enabled = scale > BUBBLE_SCALE_RANGE.start,
-            onClick = { onScale(scale.steppedBy(-BUBBLE_SCALE_STEP)) },
+            contentDescription = decreaseDescription,
+            enabled = canDecrease,
+            repeatOnHold = repeatOnHold,
+            onStep = onDecrease,
         )
         Text(
-            text = "%.1f×".format(scale),
+            text = value,
             color = Color.White,
             style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = TabularFigures),
             textAlign = TextAlign.Center,
-            modifier = Modifier.width(BubbleScaleValueWidth),
+            modifier = Modifier.width(StepperValueWidth),
         )
-        BubbleScaleStep(
+        PanelStep(
             icon = Icons.Filled.Add,
-            contentDescription = stringResource(R.string.reader_bubble_scale_bigger),
-            enabled = scale < BUBBLE_SCALE_RANGE.endInclusive,
-            onClick = { onScale(scale.steppedBy(BUBBLE_SCALE_STEP)) },
+            contentDescription = increaseDescription,
+            enabled = canIncrease,
+            repeatOnHold = repeatOnHold,
+            onStep = onIncrease,
         )
     }
 }
 
 @Composable
-private fun BubbleScaleStep(
+private fun PanelStep(
     icon: ImageVector,
     contentDescription: String,
     enabled: Boolean,
-    onClick: () -> Unit,
+    repeatOnHold: Boolean,
+    onStep: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    var repeated by remember { mutableStateOf(false) }
+    if (repeatOnHold) {
+        RepeatWhileHeld(
+            interactionSource = interactionSource,
+            enabled = enabled,
+            onPress = { repeated = false },
+            onRepeat = { repeated = true; onStep() },
+        )
+    }
     IconButton(
-        onClick = { onClick() },
+        onClick = { if (repeated) repeated = false else onStep() },
         enabled = enabled,
+        interactionSource = interactionSource,
         modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape),
     ) {
         Icon(
@@ -768,6 +896,30 @@ private fun BubbleScaleStep(
             contentDescription = contentDescription,
             tint = if (enabled) Color.White else Color.White.copy(alpha = 0.3f),
         )
+    }
+}
+
+@Composable
+private fun RepeatWhileHeld(
+    interactionSource: InteractionSource,
+    enabled: Boolean,
+    onPress: () -> Unit,
+    onRepeat: () -> Unit,
+) {
+    val press by rememberUpdatedState(onPress)
+    val repeat by rememberUpdatedState(onRepeat)
+    LaunchedEffect(interactionSource, enabled) {
+        if (!enabled) return@LaunchedEffect
+        interactionSource.interactions.collectLatest { interaction ->
+            if (interaction !is PressInteraction.Press) return@collectLatest
+            press()
+            var repeats = 0
+            while (true) {
+                delay(Autoplay.holdWaitMillis(repeats))
+                repeat()
+                repeats++
+            }
+        }
     }
 }
 

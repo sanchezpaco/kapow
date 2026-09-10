@@ -241,6 +241,10 @@
     <string name="reader_mode_bubbles">Bocadillos ampliados</string>
     <string name="reader_bubble_scale_smaller">Bocadillos más pequeños</string>
     <string name="reader_bubble_scale_bigger">Bocadillos más grandes</string>
+    <string name="reader_autoplay">Reproducción automática</string>
+    <string name="reader_autoplay_seconds">%1$d s</string>
+    <string name="reader_autoplay_faster">Reproducción más rápida</string>
+    <string name="reader_autoplay_slower">Reproducción más lenta</string>
     <string name="reader_page_fit">Ajuste de página</string>
     <string name="reader_page_fit_screen">Pantalla</string>
     <string name="reader_page_fit_width">Ancho</string>

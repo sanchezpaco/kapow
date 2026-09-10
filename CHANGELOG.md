@@ -7,6 +7,17 @@ All notable user-facing changes to Kapow. The format follows
 
 ## [Unreleased]
 
+### Added
+- Autoplay: a play switch in the view-mode panel reads the comic on its own,
+  with a stepper for the seconds per page (5–120 s, one second per tap, or hold
+  a button down and it speeds up). It
+  turns the page in Pages, moves panel by panel in Guided View — sharing a
+  page's seconds between its panels, never faster than 1.5 s each — and scrolls
+  the vertical strip down continuously at one page per interval. Touch the strip
+  and it steps aside until you let go. The first interval it offers is your own
+  average from reading stats; it never starts by itself when you open a comic
+  and stops at the end.
+
 ## [1.0.5] - 2026-09-07
 
 ### Fixed
