@@ -139,8 +139,10 @@ panel on the page-grid stage with a shout title and a caption box, sized
 capture scaled to a fixed width on the right). Copy for every shot is the
 `SHOTS` table; the order of the table is the store order, chosen in the
 2026-09-06 conversion review (differentiators first: bubbles, Guided View, vertical scroll,
-shelf, page look, search, look; tablets: spread, bubbles on the
-spread, Guided View on the spread, wall of covers).
+autoplay, shelf, page look, search, look; tablets: spread, bubbles on the
+spread, Guided View on the spread, autoplay on the spread, wall of covers).
+Autoplay was added for 1.1.0: the view-mode panel with the Timer switch on and
+the seconds stepper revealed, the pause pill counting in the corner.
 
 Shots listed in `COMPARE_SHOTS` are stacked pairs with two tagged panels
 (BEFORE/AFTER, PAGE/PANEL, ORIGINAL/MORE CONTRAST): `<shot>-off-…jpg` is the top
@@ -150,6 +152,10 @@ bottom capture is not the same page — Guided View's zoomed panel — the top
 panel is the whole page, scaled down to leave the zoomed panel its full width.
 The strip shrinks so two panels always fit the canvas. The tablet pair crops the
 right-hand page of the spread.
+
+Shots in `EDGE_SHOTS` keep the whole tablet capture inside the canvas instead of
+letting the device bleed off the right edge, because their controls live at the
+screen's right edge (the view-mode panel and the pause pill) and would be cut off.
 
 Shots in `PRECROPPED` skip the page detection: their two raws are already the
 crops, which is how the settings shot stacks the Reading defaults over the

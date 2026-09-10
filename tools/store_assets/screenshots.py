@@ -27,6 +27,8 @@ SHOTS = [
                          "es-ES": ("VIÑETA A VIÑETA", "Cada toque te lleva a la siguiente viñeta")}),
     ("phone", "scroll", {"en-US": ("VERTICAL SCROLL", "Read by scrolling, no page turns"),
                          "es-ES": ("SCROLL VERTICAL", "Lee pasando el dedo, sin cambiar de página")}),
+    ("phone", "autoplay", {"en-US": ("AUTOPLAY", "The comic turns its own pages at the seconds you choose"),
+                           "es-ES": ("AVANCE AUTOMÁTICO", "El cómic pasa las páginas por su cuenta a los segundos que elijas")}),
     ("phone", "library", {"en-US": ("YOUR SHELF", "Pick a folder and your comics get sorted by series"),
                           "es-ES": ("TU ESTANTERÍA", "Elige la carpeta y los cómics se ordenan por serie")}),
     ("phone", "pagelook", {"en-US": ("OLD SCANS", "More contrast for yellowed pages"),
@@ -41,6 +43,8 @@ SHOTS = [
                                   "es-ES": ("¡BOCADILLOS XL!", "También en la doble página")}),
     ("tablet", "guided-spread", {"en-US": ("GUIDED VIEW", "Works on spreads too"),
                                  "es-ES": ("VIÑETA A VIÑETA", "Funciona también a doble página")}),
+    ("tablet", "autoplay-spread", {"en-US": ("AUTOPLAY", "Twice the time when two pages are on screen"),
+                                   "es-ES": ("AVANCE AUTOMÁTICO", "El doble de tiempo cuando hay dos páginas")}),
     ("tablet", "library", {"en-US": ("A WALL OF COVERS", "Your whole collection on one screen"),
                            "es-ES": ("PARED DE PORTADAS", "Toda la colección en una pantalla")}),
 ]
@@ -52,6 +56,7 @@ COMPARE_SHOTS = {
     "settings": {"en-US": ("READING", "LOOK"), "es-ES": ("LECTURA", "ASPECTO")},
 }
 PRECROPPED = {"settings"}
+EDGE_SHOTS = {"autoplay-spread"}
 
 PANEL_TILT = -2
 PANEL_STROKE = 10
@@ -69,6 +74,7 @@ PHONE_SHOT_TOP = 470
 PHONE_SHOT_BOTTOM = 60
 PHONE_SHOT_MAX_WIDTH = 960
 TABLET_SHOT = (1000, 190, 1700)
+TABLET_EDGE_MARGIN = 60
 TABLET_COMPARE = (1000, 130, 1400)
 TABLET_COMPARE_BOTTOM = 40
 CREAM = fg.CREAM
@@ -246,8 +252,10 @@ def tablet_frame(k: str, luckiest: TTFont, archivo: TTFont, title: str, text: st
     )
 
 
-def tablet_svg(shot: Image.Image, title: str, text: str, k: str, luckiest: TTFont, archivo: TTFont) -> str:
+def tablet_svg(name: str, shot: Image.Image, title: str, text: str, k: str, luckiest: TTFont, archivo: TTFont) -> str:
     shot_x, shot_y, shot_w = TABLET_SHOT
+    if name in EDGE_SHOTS:
+        shot_w = TABLET[0] - shot_x - TABLET_EDGE_MARGIN
     shot_h = round(shot_w * shot.height / shot.width)
     return tablet_frame(k, luckiest, archivo, title, text, shot_x / 2, panel(shot, shot_x, shot_y, shot_w, shot_h))
 
@@ -296,7 +304,7 @@ def main() -> None:
             elif kind == "phone":
                 svg = phone_svg(shot, title, text, k, luckiest, archivo)
             else:
-                svg = tablet_svg(shot, title, text, k, luckiest, archivo)
+                svg = tablet_svg(name, shot, title, text, k, luckiest, archivo)
             fg.render(svg, PHONE if kind == "phone" else TABLET, out)
             print(out.relative_to(icon.ROOT))
 
