@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.material.icons.filled.ViewDay
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -186,6 +187,7 @@ private fun ModesStep() {
     )
     ModeRow(icon = Icons.Filled.ViewDay, title = stringResource(R.string.reader_mode_strip), body = stringResource(R.string.onboarding_strip_body))
     ModeRow(icon = Icons.Filled.ChatBubbleOutline, title = stringResource(R.string.reader_action_enlarge_bubbles), body = stringResource(R.string.onboarding_bubbles_body))
+    ModeRow(icon = Icons.Filled.Timer, title = stringResource(R.string.reader_autoplay), body = stringResource(R.string.onboarding_autoplay_body))
     Footnote(stringResource(R.string.onboarding_modes_note))
 }
 
@@ -311,14 +313,15 @@ private fun DrawScope.drawChevron(at: Offset, pointingRight: Boolean, color: Col
 private fun ModesDrawing(): DrawScope.() -> Unit {
     val palette = KapowTheme.palette
     return {
-        val margin = size.width * 0.1f
-        val gap = size.width * 0.08f
-        val glyphWidth = (size.width - 2 * margin - 2 * gap) / 3f
+        val margin = size.width * 0.08f
+        val gap = size.width * 0.06f
+        val glyphWidth = (size.width - 2 * margin - 3 * gap) / 4f
         val glyphHeight = glyphWidth * PageAspectRatio
         val top = (size.height - glyphHeight) / 2f
         drawGuidedGlyph(Offset(margin, top), glyphWidth, glyphHeight, palette)
         drawStripGlyph(Offset(margin + glyphWidth + gap, top), glyphWidth, glyphHeight, palette)
         drawBubbleGlyph(Offset(margin + 2 * (glyphWidth + gap), top), glyphWidth, glyphHeight, palette)
+        drawAutoplayGlyph(Offset(margin + 3 * (glyphWidth + gap), top), glyphWidth, glyphHeight, palette)
     }
 }
 
@@ -346,6 +349,22 @@ private fun DrawScope.drawStripGlyph(topLeft: Offset, width: Float, height: Floa
             cornerRadius = CornerRadius(width * 0.14f),
         )
     }
+}
+
+private fun DrawScope.drawAutoplayGlyph(topLeft: Offset, width: Float, height: Float, palette: KapowPalette) {
+    val outline = Stroke(width = size.width * 0.01f)
+    drawRoundRect(palette.track, topLeft, Size(width, height), CornerRadius(width * 0.14f), outline)
+    val radius = width * 0.3f
+    val centre = Offset(topLeft.x + width / 2f, topLeft.y + height / 2f)
+    drawArc(
+        color = palette.accent,
+        startAngle = -90f,
+        sweepAngle = 260f,
+        useCenter = false,
+        topLeft = Offset(centre.x - radius, centre.y - radius),
+        size = Size(radius * 2, radius * 2),
+        style = outline,
+    )
 }
 
 private fun DrawScope.drawBubbleGlyph(topLeft: Offset, width: Float, height: Float, palette: KapowPalette) {
