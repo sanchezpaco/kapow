@@ -11,8 +11,10 @@ interface LibraryRepository {
     val folderUri: Flow<String?>
     val grouped: Flow<Boolean>
     val readingLists: Flow<List<ReadingList>>
+    val dragHintSeen: Flow<Boolean>
     suspend fun setFolder(treeUri: Uri)
     suspend fun setGrouped(grouped: Boolean)
+    suspend fun setDragHintSeen()
     suspend fun seedSampleIfNeeded()
     suspend fun refresh()
     suspend fun fillMissingDetails()

@@ -411,6 +411,8 @@ one code path: the batch one.
   batch the user actually wanted. While selection is on, a plain tap toggles a
   cover instead of opening it; outside selection a tap still opens the comic.
   **Out:** the "✕" square, deselecting the last comic, or system BACK.
+- **Keep the finger down and drag** to take a whole run of covers in one gesture
+  — the answer to "100 cómics tap a tap es una mierda". See *Drag to select*.
 - **Selection has no chrome of its own. It takes over the filter row.** The
   pinned `stickyHeader` that normally holds *Todos / Sin leer / Leídos /
   Favoritos* crossfades (150 ms) to the selection row and back. Nothing else on
@@ -493,6 +495,70 @@ one code path: the batch one.
   `LibraryViewModel`; the UI carries it around as one `SelectionUi` value the
   way reading lists travel as `ReadingListsUi`. `LibrarySelection` and
   `ReadingListMembership` are pure and unit tested.
+
+### Drag to select
+
+The long-press that enters selection **is** the start of the drag; the finger
+never lifts. A long-press while already selecting re-anchors and starts a new
+one. **A plain drag is never selection** — in or out of the mode it is the
+grid's scroll, which is the only way to still move around a 211-comic library
+with a selection live.
+
+- **Range from anchor, not paint.** `SelectionDrag.rangeFromAnchor` is pure and
+  unit tested: `base` is the selection frozen at drag start, the span is
+  `selectable[min(anchor, current)..max(anchor, current)]`, and the result is
+  `base + span` when the anchor was unselected or `base - span` when it was.
+  That one boolean is the undo a hundred-comic drag needs — long-press a
+  selected card and drag back over your own path to give the run back. Because
+  the result depends only on the two ends and never on the path, overshooting on
+  a folded three-column grid and retreating simply shrinks the span, and cards
+  selected before the drag are never disturbed unless they fall inside it.
+  Indices are positions in `LibraryCatalog.selectable(...)` — reading order over
+  selectable covers only.
+- **One event per range change.** The frame loop pushes `onSelectRange(ids)`,
+  which *replaces* the whole set, and only when the item under the finger
+  changes — never per frame, never as N toggles, so a hundred-comic drag costs
+  tens of ViewModel events, not thousands.
+- **The gesture lives on the grid, not on the cards**, because the finger must
+  stay tracked after it leaves the card it started on. `ComicCard` therefore has
+  no `onLongClick` any more — two handlers racing for one press is a bug
+  waiting to happen — and its `onClick` is untouched. The detector watches the
+  `Initial` pass without consuming until the long-press timeout fires, so until
+  then everything falls through to the grid's own scroll; once it fires the
+  detector owns the pointer and consumes, which is also why dragging up into the
+  pinned selection row cannot press its buttons.
+- **Hit-testing** walks `layoutInfo.visibleItemsInfo` and decodes the item key:
+  every selectable cover is keyed `comic-<id>`, so group stacks (`group-…`) and
+  the unkeyed header items simply decode to nothing. **Group cards and the hero
+  are gaps the range skips, never walls** — they have no index in `selectable`,
+  so a finger crossing a stack resumes the range on the far side instead of
+  stranding the drag.
+- **Auto-scroll** runs in the same `withFrameNanos` loop: a linear ramp from
+  `DragSelectMinRate` (240 dp/s) at the outer edge of a `DragSelectHotZone`
+  (96 dp) to `DragSelectMaxRate` (900 dp/s) at the very edge. 900 dp/s is a
+  deliberate ceiling — a folded row is ~174 dp, so ≈ 15 comics/s, a hundred in
+  about seven seconds and still watchable. **The pinned selection row counts as
+  the top edge**: the zone starts at the row's bottom, found by its sticky-header
+  key, not at the window top. The loop **re-hit-tests every frame**, so a
+  stationary finger in the hot zone keeps extending the range as content slides
+  under it, and it stops calling `scrollBy` once `canScrollForward` /
+  `canScrollBackward` go false, holding the range at the last selectable item.
+  No horizontal auto-scroll.
+- **`LibrarySelection.reconcile` is suppressed while a drag is in progress** —
+  it intersects with the shelf on every emission and would fight the range as
+  items scroll in and out. `onDragSelecting(true/false)` gates it, and clearing
+  the selection resets it.
+- **Feedback** is one light `TextHandleMove` tick per newly (de)selected card,
+  coalesced to at most one per 40 ms, plus the count pill climbing live. There
+  is no anchor indicator: the boundary is already the edge between
+  accent-bordered and hairline covers.
+- **Discoverability** is a one-shot snackbar the first time selection is ever
+  entered (`library_selection_drag_hint`), through the shelf's existing host and
+  gated by a `dragHintSeen` flag in `LibraryPreferences` — the same pattern as
+  the split suggestion. Nothing permanent is added to the row, and *Select all*
+  stays in the "⋮": 100 of 211 is not select-all.
+- `SeriesScreen` gets the same gesture from the same code — same grid, no
+  groups, no hero, the simple case.
 
 ### Search syntax
 

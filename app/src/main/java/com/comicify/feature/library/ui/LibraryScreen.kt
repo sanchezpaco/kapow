@@ -59,7 +59,9 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
@@ -71,11 +73,14 @@ import androidx.compose.material.icons.outlined.RemoveDone
 import com.comicify.feature.library.domain.LibraryScanError
 import com.comicify.feature.library.domain.LibrarySelection
 import com.comicify.feature.library.domain.LibrarySort
+import com.comicify.feature.library.domain.SelectionDrag
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -110,7 +115,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -123,8 +130,16 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -170,6 +185,14 @@ private val SelectableBorder = 1.dp
 private const val SelectionScale = 0.92f
 private const val InertAlpha = 0.4f
 private const val SELECTION_CROSSFADE_MS = 150
+private val DragSelectHotZone = 96.dp
+private val DragSelectMinRate = 240.dp
+private val DragSelectMaxRate = 900.dp
+private const val DragSelectHapticNanos = 40_000_000L
+private const val NANOS_PER_SECOND = 1_000_000_000f
+private const val ComicKeyPrefix = "comic-"
+private const val FilterHeaderKey = "filter-header"
+private const val SelectionRowKey = "selection-row"
 private const val TabularNumbers = "tnum"
 private val SelectionSquare = TouchTargetSize
 private const val GhostToneAlpha = 0.15f
@@ -216,7 +239,9 @@ fun LibraryScreen(
     onSortSelected: (LibrarySort) -> Unit,
     onOpenSeries: (String?) -> Unit,
     onToggleSelection: (LibraryComic) -> Unit,
-    onSelectAll: (List<LibraryComic>) -> Unit,
+    onSelectRange: (Set<Long>) -> Unit,
+    onDragSelecting: (Boolean) -> Unit,
+    onDragHintShown: () -> Unit,
     onClearSelection: () -> Unit,
     listActions: ReadingListActions,
 ) {
@@ -270,9 +295,16 @@ fun LibraryScreen(
         setRead = setReadWithUndo,
         setFavorite = setFavoriteWithUndo,
         delete = onDeleteComics,
-        selectAll = onSelectAll,
+        selectRange = onSelectRange,
+        dragging = onDragSelecting,
         clear = onClearSelection,
     )
+    val dragHint = stringResource(R.string.library_selection_drag_hint)
+    LaunchedEffect(state.dragHintPending, selection.selected.isEmpty()) {
+        if (!state.dragHintPending || selection.selected.isEmpty()) return@LaunchedEffect
+        onDragHintShown()
+        scope.launch { snackbarHost.showSnackbar(dragHint, duration = SnackbarDuration.Short) }
+    }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { KapowSnackbarHost(snackbarHost) },
@@ -368,9 +400,14 @@ private fun LibraryContent(
         return
     }
 
+    val gridState = rememberLazyGridState()
     LazyVerticalGrid(
+        state = gridState,
         columns = GridCells.Adaptive(minSize = gridMinCell()),
-        modifier = Modifier.fillMaxSize().statusBarsPadding(),
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .dragToSelect(gridState = gridState, pinnedKey = FilterHeaderKey, selection = selection),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
         verticalArrangement = Arrangement.spacedBy(SectionGap),
@@ -391,7 +428,7 @@ private fun LibraryContent(
                 modifier = Modifier.padding(top = 20.dp),
             )
         }
-        stickyHeader {
+        stickyHeader(key = FilterHeaderKey) {
             FilterHeader(filter = state.filter, onFilterSelected = onFilterSelected, selection = selection)
         }
         item(span = { GridItemSpan(maxLineSpan) }) {
@@ -436,7 +473,7 @@ private fun LibraryContent(
                 }
             }
         } else {
-            items(items = state.comics, key = { it.id }) { comic ->
+            items(items = state.comics, key = { it.gridKey() }) { comic ->
                 ComicCard(
                     comic = comic,
                     selecting = selecting,
@@ -459,9 +496,11 @@ private fun Modifier.inertWhile(inert: Boolean): Modifier =
     }
 
 private fun LibraryEntry.gridKey(): String = when (this) {
-    is LibraryEntry.Single -> "comic-${comic.id}"
+    is LibraryEntry.Single -> comic.gridKey()
     is LibraryEntry.Group -> "group-$series"
 }
+
+private fun LibraryComic.gridKey(): String = "$ComicKeyPrefix$id"
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -474,9 +513,14 @@ private fun SeriesScreen(
     onToggleSelection: (LibraryComic) -> Unit,
 ) {
     val selecting = selectedIds.isNotEmpty()
+    val gridState = rememberLazyGridState()
     LazyVerticalGrid(
+        state = gridState,
         columns = GridCells.Adaptive(minSize = gridMinCell()),
-        modifier = Modifier.fillMaxSize().statusBarsPadding(),
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .dragToSelect(gridState = gridState, pinnedKey = SelectionRowKey, selection = selection),
         contentPadding = PaddingValues(20.dp),
         horizontalArrangement = Arrangement.spacedBy(18.dp),
         verticalArrangement = Arrangement.spacedBy(SectionGap),
@@ -485,7 +529,7 @@ private fun SeriesScreen(
             SeriesHeader(group = group, selecting = selecting, onBack = onBack, selection = selection)
         }
         if (selecting) {
-            stickyHeader {
+            stickyHeader(key = SelectionRowKey) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -496,7 +540,7 @@ private fun SeriesScreen(
                 }
             }
         }
-        items(items = group.comics, key = { it.id }) { comic ->
+        items(items = group.comics, key = { it.gridKey() }) { comic ->
             ComicCard(
                 comic = comic,
                 title = comic.issueNumber?.let { "#$it" } ?: comic.title,
@@ -1032,7 +1076,6 @@ internal fun ResumePill() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ComicCard(
     comic: LibraryComic,
@@ -1048,10 +1091,7 @@ private fun ComicCard(
         modifier = Modifier
             .fillMaxWidth()
             .semantics { this.selected = selected }
-            .combinedClickable(
-                onClick = { if (selecting) onToggleSelection(comic) else onOpenComic(comic) },
-                onLongClick = { onToggleSelection(comic) },
-            ),
+            .clickable { if (selecting) onToggleSelection(comic) else onOpenComic(comic) },
         verticalArrangement = Arrangement.spacedBy(11.dp),
     ) {
         Box(
@@ -1136,6 +1176,146 @@ private fun SelectionBadge(modifier: Modifier = Modifier) {
     }
 }
 
+private data class DragSelect(val anchor: Int, val base: Set<Long>, val position: Offset)
+
+@Composable
+private fun Modifier.dragToSelect(
+    gridState: LazyGridState,
+    pinnedKey: Any,
+    selection: SelectionUi,
+): Modifier {
+    val shelf = rememberUpdatedState(selection.shelf)
+    val selected = rememberUpdatedState(selection.selected)
+    val selectRange = rememberUpdatedState(selection.selectRange)
+    val dragging = rememberUpdatedState(selection.dragging)
+    val haptics = LocalHapticFeedback.current
+    val hotZone: Float
+    val minRate: Float
+    val maxRate: Float
+    with(LocalDensity.current) {
+        hotZone = DragSelectHotZone.toPx()
+        minRate = DragSelectMinRate.toPx()
+        maxRate = DragSelectMaxRate.toPx()
+    }
+    var drag by remember { mutableStateOf<DragSelect?>(null) }
+
+    LaunchedEffect(drag != null) {
+        val start = drag ?: return@LaunchedEffect
+        dragging.value(true)
+        var applied = start.anchor
+        var appliedCount =
+            SelectionDrag.rangeFromAnchor(start.base, shelf.value, start.anchor, start.anchor).size
+        var lastTick = 0L
+        var previousFrame = 0L
+        try {
+            while (isActive) {
+                val current = drag ?: break
+                val frame = withFrameNanos { it }
+                val elapsed = if (previousFrame == 0L) 0f else (frame - previousFrame) / NANOS_PER_SECOND
+                previousFrame = frame
+                val rate = gridState.edgeScrollRate(current.position.y, pinnedKey, hotZone, minRate, maxRate)
+                if (elapsed > 0f && gridState.canScroll(rate)) gridState.scrollBy(rate * elapsed)
+                val index = gridState.selectableIndexAt(current.position, shelf.value)
+                if (index < 0 || index == applied) continue
+                applied = index
+                val next = SelectionDrag.rangeFromAnchor(current.base, shelf.value, current.anchor, index)
+                if (next.size != appliedCount && frame - lastTick > DragSelectHapticNanos) {
+                    lastTick = frame
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                }
+                appliedCount = next.size
+                selectRange.value(next)
+            }
+        } finally {
+            dragging.value(false)
+        }
+    }
+
+    return pointerInput(gridState) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            val anchor = gridState.selectableIndexAt(down.position, shelf.value)
+            if (anchor < 0) return@awaitEachGesture
+            if (!awaitLongPress(down)) return@awaitEachGesture
+            val base = selected.value.mapTo(mutableSetOf()) { it.id }
+            selectRange.value(SelectionDrag.rangeFromAnchor(base, shelf.value, anchor, anchor))
+            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            drag = DragSelect(anchor = anchor, base = base, position = down.position)
+            while (true) {
+                val change = awaitPointerEvent(PointerEventPass.Initial).changes
+                    .firstOrNull { it.id == down.id } ?: break
+                change.consume()
+                if (!change.pressed) break
+                drag = drag?.copy(position = change.position)
+            }
+            drag = null
+        }
+    }
+}
+
+private suspend fun AwaitPointerEventScope.awaitLongPress(down: PointerInputChange): Boolean {
+    val slop = viewConfiguration.touchSlop
+    val cancelled = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+        var done = false
+        while (!done) {
+            val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id }
+            done = change == null || !change.pressed ||
+                (change.position - down.position).getDistance() > slop
+        }
+        true
+    }
+    return cancelled == null
+}
+
+private fun LazyGridState.selectableIndexAt(position: Offset, shelf: List<LibraryComic>): Int {
+    val hit = layoutInfo.visibleItemsInfo.firstOrNull { item ->
+        position.x >= item.offset.x && position.x <= item.offset.x + item.size.width &&
+            position.y >= item.offset.y && position.y <= item.offset.y + item.size.height
+    }
+    val id = hit?.key?.comicKeyId() ?: return -1
+    return shelf.indexOfFirst { it.id == id }
+}
+
+private fun Any.comicKeyId(): Long? {
+    val key = this as? String ?: return null
+    if (!key.startsWith(ComicKeyPrefix)) return null
+    return key.removePrefix(ComicKeyPrefix).toLongOrNull()
+}
+
+private fun LazyGridState.canScroll(rate: Float): Boolean = when {
+    rate < 0f -> canScrollBackward
+    rate > 0f -> canScrollForward
+    else -> false
+}
+
+private fun LazyGridState.edgeScrollRate(
+    y: Float,
+    pinnedKey: Any,
+    hotZone: Float,
+    minRate: Float,
+    maxRate: Float,
+): Float {
+    val top = pinnedBottom(pinnedKey)
+    val bottom = layoutInfo.viewportSize.height.toFloat()
+    if (bottom <= top || hotZone <= 0f) return 0f
+    val fromTop = y - top
+    val fromBottom = bottom - y
+    if (fromTop < hotZone) return -dragScrollRate(fromTop, hotZone, minRate, maxRate)
+    if (fromBottom < hotZone) return dragScrollRate(fromBottom, hotZone, minRate, maxRate)
+    return 0f
+}
+
+private fun LazyGridState.pinnedBottom(pinnedKey: Any): Float {
+    val pinned = layoutInfo.visibleItemsInfo.firstOrNull { it.key == pinnedKey } ?: return 0f
+    if (pinned.offset.y > 0) return 0f
+    return (pinned.offset.y + pinned.size.height).toFloat()
+}
+
+private fun dragScrollRate(distance: Float, hotZone: Float, minRate: Float, maxRate: Float): Float {
+    val ramp = ((hotZone - distance) / hotZone).coerceIn(0f, 1f)
+    return minRate + ramp * (maxRate - minRate)
+}
+
 internal data class SelectionUi(
     val selected: List<LibraryComic>,
     val shelf: List<LibraryComic>,
@@ -1146,7 +1326,8 @@ internal data class SelectionUi(
     val setRead: (List<LibraryComic>, Boolean) -> Unit,
     val setFavorite: (List<LibraryComic>, Boolean) -> Unit,
     val delete: (List<LibraryComic>) -> Unit,
-    val selectAll: (List<LibraryComic>) -> Unit,
+    val selectRange: (Set<Long>) -> Unit,
+    val dragging: (Boolean) -> Unit,
     val clear: () -> Unit,
 )
 
@@ -1336,7 +1517,8 @@ private fun SelectionMenu(
             leadingIcon = { Icon(imageVector = Icons.Filled.Check, contentDescription = null) },
             onClick = {
                 onDismiss()
-                if (allSelected) selection.clear() else selection.selectAll(selection.shelf)
+                if (allSelected) selection.clear()
+                else selection.selectRange(selection.shelf.mapTo(mutableSetOf()) { it.id })
             },
         )
         if (single != null) {

@@ -53,6 +53,7 @@ class LibraryViewModel @Inject constructor(
     private val openedSeries = MutableStateFlow<String?>(null)
     private val openedListId = MutableStateFlow<Long?>(null)
     private val selection = MutableStateFlow<Set<Long>>(emptySet())
+    private val dragging = MutableStateFlow(false)
     private var foregroundScan: Job? = null
     private var removed: List<RemovedEntry> = emptyList()
     private var wasRead: Map<Long, Boolean> = emptyMap()
@@ -98,9 +99,13 @@ class LibraryViewModel @Inject constructor(
             )
         }
 
-    val state: StateFlow<LibraryUiState> = combine(shelf, selection) { shelf, selected ->
-        shelf.copy(selection = LibrarySelection.reconcile(selected, shelf.comics))
-    }
+    val state: StateFlow<LibraryUiState> =
+        combine(shelf, selection, dragging, repository.dragHintSeen) { shelf, selected, isDragging, hintSeen ->
+            shelf.copy(
+                selection = if (isDragging) selected else LibrarySelection.reconcile(selected, shelf.comics),
+                dragHintPending = !hintSeen,
+            )
+        }
         .flatMapLatest { shelf -> shelf.withHeroPace() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LibraryUiState())
 
@@ -156,11 +161,20 @@ class LibraryViewModel @Inject constructor(
         selection.value = LibrarySelection.toggle(selection.value, comic.id)
     }
 
-    fun onSelectAll(comics: List<LibraryComic>) {
-        selection.value = comics.mapTo(mutableSetOf()) { it.id }
+    fun onSelectRange(ids: Set<Long>) {
+        selection.value = ids
+    }
+
+    fun onDragSelecting(active: Boolean) {
+        dragging.value = active
+    }
+
+    fun onDragHintShown() {
+        viewModelScope.launch { repository.setDragHintSeen() }
     }
 
     fun onClearSelection() {
+        dragging.value = false
         selection.value = emptySet()
     }
 

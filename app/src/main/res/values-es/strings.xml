@@ -41,6 +41,7 @@
         <item quantity="one">%1$d seleccionado</item>
         <item quantity="other">%1$d seleccionados</item>
     </plurals>
+    <string name="library_selection_drag_hint">Mantén pulsado y arrastra para seleccionar varios</string>
     <string name="library_selection_close">Salir de la selección</string>
     <string name="library_select_all">Seleccionar todo</string>
     <string name="library_select_none">Quitar la selección</string>

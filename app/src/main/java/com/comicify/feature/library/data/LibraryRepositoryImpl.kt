@@ -73,6 +73,8 @@ class LibraryRepositoryImpl @Inject constructor(
 
     override val grouped: Flow<Boolean> = preferences.grouped
 
+    override val dragHintSeen: Flow<Boolean> = preferences.dragHintSeen
+
     override val readingLists: Flow<List<ReadingList>> =
         combine(readingListDao.observeLists(), readingListDao.observeEntries()) { lists, entries ->
             val byList = entries.sortedBy { it.ordering }.groupBy { it.listId }
@@ -85,6 +87,10 @@ class LibraryRepositoryImpl @Inject constructor(
                 )
             }
         }
+
+    override suspend fun setDragHintSeen() {
+        preferences.setDragHintSeen()
+    }
 
     override suspend fun setGrouped(grouped: Boolean) {
         preferences.setGrouped(grouped)

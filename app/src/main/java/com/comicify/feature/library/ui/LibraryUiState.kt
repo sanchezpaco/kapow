@@ -29,6 +29,7 @@ data class LibraryUiState(
     val totalCount: Int = 0,
     val heroSecondsPerPage: Int = ReadingPace.FALLBACK_SECONDS_PER_PAGE,
     val selection: Set<Long> = emptySet(),
+    val dragHintPending: Boolean = false,
 )
 
 internal val LibraryUiState.visibleComics: List<LibraryComic>

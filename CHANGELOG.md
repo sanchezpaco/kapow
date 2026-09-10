@@ -17,6 +17,11 @@ All notable user-facing changes to Kapow. The format follows
   Works on the shelf and inside a series, folded and unfolded.
 - The series menu can add a whole series to a reading list, keeping the issue
   order, instead of adding its issues one by one.
+- Drag to select: keep the finger down after the long-press and sweep across
+  the covers to take a whole run at once, with the grid auto-scrolling while the
+  finger rests near an edge. Dragging back over your own path gives the run
+  back, and starting on an already-selected comic deselects instead. A one-time
+  hint says so the first time you enter selection.
 - "Add to list" now works on a set of comics: a list is ticked only when every
   selected comic is already in it, and shows a mixed state when some are.
 
