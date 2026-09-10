@@ -19,9 +19,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DriveFileRenameOutline
-import androidx.compose.material.icons.outlined.RemoveCircleOutline
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -30,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TriStateCheckbox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -47,7 +47,9 @@ import com.comicify.core.ui.SectionHeader
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.domain.LibrarySort
+import com.comicify.feature.library.domain.ListMembership
 import com.comicify.feature.library.domain.ReadingList
+import com.comicify.feature.library.domain.ReadingListMembership
 import com.comicify.feature.library.domain.ReadingListOrder
 
 private val ListEmptyPadding = 32.dp
@@ -56,12 +58,12 @@ private val CheckboxRowGap = 4.dp
 
 data class ReadingListActions(
     val open: (ReadingList?) -> Unit,
-    val create: (String, LibraryComic?) -> Unit,
+    val create: (String, List<LibraryComic>) -> Unit,
     val rename: (ReadingList, String) -> Unit,
     val delete: (ReadingList) -> Unit,
     val restore: (ReadingList) -> Unit,
-    val toggle: (ReadingList, LibraryComic) -> Unit,
-    val remove: (ReadingList, LibraryComic) -> Unit,
+    val toggle: (ReadingList, List<LibraryComic>) -> Unit,
+    val remove: (ReadingList, List<LibraryComic>) -> Unit,
     val undoRemove: () -> Unit,
     val move: (ReadingList, LibraryComic, Boolean) -> Unit,
 )
@@ -103,7 +105,7 @@ internal fun ShelfTitle(
             title = stringResource(R.string.library_list_new),
             confirmLabel = stringResource(R.string.library_list_create),
             initialName = "",
-            onConfirm = { lists.actions.create(it, null) },
+            onConfirm = { lists.actions.create(it, emptyList()) },
             onDismiss = { creating = false },
         )
     }
@@ -206,7 +208,7 @@ private fun ListMenu(list: ReadingList, onRename: () -> Unit, onDelete: (Reading
 }
 
 @Composable
-internal fun ReadingListMenuItems(
+internal fun ReadingListMoveItems(
     list: ReadingList,
     comic: LibraryComic,
     actions: ReadingListActions,
@@ -226,35 +228,55 @@ internal fun ReadingListMenuItems(
             onClick = { onDismiss(); actions.move(list, comic, false) },
         )
     }
-    DropdownMenuItem(
-        text = { Text(stringResource(R.string.library_list_remove)) },
-        leadingIcon = { Icon(imageVector = Icons.Outlined.RemoveCircleOutline, contentDescription = null) },
-        onClick = { onDismiss(); actions.remove(list, comic) },
-    )
 }
 
 @Composable
-internal fun AddToListMenuItem(onClick: () -> Unit) {
+internal fun AddToListMenuItem(onClick: () -> Unit) = AddToListMenuItem(R.string.library_list_add_to, onClick)
+
+@Composable
+internal fun SeriesAddToListMenuItem(onClick: () -> Unit) = AddToListMenuItem(R.string.library_series_list_add, onClick)
+
+@Composable
+private fun AddToListMenuItem(labelRes: Int, onClick: () -> Unit) {
     DropdownMenuItem(
-        text = { Text(stringResource(R.string.library_list_add_to)) },
+        text = { Text(stringResource(labelRes)) },
         leadingIcon = { Icon(imageVector = Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null) },
         onClick = onClick,
     )
 }
 
 @Composable
-internal fun AddToListDialog(comic: LibraryComic, lists: ReadingListsUi, onDismiss: () -> Unit) {
+internal fun AddToListDialog(
+    title: String,
+    subtitle: String?,
+    comics: List<LibraryComic>,
+    lists: ReadingListsUi,
+    onDismiss: () -> Unit,
+) {
     var creating by remember { mutableStateOf(lists.lists.isEmpty()) }
     var name by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = comic.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+        title = {
+            Column {
+                Text(text = title, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                subtitle?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = InkFaint,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        },
         text = {
             if (creating) {
                 ListNameField(name = name, onNameChanged = { name = it })
             } else {
                 ListCheckboxes(
-                    comic = comic,
+                    comics = comics,
                     lists = lists,
                     onNewList = { creating = true },
                 )
@@ -264,7 +286,7 @@ internal fun AddToListDialog(comic: LibraryComic, lists: ReadingListsUi, onDismi
             if (creating) {
                 TextButton(
                     enabled = name.isNotBlank(),
-                    onClick = { lists.actions.create(name, comic); onDismiss() },
+                    onClick = { lists.actions.create(name, comics); onDismiss() },
                 ) {
                     Text(stringResource(R.string.library_list_create))
                 }
@@ -279,16 +301,17 @@ internal fun AddToListDialog(comic: LibraryComic, lists: ReadingListsUi, onDismi
 }
 
 @Composable
-private fun ListCheckboxes(comic: LibraryComic, lists: ReadingListsUi, onNewList: () -> Unit) {
+private fun ListCheckboxes(comics: List<LibraryComic>, lists: ReadingListsUi, onNewList: () -> Unit) {
+    val comicIds = comics.map { it.id }
     Column(
         modifier = Modifier.fillMaxWidth().heightIn(max = DialogBodyMaxHeight).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(CheckboxRowGap),
     ) {
         lists.lists.forEach { list ->
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = comic.id in list.comicIds,
-                    onCheckedChange = { lists.actions.toggle(list, comic) },
+                TriStateCheckbox(
+                    state = ReadingListMembership.of(list, comicIds).toggleableState(),
+                    onClick = { lists.actions.toggle(list, comics) },
                 )
                 Text(
                     text = list.name,
@@ -300,6 +323,12 @@ private fun ListCheckboxes(comic: LibraryComic, lists: ReadingListsUi, onNewList
         }
         TextButton(onClick = onNewList) { Text(stringResource(R.string.library_list_new)) }
     }
+}
+
+private fun ListMembership.toggleableState(): ToggleableState = when (this) {
+    ListMembership.NONE -> ToggleableState.Off
+    ListMembership.SOME -> ToggleableState.Indeterminate
+    ListMembership.ALL -> ToggleableState.On
 }
 
 @Composable

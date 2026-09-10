@@ -89,5 +89,13 @@ object LibraryCatalog {
         }
     }
 
+    fun selectable(entries: List<LibraryEntry>): List<LibraryComic> =
+        entries.filterIsInstance<LibraryEntry.Single>().map { it.comic }
+
+    fun openGroup(entries: List<LibraryEntry>, series: String?): LibraryEntry.Group? {
+        if (series == null) return null
+        return entries.filterIsInstance<LibraryEntry.Group>().firstOrNull { it.series == series }
+    }
+
     private fun groupKey(series: String): String = series.trim().lowercase()
 }

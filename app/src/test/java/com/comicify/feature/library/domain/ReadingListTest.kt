@@ -60,6 +60,20 @@ class ReadingListTest {
     }
 
     @Test
+    fun membershipIsAllOnlyWhenEveryComicIsAlreadyInTheList() {
+        assertEquals(ListMembership.ALL, ReadingListMembership.of(list(1, 2, 3), listOf(1L, 3L)))
+        assertEquals(ListMembership.SOME, ReadingListMembership.of(list(1, 2), listOf(1L, 9L)))
+        assertEquals(ListMembership.NONE, ReadingListMembership.of(list(1, 2), listOf(8L, 9L)))
+        assertEquals(ListMembership.NONE, ReadingListMembership.of(list(1, 2), emptyList()))
+    }
+
+    @Test
+    fun missingKeepsTheGivenOrderOfTheComicsToAdd() {
+        assertEquals(listOf(9L, 4L), ReadingListMembership.missing(list(1, 2), listOf(9L, 1L, 4L, 2L)))
+        assertEquals(emptyList<Long>(), ReadingListMembership.missing(list(1, 2), listOf(2L, 1L)))
+    }
+
+    @Test
     fun listKeepsItsHandOrderAndDropsPrunedComics() {
         val comics = listOf(comic(1), comic(2), comic(3))
         assertEquals(listOf(3L, 1L), LibraryCatalog.inList(comics, list(3, 9, 1)).map { it.id })

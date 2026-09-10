@@ -1,5 +1,6 @@
 package com.comicify.feature.library.ui
 
+import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
 import com.comicify.feature.library.domain.LibraryEntry
 import com.comicify.feature.library.domain.LibraryFilter
@@ -27,4 +28,8 @@ data class LibraryUiState(
     val continueReadingVisible: Boolean = false,
     val totalCount: Int = 0,
     val heroSecondsPerPage: Int = ReadingPace.FALLBACK_SECONDS_PER_PAGE,
+    val selection: Set<Long> = emptySet(),
 )
+
+internal val LibraryUiState.visibleComics: List<LibraryComic>
+    get() = LibraryCatalog.openGroup(entries, openedSeries)?.comics ?: LibraryCatalog.selectable(entries)
