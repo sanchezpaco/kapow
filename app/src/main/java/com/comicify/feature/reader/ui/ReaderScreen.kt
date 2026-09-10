@@ -8,14 +8,19 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.LocalOverscrollFactory
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -59,6 +64,7 @@ import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -83,10 +89,12 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -191,18 +199,19 @@ private val PanelIconSize = 24.dp
 private val BubbleScaleValueWidth = 44.dp
 private val AutoplayValueWidth = 56.dp
 private val AutoplayPillSize = 40.dp
-private val AutoplayPillGap = 10.dp
-private val AutoplayPillTop = ChromeTopPadding + ChromeCircleSize + AutoplayPillGap
+private val AutoplayPillGround = PanelColor
 private val AutoplayRingWidth = 3.dp
+private val AutoplayRingInset = 1.5.dp
+private val AutoplayTrackColor = Color.White.copy(alpha = 0.16f)
+private val AutoplayHeldArcColor = Color.White.copy(alpha = 0.45f)
 private val AutoplayGlyphSize = 20.dp
-private val AutoplayRingTrackColor = Color.White.copy(alpha = 0.16f)
-private val AutoplayGround = Color.White.copy(alpha = 0.12f)
-private val AutoplayHeldGround = Color.White.copy(alpha = 0.22f)
-private val AutoplayHeldEdge = Color.White.copy(alpha = 0.35f)
-private val AutoplayHeldRingColor = Color.White.copy(alpha = 0.45f)
-private val AutoplayEdgeWidth = 1.dp
-private const val AUTOPLAY_HELD_FADE_MS = 120
+private val AutoplayPillEndInset = 20.dp
+private val AutoplayPillBottomInset = 84.dp
+private val AutoplayScrubberInset = AutoplayPillSize + 12.dp
 private val PanelCaptionColor = Color.White.copy(alpha = 0.5f)
+private const val AUTOPLAY_HELD_FADE_MS = 120
+private const val AUTOPLAY_PULSE_MS = 800
+private const val AUTOPLAY_PULSE_LOW = 0.55f
 private const val AUTOPLAY_RING_START_ANGLE = -90f
 private const val AUTOPLAY_RING_SWEEP = 360f
 private val MarkerDotSize = 8.dp
@@ -250,7 +259,7 @@ fun ReaderScreen(
 
     LaunchedEffect(state.position.pageIndex, readingPageCount, activeComic) {
         if (readingPageCount > 0) {
-            onPageChanged(activeComic?.id, state.position.pageIndex, readingPageCount, state.autoplay)
+            onPageChanged(activeComic?.id, state.position.pageIndex, readingPageCount, state.autoplay.on)
         }
     }
 
@@ -305,13 +314,13 @@ fun ReaderScreen(
         else -> Autoplay.pageMillis(state.autoplaySeconds, pagesOnScreen)
     }
     val autoplayCounting = mode != ReaderViewMode.Strip
-    val autoplayWatchingTouches = state.autoplay && autoplayCounting
+    val autoplayWatchingTouches = state.autoplay.running && autoplayCounting
     LaunchedEffect(autoplayWatchingTouches) { if (!autoplayWatchingTouches) autoplayFingerDown = false }
     val autoplayHeld = autoplayFingerDown || state.chromeVisible
     val autoplayProgress = remember { Animatable(0f) }
 
     AutoplayDwellClock(
-        running = state.autoplay && autoplayCounting && readyPage == shownPage &&
+        running = state.autoplay.running && autoplayCounting && readyPage == shownPage &&
             (mode != ReaderViewMode.Guided || guidedSettled),
         held = autoplayHeld,
         dwellMillis = autoplayDwellMillis,
@@ -327,7 +336,7 @@ fun ReaderScreen(
         }
     }
 
-    ImmersiveReadingMode(keepScreenOn = state.keepScreenOn || state.autoplay)
+    ImmersiveReadingMode(keepScreenOn = state.keepScreenOn || state.autoplay.on)
 
     Box(
         modifier = Modifier
@@ -369,7 +378,8 @@ fun ReaderScreen(
                         },
                         onStripScrolled = viewModel::hideChrome,
                         bubbleScale = state.bubbleScale.takeIf { state.bubblesEnlarged },
-                        autoplaySeconds = state.autoplaySeconds.takeIf { state.autoplay && !state.chromeVisible },
+                        autoplaySeconds = state.autoplaySeconds
+                            .takeIf { state.autoplay.running && !state.chromeVisible },
                         onAutoplayFinished = viewModel::stopAutoplay,
                         pageLook = state.pageLook,
                         fitWidth = state.fitWidth,
@@ -411,7 +421,8 @@ fun ReaderScreen(
             guidedFullScreen = state.guidedFullScreen,
             bubblesEnlarged = state.bubblesEnlarged,
             bubbleScale = state.bubbleScale,
-            autoplay = state.autoplay,
+            autoplay = state.autoplay.on,
+            autoplayPaused = state.autoplay.paused,
             autoplaySeconds = state.autoplaySeconds,
             fitWidth = state.fitWidth,
             nightTintEnabled = state.nightTintEnabled,
@@ -447,18 +458,20 @@ fun ReaderScreen(
             bookmarks = state.bookmarks,
             bookmarksOnly = state.bookmarksOnly,
             bookmarksAvailable = state.bookmarksAvailable,
+            scrubberEndInset = if (state.autoplay.on) AutoplayScrubberInset else 0.dp,
             onToggleBookmark = viewModel::toggleBookmark,
             onToggleBookmarkFilter = viewModel::toggleBookmarkFilter,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
 
         AutoplayPill(
-            visible = state.autoplay && !atEnd,
+            visible = state.autoplay.on && !atEnd,
+            paused = state.autoplay.paused,
             held = autoplayHeld,
             counting = autoplayCounting,
             progress = autoplayProgress,
-            onStop = viewModel::stopAutoplay,
-            modifier = Modifier.align(Alignment.TopStart),
+            onTransport = viewModel::toggleAutoplayPlayback,
+            modifier = Modifier.align(Alignment.BottomEnd),
         )
 
         EndOfComicOverlay(
@@ -531,62 +544,80 @@ private fun Modifier.observeAutoplayHold(onHeld: (Boolean) -> Unit): Modifier = 
 @Composable
 private fun AutoplayPill(
     visible: Boolean,
+    paused: Boolean,
     held: Boolean,
     counting: Boolean,
     progress: Animatable<Float, AnimationVector1D>,
-    onStop: () -> Unit,
+    onTransport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (!visible) return
-    val ring by animateColorAsState(
-        targetValue = if (held) AutoplayHeldRingColor else MaterialTheme.colorScheme.primary,
+    val accent = MaterialTheme.colorScheme.primary
+    val arc = animateColorAsState(
+        targetValue = if (held && !paused) AutoplayHeldArcColor else accent,
         animationSpec = tween(AUTOPLAY_HELD_FADE_MS),
-        label = "autoplayRing",
+        label = "autoplayArc",
     )
-    val ground by animateColorAsState(
-        targetValue = if (held) AutoplayHeldGround else AutoplayGround,
-        animationSpec = tween(AUTOPLAY_HELD_FADE_MS),
-        label = "autoplayGround",
-    )
-    val edge by animateColorAsState(
-        targetValue = if (held) AutoplayHeldEdge else Color.Transparent,
-        animationSpec = tween(AUTOPLAY_HELD_FADE_MS),
-        label = "autoplayEdge",
-    )
-    val playing = stringResource(if (held) R.string.reader_autoplay_held else R.string.reader_autoplay_playing)
+    val pulse = rememberAutoplayPulse(paused)
+    val playback = autoplayStateLabel(paused, held)
     Box(
         modifier = modifier
-            .windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout))
-            .padding(start = ChromeEdgePadding, top = AutoplayPillTop),
+            .navigationBarsPadding()
+            .padding(end = AutoplayPillEndInset, bottom = AutoplayPillBottomInset),
     ) {
         IconButton(
-            onClick = onStop,
+            onClick = onTransport,
             modifier = Modifier
                 .size(AutoplayPillSize)
-                .background(ground, CircleShape)
-                .border(AutoplayEdgeWidth, edge, CircleShape)
-                .semantics { stateDescription = playing }
-                .drawBehind { drawAutoplayRing(counting, ring, progress.value) },
+                .clip(CircleShape)
+                .background(AutoplayPillGround)
+                .semantics { stateDescription = playback },
         ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                drawAutoplayRing(counting, arc.value, progress.value, pulse.value)
+            }
             Icon(
-                imageVector = Icons.Filled.Pause,
-                contentDescription = stringResource(R.string.reader_autoplay_stop),
+                imageVector = if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                contentDescription = stringResource(
+                    if (paused) R.string.reader_autoplay_resume else R.string.reader_autoplay_pause,
+                ),
                 tint = Color.White,
-                modifier = Modifier.size(AutoplayGlyphSize),
+                modifier = Modifier
+                    .size(AutoplayGlyphSize)
+                    .graphicsLayer { alpha = pulse.value },
             )
         }
     }
 }
 
-private fun DrawScope.drawAutoplayRing(counting: Boolean, color: Color, progress: Float) {
+@Composable
+private fun rememberAutoplayPulse(paused: Boolean): State<Float> {
+    if (!paused) return remember { mutableFloatStateOf(1f) }
+    val transition = rememberInfiniteTransition(label = "autoplayPause")
+    return transition.animateFloat(
+        initialValue = 1f,
+        targetValue = AUTOPLAY_PULSE_LOW,
+        animationSpec = infiniteRepeatable(tween(AUTOPLAY_PULSE_MS), RepeatMode.Reverse),
+        label = "autoplayPulse",
+    )
+}
+
+@Composable
+private fun autoplayStateLabel(paused: Boolean, held: Boolean): String = stringResource(
+    when {
+        paused -> R.string.reader_autoplay_paused
+        held -> R.string.reader_autoplay_held
+        else -> R.string.reader_autoplay_playing
+    },
+)
+
+private fun DrawScope.drawAutoplayRing(counting: Boolean, color: Color, progress: Float, alpha: Float) {
     val width = AutoplayRingWidth.toPx()
-    val topLeft = Offset(width / 2f, width / 2f)
-    val diameter = Size(size.width - width, size.height - width)
-    if (!counting) {
-        drawArc(color, 0f, AUTOPLAY_RING_SWEEP, false, topLeft, diameter, style = Stroke(width))
-        return
-    }
-    drawArc(AutoplayRingTrackColor, 0f, AUTOPLAY_RING_SWEEP, false, topLeft, diameter, style = Stroke(width))
+    val inset = AutoplayRingInset.toPx()
+    val topLeft = Offset(inset, inset)
+    val diameter = Size(size.width - inset * 2f, size.height - inset * 2f)
+    drawArc(AutoplayTrackColor, 0f, AUTOPLAY_RING_SWEEP, false, topLeft, diameter, style = Stroke(width))
+    if (!counting) return
     drawArc(
         color = color,
         startAngle = AUTOPLAY_RING_START_ANGLE,
@@ -594,6 +625,7 @@ private fun DrawScope.drawAutoplayRing(counting: Boolean, color: Color, progress
         useCenter = false,
         topLeft = topLeft,
         size = diameter,
+        alpha = alpha,
         style = Stroke(width, cap = StrokeCap.Round),
     )
 }
@@ -713,6 +745,7 @@ private fun TopChrome(
     bubblesEnlarged: Boolean,
     bubbleScale: Float,
     autoplay: Boolean,
+    autoplayPaused: Boolean,
     autoplaySeconds: Int,
     fitWidth: Boolean,
     nightTintEnabled: Boolean,
@@ -781,6 +814,7 @@ private fun TopChrome(
                         bubblesEnlarged = bubblesEnlarged,
                         bubbleScale = bubbleScale,
                         autoplay = autoplay,
+                        autoplayPaused = autoplayPaused,
                         autoplaySeconds = autoplaySeconds,
                         fitWidth = fitWidth,
                         onMode = { openPanel = null; onViewMode(it) },
@@ -893,6 +927,7 @@ private fun ViewModePanel(
     bubblesEnlarged: Boolean,
     bubbleScale: Float,
     autoplay: Boolean,
+    autoplayPaused: Boolean,
     autoplaySeconds: Int,
     fitWidth: Boolean,
     onMode: (ReaderViewMode) -> Unit,
@@ -947,7 +982,7 @@ private fun ViewModePanel(
             Switch(checked = autoplay, onCheckedChange = null)
         }
         RevealedPanel(visible = autoplay) {
-            AutoplayIntervalStepper(seconds = autoplaySeconds, onSeconds = onAutoplaySeconds)
+            AutoplayIntervalStepper(seconds = autoplaySeconds, paused = autoplayPaused, onSeconds = onAutoplaySeconds)
         }
     }
 }
@@ -999,7 +1034,7 @@ private fun BubbleScaleStepper(scale: Float, onScale: (Float) -> Unit) {
 }
 
 @Composable
-private fun AutoplayIntervalStepper(seconds: Int, onSeconds: (Int) -> Unit) {
+private fun AutoplayIntervalStepper(seconds: Int, paused: Boolean, onSeconds: (Int) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1008,8 +1043,8 @@ private fun AutoplayIntervalStepper(seconds: Int, onSeconds: (Int) -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = stringResource(R.string.reader_autoplay_per_page),
-            color = PanelCaptionColor,
+            text = stringResource(if (paused) R.string.reader_autoplay_paused else R.string.reader_autoplay_per_page),
+            color = if (paused) MaterialTheme.colorScheme.primary else PanelCaptionColor,
             style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.weight(1f),
         )
@@ -1313,6 +1348,7 @@ private fun BottomChrome(
     bookmarks: Set<Int>,
     bookmarksOnly: Boolean,
     bookmarksAvailable: Boolean,
+    scrubberEndInset: Dp,
     onToggleBookmark: () -> Unit,
     onToggleBookmarkFilter: () -> Unit,
     modifier: Modifier = Modifier,
@@ -1339,6 +1375,7 @@ private fun BottomChrome(
                             bookmarks = bookmarks,
                             filtered = bookmarksOnly,
                             onSelect = onJumpToPage,
+                            endInset = scrubberEndInset,
                             modifier = Modifier.padding(bottom = 12.dp),
                         )
                     }

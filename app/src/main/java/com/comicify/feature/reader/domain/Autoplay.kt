@@ -10,6 +10,24 @@ const val AUTOPLAY_COARSE_AFTER_MS = 1_200L
 
 private const val NANOS_PER_MILLI = 1_000_000L
 
+enum class AutoplayState {
+    Off,
+    Running,
+    Paused;
+
+    val on: Boolean get() = this != Off
+    val running: Boolean get() = this == Running
+    val paused: Boolean get() = this == Paused
+
+    fun switched(): AutoplayState = if (on) Off else Running
+
+    fun transported(): AutoplayState = when (this) {
+        Off -> Off
+        Running -> Paused
+        Paused -> Running
+    }
+}
+
 data class AutoplayDwell(val totalMillis: Long, val elapsedMillis: Long = 0L) {
 
     val progress: Float

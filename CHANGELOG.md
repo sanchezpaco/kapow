@@ -17,11 +17,12 @@ All notable user-facing changes to Kapow. The format follows
   scrolls the vertical strip down continuously at one page per interval,
   carrying on into the next issue. The first interval it offers is your own
   average from reading stats.
-- While autoplay runs, a pause pill at the top of the screen counts the page
-  down and stays put when the rest of the HUD hides. Touch the page anywhere and
-  autoplay holds — turn the page, scroll, zoom or read on at your own speed, and
-  it picks up again from a full page when you lift your finger. It stops for
-  good from the pill, the switch, leaving the app, or the end of the comic.
+- While autoplay runs, a pause button in the bottom corner counts the page down
+  around its rim and stays put when the rest of the HUD hides. Tap it to pause,
+  tap again to carry on. Touch the page anywhere and autoplay holds by itself —
+  turn the page, scroll, zoom or read on at your own speed, and it picks up
+  again from a full page when you lift your finger. Switching it off is the
+  switch in the view-mode panel, leaving the app, or the end of the comic.
 
 ### Fixed
 - Pages turned by autoplay no longer skew the reading pace behind "≈ 13 min

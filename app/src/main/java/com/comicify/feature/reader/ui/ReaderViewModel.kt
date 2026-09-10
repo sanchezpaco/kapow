@@ -33,6 +33,7 @@ import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.data.PanelDetector
 import com.comicify.feature.reader.data.SplitPagesComicSource
 import com.comicify.feature.reader.domain.Autoplay
+import com.comicify.feature.reader.domain.AutoplayState
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.Bookmarks
 import com.comicify.feature.reader.domain.ComicOpenError
@@ -321,11 +322,15 @@ class ReaderViewModel(
     }
 
     fun toggleAutoplay() {
-        _state.update { it.copy(autoplay = !it.autoplay) }
+        _state.update { it.copy(autoplay = it.autoplay.switched()) }
+    }
+
+    fun toggleAutoplayPlayback() {
+        _state.update { it.copy(autoplay = it.autoplay.transported()) }
     }
 
     fun stopAutoplay() {
-        _state.update { if (it.autoplay) it.copy(autoplay = false) else it }
+        _state.update { if (it.autoplay.on) it.copy(autoplay = AutoplayState.Off) else it }
     }
 
     fun setAutoplaySeconds(seconds: Int) {
