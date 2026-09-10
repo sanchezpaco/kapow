@@ -7,10 +7,18 @@ data class ReadingList(
     val comicIds: List<Long> = emptyList(),
 )
 
+enum class ListMembership { NONE, SOME, ALL }
+
 object ReadingListMembership {
 
-    fun holdsAll(list: ReadingList, comicIds: List<Long>): Boolean =
-        comicIds.isNotEmpty() && comicIds.all { it in list.comicIds }
+    fun of(list: ReadingList, comicIds: List<Long>): ListMembership {
+        if (comicIds.isEmpty()) return ListMembership.NONE
+        return when (comicIds.count { it in list.comicIds }) {
+            0 -> ListMembership.NONE
+            comicIds.size -> ListMembership.ALL
+            else -> ListMembership.SOME
+        }
+    }
 
     fun missing(list: ReadingList, comicIds: List<Long>): List<Long> =
         comicIds.filterNot { it in list.comicIds }

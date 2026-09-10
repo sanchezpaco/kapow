@@ -254,16 +254,20 @@ cannot express. Lists are hand-ordered, never re-sorted.
   ignored — a crossover is exactly what you do not want folded back into series
   stacks. The Layers toggle stays enabled and applies again on All comics.
 - **Adding** is `Add to list…`, and it always works on a *set* of comics: the
-  selection bar's button (one comic or twenty — see "Selection mode"), or the
-  series menu, which passes the whole group in its shelf order. The dialog is
-  headed by the comic's title, the count, or the series name, with a checkbox
-  per list and a "New list…" row that swaps the body for one text field.
-  Creating a list from that dialog creates it *and* adds every comic in order.
-  A box is ticked only when **all** of them are already in that list
-  (`ReadingListMembership.holdsAll`); ticking adds the ones that are missing
-  (`missing`, in the given order), unticking removes them all. Names are
-  free text, trimmed, duplicates allowed; an empty name disables Create. New
-  members append at `max(ordering) + 1`.
+  selection bar's first slot (one comic or twenty — see "Selection mode"), or
+  the series menu, which passes the whole group in its shelf order. The dialog
+  is headed by the comic's title (one comic), by the series name with the
+  selected count under it (from a series), or by the count itself (from the
+  selection bar), and holds a **`TriStateCheckbox`** per list plus a "New list…"
+  row that swaps the body for one text field. Creating a list from that dialog creates it *and*
+  adds every comic in order. The box is `On` when all of the payload is already
+  in that list, `Indeterminate` when only some of it is and `Off` when none is
+  (`ReadingListMembership.of`); tapping `Off` or `Indeterminate` adds the ones
+  that are missing (`missing`, in the given order), tapping `On` removes them
+  all — a plain checkbox would have silently misreported a mixed selection.
+  There is no snackbar: the box is the confirmation and unticking is the undo.
+  Names are free text, trimmed, duplicates allowed; an empty name disables
+  Create. New members append at `max(ordering) + 1`.
 - **Reordering** is `Move up` / `Move down` in the selection "⋮" with exactly
   one comic ticked (a set has no place to move to), hidden at the ends
   — no drag handles inside a `LazyVerticalGrid`. `ReadingListOrder` is pure and
@@ -404,41 +408,73 @@ one code path: the batch one.
   platform gesture (Photos, Files, Drive), and it costs no extra tap for the
   batch the user actually wanted. While selection is on, a plain tap toggles a
   cover instead of opening it; outside selection a tap still opens the comic.
-  **Out:** the "×" in the selection bar, or system BACK — a `BackHandler` in
-  `SelectionBar` that wins because the series/list back handlers are disabled
-  while `state.selection` is not empty.
+  **Out:** the "×" in the top bar, deselecting the last comic, or system BACK —
+  a `BackHandler` in `SelectionTopBar` that wins because the series and
+  open-list back handlers are disabled while `state.selection` is not empty.
 - **A selected card** keeps the card vocabulary: a 2 dp `Accent` border on the
-  cover, an accent wash over it and a filled `Accent` check badge top-end (a
-  hollow dark disc on the unselected cards, so the whole grid reads as
-  tickable). The progress ring hides while selecting — the badge owns that
-  corner — and the completed/favorite badges stay where they are.
-- **The selection bar** replaces the toolbar at the top of the screen: "×",
-  "*n* selected" (`library_selection_count`, a plural), select-all (accent-lit
-  once everything is ticked), **Add to list…** as its own button — the reason
-  the mode exists — and "⋮" for the rest. Only two icons plus the count sit in
-  the row so it survives a folded 360 dp width.
-- **The "⋮" menu** is the old cover menu, widened: reading settings, remove
-  from the open list, mark read/unread, add/remove favorites, delete. It is
-  headed by the comic's title and grows *Details* and *Choose cover* only when
-  exactly one comic is ticked — those two are per-comic by nature, and
-  "Move up/down" likewise stays single-comic (reordering a set has no meaning).
-  Read/favorite are toggles over the whole set: they turn *off* only when every
-  selected comic is already read/favorite, so a mixed selection turns on.
-- **Deleting** asks once, quoting the count
-  (`library_delete_selection_title/_body`; a single comic keeps its old
-  by-name wording). No undo — the files go.
-- **Series stacks are not selectable.** A stack is a container, not an item:
-  tap opens it, long-press opens the series menu, and *Add to list…* there adds
-  every issue in the group's order in one gesture — cheaper than ticking twelve
-  covers. `LibraryCatalog.selectable(entries)` is what "select all" ticks, so in
-  grouped mode it covers the loose covers only, never issues hidden in a stack.
+  cover, the cover box springing to 0.92 on a `graphicsLayer` **inside** the
+  `sharedCover` node (so the shared-element bounds never animate and neighbours
+  never move), and an `Accent`-filled check badge top-start with
+  `FavoriteBadge`'s exact geometry. Top-start is the one collision: while a card
+  is selected its favourite badge yields and the check takes the slot. The
+  progress ring, the completed tick and `#01` are untouched, and unselected
+  cards gain nothing — the two bars are the mode indicator, and dimming
+  thirty-nine covers to find one is worse than a clean grid. The card carries
+  `semantics { selected = … }` rather than a separate checkbox target.
+- **Two bars, overlaying the grid.** The **top bar** (`palette.raised`, hairline
+  under it, `statusBarsPadding`) is "×", "*n* selected"
+  (`library_selected_count`, a plural) and select-all — `GhostAction` with
+  `active = allSelected`, flipping to "clear selection" once everything is
+  ticked. The **action bar** sits above the navigation bar, five slots at thumb
+  height: add to / remove from list, read, favourite, delete (`Danger`) and
+  "⋮". Both grids grow `contentPadding` by the bar height at **both** edges
+  (`selectionBarInset`, an `animateDpAsState`), so neither bar ever covers the
+  sticky filter chips or the last row.
+- **Slot rules.** Slot 1 is list membership and its meaning is stable, only the
+  verb flips: outside a list it is *Add to list*; inside an open list, *Remove
+  from list*, with *Add to list* moving into "⋮" on folded widths and staying
+  inline from 600 dp. Labels drop below 360 dp and the slots become 48 dp icons.
+  Read and favourite are toggles over the whole set — they turn *off* only when
+  every selected comic is already read/favourite, so a mixed selection turns on.
+- **The "⋮"** carries what cannot be batched: *Details*, *Choose cover*,
+  *Reading settings* and *Move up / Move down*, all shown only when exactly one
+  comic is ticked, plus *Add to list* when the narrow layout pushed it there.
+  With nothing to show — several comics, no open list — the slot is not drawn.
+  The comic detail sheet therefore stays three taps from the shelf: long-press,
+  "⋮", *Details*.
+- **What clears the selection and what does not.** *Add to list* (when its
+  dialog closes), *Remove from list*, *Delete* and the "⋮" navigations exit the
+  mode; **mark read/unread and favourite keep it**, because read-then-favourite
+  is a natural chain and both are undoable. Scrolling never clears it. Opening a
+  list, a series, or toggling grouping does — the visible set changes wholesale.
+  Changing the **filter, sort or search** does *not* wipe it: on every emission
+  `LibrarySelection.reconcile` intersects the selection with the shelf, so
+  comics the new filter hides simply drop out of it instead of being silently
+  batched, and a delete, a rescan that drops a file or a relink can never leave
+  a stale id behind.
+- **Undo where it is honest**, through the shelf's existing
+  `SnackbarHostState.undoable`: batch mark read/unread and batch
+  favourite/unfavourite restore each comic's previous flag, and remove-from-list
+  re-inserts every entry at its own `ordering`. **Delete gets none** —
+  `deleteComic` removes the file from the device, so an "Undo" would be a lie;
+  the one confirmation dialog quoting the count
+  (`library_selection_delete_title/_body`, plurals; a single comic keeps its old
+  by-name wording) is the guard.
+- **Series stacks do not take part.** A stack is a container, not an item: tap
+  opens it, long-press opens the series menu, and *Add series to list…* there
+  adds every issue in the group's order in one gesture — cheaper than ticking
+  twelve covers. While a selection is active, group cards and the whole
+  "Continue reading" shelf go to 40 % and stop responding
+  (`Modifier.inertWhile`, consuming pointer events at `PointerEventPass.Initial`)
+  — they stay laid out, so nothing jumps, but a stray tap can no longer open the
+  reader and throw away a selection being built. Inside a series screen the
+  header's "⋮" hides for the same reason: "Delete series" must not sit one tap
+  from a three-issue selection. `LibraryCatalog.selectable(entries)` is what
+  "select all" ticks, so in grouped mode it covers the loose covers only, never
+  issues hidden in a stack.
 - **State.** `LibraryUiState.selection` is a `Set<Long>` of comic ids owned by
-  `LibraryViewModel`. It is cleared whenever what is on screen changes (filter,
-  query, preset, grouping, opened list, opened series) and, on every emission,
-  `LibrarySelection.reconcile` intersects it with the shelf — so deleting the
-  selection, a rescan that drops a file or a relink can never leave a stale id
-  behind. `LibrarySelection` and `ReadingListMembership` are pure and unit
-  tested.
+  `LibraryViewModel`. `LibrarySelection` and `ReadingListMembership` are pure
+  and unit tested.
 
 ### Search syntax
 

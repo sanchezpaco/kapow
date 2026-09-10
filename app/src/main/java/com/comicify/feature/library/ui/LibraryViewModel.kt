@@ -12,6 +12,7 @@ import com.comicify.feature.library.domain.LibraryFilter
 import com.comicify.feature.library.domain.LibraryScanError
 import com.comicify.feature.library.domain.LibrarySelection
 import com.comicify.feature.library.domain.LibrarySort
+import com.comicify.feature.library.domain.ListMembership
 import com.comicify.feature.library.domain.ReadingList
 import com.comicify.feature.library.domain.ReadingListMembership
 import com.comicify.feature.library.domain.ReadingListOrder
@@ -54,6 +55,8 @@ class LibraryViewModel @Inject constructor(
     private val selection = MutableStateFlow<Set<Long>>(emptySet())
     private var foregroundScan: Job? = null
     private var removed: List<RemovedEntry> = emptyList()
+    private var wasRead: Map<Long, Boolean> = emptyMap()
+    private var wasFavorite: Map<Long, Boolean> = emptyMap()
 
     private val listState: Flow<ListState> =
         combine(repository.readingLists, openedListId) { lists, openedId ->
@@ -132,7 +135,6 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun onFilterSelected(selected: LibraryFilter) {
-        onClearSelection()
         filter.value = selected
     }
 
@@ -185,8 +187,11 @@ class LibraryViewModel @Inject constructor(
     fun onToggleInList(list: ReadingList, comics: List<LibraryComic>) {
         val comicIds = comics.map { it.id }
         viewModelScope.launch {
-            if (ReadingListMembership.holdsAll(list, comicIds)) comicIds.forEach { repository.removeFromList(list.id, it) }
-            else ReadingListMembership.missing(list, comicIds).forEach { repository.addToList(list.id, it) }
+            if (ReadingListMembership.of(list, comicIds) == ListMembership.ALL) {
+                comicIds.forEach { repository.removeFromList(list.id, it) }
+            } else {
+                ReadingListMembership.missing(list, comicIds).forEach { repository.addToList(list.id, it) }
+            }
         }
     }
 
@@ -213,12 +218,10 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun onQueryChanged(text: String) {
-        onClearSelection()
         query.value = text
     }
 
     fun onPresetQuery(text: String) {
-        onClearSelection()
         filter.value = LibraryFilter.ALL
         query.value = text
     }
@@ -237,11 +240,25 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun onSetRead(comics: List<LibraryComic>, read: Boolean) {
+        wasRead = comics.associate { it.id to it.completed }
         viewModelScope.launch { comics.forEach { repository.setRead(it.id, read) } }
     }
 
+    fun onUndoSetRead() {
+        val previous = wasRead
+        wasRead = emptyMap()
+        viewModelScope.launch { previous.forEach { (id, read) -> repository.setRead(id, read) } }
+    }
+
     fun onSetFavorite(comics: List<LibraryComic>, favorite: Boolean) {
+        wasFavorite = comics.associate { it.id to it.favorite }
         viewModelScope.launch { comics.forEach { repository.setFavorite(it.id, favorite) } }
+    }
+
+    fun onUndoSetFavorite() {
+        val previous = wasFavorite
+        wasFavorite = emptyMap()
+        viewModelScope.launch { previous.forEach { (id, favorite) -> repository.setFavorite(id, favorite) } }
     }
 
     fun onDeleteComics(comics: List<LibraryComic>) {

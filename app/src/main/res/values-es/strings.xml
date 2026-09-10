@@ -32,29 +32,41 @@
     <string name="library_filter_favorites">Favoritos</string>
     <string name="library_filter_empty">Aquí no hay nada todavía.</string>
     <string name="library_choose_cover">Elegir portada</string>
-    <string name="library_mark_read">Marcar como leído</string>
-    <string name="library_mark_unread">Marcar como no leído</string>
-    <string name="library_add_favorite">Añadir a favoritos</string>
-    <string name="library_remove_favorite">Quitar de favoritos</string>
     <string name="library_favorite">Favorito</string>
-    <plurals name="library_delete_selected">
-        <item quantity="one">Borrar cómic</item>
-        <item quantity="other">Borrar cómics</item>
-    </plurals>
     <string name="library_delete_confirm_title">¿Borrar cómic?</string>
     <string name="library_delete_confirm_body">%1$s se borrará permanentemente de tu dispositivo.</string>
-    <string name="library_delete_selection_title">¿Borrar %1$d cómics?</string>
-    <string name="library_delete_selection_body">Los %1$d cómics seleccionados se borrarán permanentemente de tu dispositivo.</string>
     <string name="library_delete_confirm">Borrar</string>
     <string name="library_delete_cancel">Cancelar</string>
-    <plurals name="library_selection_count">
+    <plurals name="library_selected_count">
         <item quantity="one">%1$d seleccionado</item>
         <item quantity="other">%1$d seleccionados</item>
     </plurals>
-    <string name="library_selected">Seleccionado</string>
     <string name="library_selection_close">Salir de la selección</string>
-    <string name="library_selection_menu">Opciones de la selección</string>
     <string name="library_select_all">Seleccionar todo</string>
+    <string name="library_select_none">Quitar la selección</string>
+    <string name="library_selection_list">Lista</string>
+    <string name="library_selection_remove">Quitar</string>
+    <string name="library_selection_read">Leídos</string>
+    <string name="library_selection_favorite">Favoritos</string>
+    <string name="library_selection_delete">Borrar</string>
+    <string name="library_selection_more">Más</string>
+    <string name="library_selection_more_actions">Más opciones</string>
+    <string name="library_selection_mark_read">Marcar como leídos</string>
+    <string name="library_selection_mark_unread">Marcar como no leídos</string>
+    <string name="library_selection_add_favorite">Añadir a favoritos</string>
+    <string name="library_selection_remove_favorite">Quitar de favoritos</string>
+    <plurals name="library_selection_delete_title">
+        <item quantity="one">¿Borrar cómic?</item>
+        <item quantity="other">¿Borrar %1$d cómics?</item>
+    </plurals>
+    <plurals name="library_selection_delete_body">
+        <item quantity="one">El cómic seleccionado se borrará permanentemente de tu dispositivo.</item>
+        <item quantity="other">Los %1$d cómics seleccionados se borrarán permanentemente de tu dispositivo.</item>
+    </plurals>
+    <string name="library_selection_marked_read">Marcados como leídos</string>
+    <string name="library_selection_marked_unread">Marcados como no leídos</string>
+    <string name="library_selection_favorited">Añadidos a favoritos</string>
+    <string name="library_selection_unfavorited">Quitados de favoritos</string>
     <string name="library_group">Agrupar por serie</string>
     <string name="library_ungroup">Ver todos los cómics</string>
     <string name="library_group_read">%1$d/%2$d leídos</string>
@@ -72,6 +84,7 @@
     <string name="library_unshelved">Quitado de continuar leyendo</string>
     <string name="library_undo">Deshacer</string>
     <string name="library_series_settings">Ajustes de la serie</string>
+    <string name="library_series_list_add">Añadir la serie a una lista…</string>
     <string name="library_mark_series_read">Marcar serie como leída</string>
     <string name="library_mark_series_unread">Marcar serie como no leída</string>
     <string name="library_series_menu">Opciones de la serie</string>
@@ -83,14 +96,17 @@
     <string name="library_list_name_hint">Nombre de la lista</string>
     <string name="library_list_add_to">Añadir a una lista…</string>
     <string name="library_list_remove">Quitar de la lista</string>
-    <string name="library_list_removed">Quitado de la lista</string>
+    <plurals name="library_list_removed_count">
+        <item quantity="one">Quitado de la lista</item>
+        <item quantity="other">%1$d cómics quitados de la lista</item>
+    </plurals>
     <string name="library_list_move_up">Subir</string>
     <string name="library_list_move_down">Bajar</string>
     <string name="library_list_rename">Renombrar lista</string>
     <string name="library_list_delete">Eliminar lista</string>
     <string name="library_list_deleted">Lista eliminada</string>
     <string name="library_list_menu">Opciones de la lista</string>
-    <string name="library_list_empty">Esta lista está vacía. Mantén pulsados los cómics para seleccionarlos y añádelos a la lista.</string>
+    <string name="library_list_empty">Esta lista está vacía. Mantén pulsado un cómic para seleccionarlo y añadirlo a una lista.</string>
     <string name="settings_series_eyebrow">Esta serie</string>
     <string name="detail_option_default_value">Por defecto (%1$s)</string>
     <string name="library_series_add_favorite">Añadir serie a favoritos</string>

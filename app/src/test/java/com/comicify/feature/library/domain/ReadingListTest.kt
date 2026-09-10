@@ -60,10 +60,11 @@ class ReadingListTest {
     }
 
     @Test
-    fun holdsAllOnlyWhenEveryComicIsAlreadyInTheList() {
-        assertTrue(ReadingListMembership.holdsAll(list(1, 2, 3), listOf(1L, 3L)))
-        assertFalse(ReadingListMembership.holdsAll(list(1, 2), listOf(1L, 9L)))
-        assertFalse(ReadingListMembership.holdsAll(list(1, 2), emptyList()))
+    fun membershipIsAllOnlyWhenEveryComicIsAlreadyInTheList() {
+        assertEquals(ListMembership.ALL, ReadingListMembership.of(list(1, 2, 3), listOf(1L, 3L)))
+        assertEquals(ListMembership.SOME, ReadingListMembership.of(list(1, 2), listOf(1L, 9L)))
+        assertEquals(ListMembership.NONE, ReadingListMembership.of(list(1, 2), listOf(8L, 9L)))
+        assertEquals(ListMembership.NONE, ReadingListMembership.of(list(1, 2), emptyList()))
     }
 
     @Test
