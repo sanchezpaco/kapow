@@ -35,7 +35,7 @@ object ReadingPace {
     }
 
     private fun contributing(sessions: List<ReadingSession>): List<ReadingSession> =
-        sessions.filter { it.pages >= MIN_PAGES_PER_SESSION }
+        sessions.filter { it.pages >= MIN_PAGES_PER_SESSION && !it.autoplayed }
 
     private fun median(values: List<Double>): Int? {
         if (values.isEmpty()) return null

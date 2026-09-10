@@ -101,6 +101,7 @@ fun GuidedReader(
     pageTurnRequests: Flow<PageTurnDirection>,
     onPageChanged: (Int) -> Unit,
     onGuidedStop: (Int, Int, Rect) -> Unit,
+    onCameraSettled: () -> Unit,
     onTap: () -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
@@ -168,7 +169,7 @@ fun GuidedReader(
     val resetKey = listOf(page, panelIndex, panelView, settled)
 
     if (!spread) {
-        GuidedPanel(arts[page], page, advancing, settled, panelView, autoPan, resetKey, pageLook, direction, ::goPrevious, ::goNext, onTap, Modifier.fillMaxSize())
+        GuidedPanel(arts[page], page, advancing, settled, panelView, autoPan, resetKey, pageLook, direction, ::goPrevious, ::goNext, onTap, onCameraSettled, Modifier.fillMaxSize())
         return
     }
     val firstPage = spreadStart(page, coverAlone)
@@ -176,8 +177,8 @@ fun GuidedReader(
     val screenLeftPage = PageOrder.leftPage(direction, firstPage, secondPage)
     val screenRightPage = PageOrder.rightPage(direction, firstPage, secondPage)
     Row(modifier = Modifier.fillMaxSize()) {
-        SpreadHalf(screenLeftPage, page, advancing, settled, arts[screenLeftPage], panelView, autoPan, resetKey, pageLook, direction, ::goPrevious, ::goNext, onTap)
-        SpreadHalf(screenRightPage, page, advancing, settled, arts[screenRightPage], panelView, autoPan, resetKey, pageLook, direction, ::goPrevious, ::goNext, onTap)
+        SpreadHalf(screenLeftPage, page, advancing, settled, arts[screenLeftPage], panelView, autoPan, resetKey, pageLook, direction, ::goPrevious, ::goNext, onTap, onCameraSettled)
+        SpreadHalf(screenRightPage, page, advancing, settled, arts[screenRightPage], panelView, autoPan, resetKey, pageLook, direction, ::goPrevious, ::goNext, onTap, onCameraSettled)
     }
 }
 
@@ -210,10 +211,11 @@ private fun RowScope.SpreadHalf(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onTap: () -> Unit,
+    onCameraSettled: () -> Unit,
 ) {
     val modifier = Modifier.weight(1f).fillMaxSize()
     if (index == activePage) {
-        GuidedPanel(art, activePage, advancing, settled, panelView, autoPan, resetKey, pageLook, direction, onPrevious, onNext, onTap, modifier)
+        GuidedPanel(art, activePage, advancing, settled, panelView, autoPan, resetKey, pageLook, direction, onPrevious, onNext, onTap, onCameraSettled, modifier)
         return
     }
     val image = art?.image
@@ -241,6 +243,7 @@ private fun GuidedPanel(
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onTap: () -> Unit,
+    onCameraSettled: () -> Unit,
     modifier: Modifier,
 ) {
     val scope = rememberCoroutineScope()
@@ -258,6 +261,7 @@ private fun GuidedPanel(
     val currentAutoPan by rememberUpdatedState(autoPan)
     val currentAdvancing by rememberUpdatedState(advancing)
     val cover = remember { Animatable(0f) }
+    val currentOnCameraSettled by rememberUpdatedState(onCameraSettled)
     var shownPage by remember { mutableIntStateOf(page) }
 
     LaunchedEffect(resetKey) {
@@ -270,6 +274,7 @@ private fun GuidedPanel(
         if (currentAutoPan) {
             shownPage = page
             view.animateTo(panCrop(currentPanelView, atTop = true), tween(RETURN_ANIMATION_MILLIS, easing = FastOutSlowInEasing))
+            currentOnCameraSettled()
             view.animateTo(panCrop(currentPanelView, atTop = false), tween(AUTO_PAN_MILLIS, easing = FastOutSlowInEasing))
             return@LaunchedEffect
         }
@@ -280,6 +285,7 @@ private fun GuidedPanel(
         val lift = if (cut.fromBlack) cut.durationMillis else COVER_LIFT_MILLIS
         launch { cover.animateTo(0f, tween(lift, easing = FastOutSlowInEasing)) }
         if (!cut.jump) animateCamera(view, currentPanelView, cut)
+        currentOnCameraSettled()
     }
 
     Box(

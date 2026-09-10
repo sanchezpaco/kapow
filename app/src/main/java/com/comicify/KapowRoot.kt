@@ -199,10 +199,10 @@ fun KapowRoot(initialUri: Uri? = null) {
                                         ?: LibraryCatalog.nextInSeries(state.allComics, current.id)
                                     next?.toStripComic()
                                 },
-                                onPageChanged = { comicId, pageIndex, pageCount ->
+                                onPageChanged = { comicId, pageIndex, pageCount, autoplayed ->
                                     comicId?.let {
                                         viewModel.saveProgress(it, pageIndex, pageCount)
-                                        sessionRecorder.onPageChanged(it, pageIndex, pageCount)
+                                        sessionRecorder.onPageChanged(it, pageIndex, pageCount, autoplayed)
                                     }
                                 },
                                 onClose = { open = null; review.onReaderClosed() },

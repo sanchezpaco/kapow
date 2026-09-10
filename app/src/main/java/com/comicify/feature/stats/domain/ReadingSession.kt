@@ -9,6 +9,7 @@ data class ReadingSession(
     val pages: Int,
     val mode: ReaderViewMode,
     val finished: Boolean,
+    val autoplayed: Boolean = false,
 ) {
     val millis: Long = endedAt - startedAt
 }

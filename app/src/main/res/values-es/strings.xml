@@ -270,6 +270,14 @@
     <string name="reader_mode_bubbles">Bocadillos ampliados</string>
     <string name="reader_bubble_scale_smaller">Bocadillos más pequeños</string>
     <string name="reader_bubble_scale_bigger">Bocadillos más grandes</string>
+    <string name="reader_autoplay">Avance automático</string>
+    <string name="reader_autoplay_per_page">Por página</string>
+    <string name="reader_autoplay_seconds">%1$d\u00A0s</string>
+    <string name="reader_autoplay_less">Menos segundos</string>
+    <string name="reader_autoplay_more">Más segundos</string>
+    <string name="reader_autoplay_stop">Detener el avance automático</string>
+    <string name="reader_autoplay_playing">En marcha</string>
+    <string name="reader_autoplay_held">En espera</string>
     <string name="reader_page_fit">Ajuste de página</string>
     <string name="reader_page_fit_screen">Pantalla</string>
     <string name="reader_page_fit_width">Ancho</string>

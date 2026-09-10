@@ -13,6 +13,7 @@ class ReadingPaceTest {
         secondsPerPage: Int,
         pages: Int = 20,
         mode: ReaderViewMode = ReaderViewMode.Pages,
+        autoplayed: Boolean = false,
     ): SeriesReading {
         val id = nextComicId++
         return SeriesReading(
@@ -24,8 +25,33 @@ class ReadingPaceTest {
                 pages = pages,
                 mode = mode,
                 finished = false,
+                autoplayed = autoplayed,
             ),
         )
+    }
+
+    @Test
+    fun autoplayedSessionsNeverDefineThePace() {
+        val readings = listOf(
+            reading("Daredevil", 10, autoplayed = true),
+            reading("Daredevil", 10, autoplayed = true),
+            reading("Daredevil", 10, autoplayed = true),
+            reading("Daredevil", 10, autoplayed = true),
+        )
+        assertEquals(45, ReadingPace.secondsPerPage(readings, "Daredevil", ReaderViewMode.Pages))
+    }
+
+    @Test
+    fun autoplayedSessionsDoNotDragTheMedianOfTheReadOnes() {
+        val readings = listOf(
+            reading("Daredevil", 30),
+            reading("Daredevil", 30),
+            reading("Daredevil", 30),
+            reading("Daredevil", 10, autoplayed = true),
+            reading("Daredevil", 10, autoplayed = true),
+            reading("Daredevil", 10, autoplayed = true),
+        )
+        assertEquals(30, ReadingPace.secondsPerPage(readings, "Daredevil", ReaderViewMode.Pages))
     }
 
     @Test

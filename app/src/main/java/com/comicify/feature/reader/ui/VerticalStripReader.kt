@@ -3,6 +3,8 @@ package com.comicify.feature.reader.ui
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.DragInteraction
+import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculatePan
@@ -18,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -50,12 +54,16 @@ import com.comicify.core.input.PageTurnDirection
 import com.comicify.feature.reader.data.PageArt
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.data.PaintedBubble
+import com.comicify.feature.reader.domain.Autoplay
 import com.comicify.feature.reader.domain.PageLook
 import com.comicify.feature.reader.domain.PanSlop
 import com.comicify.feature.reader.domain.StripChain
 import com.comicify.feature.reader.domain.StripItem
 import com.comicify.feature.reader.domain.StripLink
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 private const val PORTRAIT_PAGE_ASPECT = 2f / 3f
 private const val PRELOAD_BEHIND = 1
@@ -74,6 +82,8 @@ fun VerticalStripReader(
     loader: PageLoader,
     comic: StripComic?,
     bubbleScale: Float?,
+    autoplaySeconds: Int?,
+    onAutoplayFinished: () -> Unit,
     pageLook: PageLook,
     initialPage: Int,
     pageTurnRequests: Flow<PageTurnDirection>,
@@ -140,7 +150,14 @@ fun VerticalStripReader(
     }
 
     LaunchedEffect(listState) {
-        snapshotFlow { listState.isScrollInProgress }.collect { scrolling -> if (scrolling) onScrolled() }
+        listState.interactionSource.interactions.collect { if (it is DragInteraction.Start) onScrolled() }
+    }
+
+    val currentOnAutoplayFinished by rememberUpdatedState(onAutoplayFinished)
+    LaunchedEffect(listState, autoplaySeconds) {
+        val seconds = autoplaySeconds ?: return@LaunchedEffect
+        listState.creepDown(seconds)
+        currentOnAutoplayFinished()
     }
 
     LaunchedEffect(listState) {
@@ -213,6 +230,29 @@ fun VerticalStripReader(
         }
     }
 }
+
+private suspend fun LazyListState.creepDown(seconds: Int) = coroutineScope {
+    snapshotFlow { layoutInfo.visibleItemsInfo.isNotEmpty() }.first { it }
+    while (canScrollForward) {
+        withFrameNanos { }
+        snapshotFlow { isScrollInProgress }.first { !it }
+        launch { scroll { pace(this@creepDown, seconds) } }.join()
+    }
+}
+
+private suspend fun ScrollScope.pace(state: LazyListState, seconds: Int) {
+    var frame = withFrameNanos { it }
+    while (true) {
+        val now = withFrameNanos { it }
+        val step = Autoplay.scrollPixels(state.pageHeight(), seconds, now - frame)
+        frame = now
+        scrollBy(step)
+        if (!state.canScrollForward) return
+    }
+}
+
+private fun LazyListState.pageHeight(): Float =
+    layoutInfo.visibleItemsInfo.firstOrNull()?.size?.toFloat() ?: layoutInfo.viewportSize.height.toFloat()
 
 private fun Modifier.zoomLayer(scale: () -> Float, panX: () -> Float): Modifier = graphicsLayer {
     scaleX = scale()

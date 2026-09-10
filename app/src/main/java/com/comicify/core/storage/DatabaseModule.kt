@@ -19,7 +19,7 @@ object DatabaseModule {
     @Singleton
     fun database(@ApplicationContext context: Context): KapowDatabase =
         Room.databaseBuilder(context, KapowDatabase::class.java, "comicify.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20)
             .build()
 
     @Provides
@@ -226,5 +226,11 @@ private val MIGRATION_18_19 = object : Migration(18, 19) {
         )
         db.execSQL("DROP TABLE `comic_settings`")
         db.execSQL("ALTER TABLE `comic_settings_typed` RENAME TO `comic_settings`")
+    }
+}
+
+private val MIGRATION_19_20 = object : Migration(19, 20) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE reading_session ADD COLUMN autoplayed INTEGER NOT NULL DEFAULT 0")
     }
 }

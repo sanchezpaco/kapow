@@ -85,6 +85,7 @@ private fun ReadingSessionRow.toSeriesReading(): SeriesReading =
             pages = pages,
             mode = ReaderViewMode.valueOf(mode),
             finished = finished,
+            autoplayed = autoplayed,
         ),
     )
 
@@ -96,4 +97,5 @@ private fun ReadingSession.toEntity(): ReadingSessionEntity =
         pages = pages,
         mode = mode.name,
         finished = finished,
+        autoplayed = autoplayed,
     )

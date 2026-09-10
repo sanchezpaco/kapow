@@ -32,6 +32,7 @@ import com.comicify.feature.reader.data.PageDetectionStore
 import com.comicify.feature.reader.data.PageLoader
 import com.comicify.feature.reader.data.PanelDetector
 import com.comicify.feature.reader.data.SplitPagesComicSource
+import com.comicify.feature.reader.domain.Autoplay
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.Bookmarks
 import com.comicify.feature.reader.domain.ComicOpenError
@@ -39,6 +40,8 @@ import com.comicify.feature.reader.domain.PageLook
 import com.comicify.feature.reader.domain.ReaderViewMode
 import com.comicify.feature.reader.domain.ReadingType
 import com.comicify.feature.reader.domain.SplitSuggestion
+import com.comicify.feature.stats.data.StatsEntryPoint
+import com.comicify.feature.stats.domain.ReadingPace
 import dagger.hilt.android.EntryPointAccessors
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
@@ -76,7 +79,11 @@ class ReaderViewModel(
     private val comicSettingsDao: ComicSettingsDao = databaseEntryPoint.comicSettingsDao()
     private val comicDao: ComicDao = databaseEntryPoint.comicDao()
     private val bookmarkDao: BookmarkDao = databaseEntryPoint.bookmarkDao()
+    private val readingStats = EntryPointAccessors
+        .fromApplication(application, StatsEntryPoint::class.java)
+        .readingStatsRepository()
     private val comicReadingType = MutableStateFlow<ReadingType?>(null)
+    private val pacedAutoplaySeconds = MutableStateFlow(Autoplay.secondsFor(ReadingPace.FALLBACK_SECONDS_PER_PAGE))
     private val bookmarkedComicId = MutableStateFlow<Long?>(null)
     private var libraryComicId: Long? = null
     private var source: ComicSource? = null
@@ -91,6 +98,7 @@ class ReaderViewModel(
         observeNightTint()
         observeKeepScreenOn()
         observeBubbleScale()
+        observeAutoplayInterval()
         observeComicSettings()
         observeBookmarks()
     }
@@ -105,6 +113,7 @@ class ReaderViewModel(
             val defaults = preferencesRepository.openDefaults.first()
             val type = effectiveReadingType(defaults.readingType, comicReadingType.value, settings?.readingType)
             applyOpenDefaults(defaults, settings, type)
+            launch { pacedAutoplaySeconds.value = pacedSeconds(comic?.series) }
             val mode = SourceMode(
                 splitWidePages = settings?.splitWidePages ?: false,
                 direction = type.direction,
@@ -308,6 +317,31 @@ class ReaderViewModel(
             }.collect { scale ->
                 _state.update { it.copy(bubbleScale = scale) }
             }
+        }
+    }
+
+    fun toggleAutoplay() {
+        _state.update { it.copy(autoplay = !it.autoplay) }
+    }
+
+    fun stopAutoplay() {
+        _state.update { if (it.autoplay) it.copy(autoplay = false) else it }
+    }
+
+    fun setAutoplaySeconds(seconds: Int) {
+        viewModelScope.launch { preferencesRepository.setAutoplaySeconds(seconds) }
+    }
+
+    private suspend fun pacedSeconds(series: String?): Int {
+        if (series == null) return Autoplay.secondsFor(ReadingPace.FALLBACK_SECONDS_PER_PAGE)
+        val mode = ReaderViewMode.of(state.value.guided, state.value.verticalScroll)
+        return Autoplay.secondsFor(ReadingPace.secondsPerPage(readingStats.readings.first(), series, mode))
+    }
+
+    private fun observeAutoplayInterval() {
+        viewModelScope.launch {
+            combine(preferencesRepository.autoplaySeconds, pacedAutoplaySeconds) { chosen, paced -> chosen ?: paced }
+                .collect { seconds -> _state.update { it.copy(autoplaySeconds = seconds) } }
         }
     }
 

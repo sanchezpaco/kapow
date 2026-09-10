@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.comicify.core.ui.theme.ThemeAccent
@@ -45,6 +46,9 @@ class ReaderPreferencesRepository(private val context: Context) {
 
     val bubbleScale: Flow<Float?> = context.readerPreferencesDataStore.data.map { it[BUBBLE_SCALE] }
     suspend fun setBubbleScale(scale: Float) = set(BUBBLE_SCALE, scale)
+
+    val autoplaySeconds: Flow<Int?> = context.readerPreferencesDataStore.data.map { it[AUTOPLAY_SECONDS] }
+    suspend fun setAutoplaySeconds(seconds: Int) = set(AUTOPLAY_SECONDS, seconds)
 
     val readingType: Flow<ReadingType> = context.readerPreferencesDataStore.data.map { preferences ->
         preferences[READING_TYPE]?.let(ReadingType::valueOf)
@@ -89,6 +93,7 @@ class ReaderPreferencesRepository(private val context: Context) {
         val READING_TYPE = stringPreferencesKey("reading_type")
         val LEGACY_DIRECTION_RTL = booleanPreferencesKey("reading_direction_rtl")
         val BUBBLE_SCALE = floatPreferencesKey("bubble_scale")
+        val AUTOPLAY_SECONDS = intPreferencesKey("autoplay_seconds_per_page")
         val THEME_GROUND = stringPreferencesKey("theme_ground")
         val THEME_ACCENT = stringPreferencesKey("theme_accent")
     }

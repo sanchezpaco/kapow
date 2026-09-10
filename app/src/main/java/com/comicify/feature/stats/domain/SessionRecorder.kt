@@ -16,6 +16,7 @@ data class SessionDraft(
     val lastPageIndex: Int?,
     val pages: Int,
     val finished: Boolean,
+    val autoplayed: Boolean = false,
 )
 
 data class PageTurn(val draft: SessionDraft, val ended: ReadingSession?)
@@ -49,6 +50,9 @@ object SessionRecorder {
         )
     }
 
+    fun onAutoplay(draft: SessionDraft): SessionDraft =
+        if (draft.autoplayed) draft else draft.copy(autoplayed = true)
+
     fun moveTo(draft: SessionDraft, comicId: Long, pageIndex: Int, now: Long): PageTurn {
         val idle = now - draft.lastActivityAt >= SESSION_IDLE_TIMEOUT_MS
         val ended = if (idle) draft else draft.copy(lastActivityAt = now)
@@ -65,6 +69,7 @@ object SessionRecorder {
             pages = draft.pages,
             mode = draft.mode,
             finished = draft.finished,
+            autoplayed = draft.autoplayed,
         )
     }
 }

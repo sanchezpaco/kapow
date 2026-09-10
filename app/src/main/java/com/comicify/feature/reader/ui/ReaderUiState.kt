@@ -2,10 +2,12 @@ package com.comicify.feature.reader.ui
 
 import com.comicify.domain.model.ReadingDirection
 import com.comicify.domain.model.ReadingPosition
+import com.comicify.feature.reader.domain.Autoplay
 import com.comicify.feature.reader.domain.BUBBLE_ENLARGE_SCALE
 import com.comicify.feature.reader.domain.ComicOpenError
 import com.comicify.feature.reader.domain.PageLook
 import com.comicify.feature.reader.domain.ReadingType
+import com.comicify.feature.stats.domain.ReadingPace
 
 data class ReaderUiState(
     val loading: Boolean = true,
@@ -20,6 +22,8 @@ data class ReaderUiState(
     val keepScreenOn: Boolean = true,
     val bubblesEnlarged: Boolean = false,
     val bubbleScale: Float = BUBBLE_ENLARGE_SCALE,
+    val autoplay: Boolean = false,
+    val autoplaySeconds: Int = Autoplay.secondsFor(ReadingPace.FALLBACK_SECONDS_PER_PAGE),
     val pendingJump: Int? = null,
     val readingType: ReadingType = ReadingType.Comic,
     val direction: ReadingDirection = ReadingDirection.LeftToRight,

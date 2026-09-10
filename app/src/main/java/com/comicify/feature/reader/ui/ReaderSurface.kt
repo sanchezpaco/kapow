@@ -65,6 +65,8 @@ fun ReaderSurface(
     onStripActiveChanged: (StripComic?, PageLoader, Int, Int) -> Unit,
     onStripScrolled: () -> Unit,
     bubbleScale: Float?,
+    autoplaySeconds: Int?,
+    onAutoplayFinished: () -> Unit,
     pageLook: PageLook,
     fitWidth: Boolean,
     direction: ReadingDirection,
@@ -75,6 +77,7 @@ fun ReaderSurface(
     onJumpApplied: () -> Unit,
     onPageChanged: (Int) -> Unit,
     onGuidedStop: (Int, Int, Rect) -> Unit,
+    onGuidedSettled: () -> Unit,
     onTap: (TapZone) -> Unit,
     onAmbient: (Color) -> Unit,
 ) {
@@ -84,6 +87,8 @@ fun ReaderSurface(
                 loader = loader,
                 comic = comic,
                 bubbleScale = bubbleScale,
+                autoplaySeconds = autoplaySeconds,
+                onAutoplayFinished = onAutoplayFinished,
                 pageLook = pageLook,
                 initialPage = initialPage,
                 pageTurnRequests = pageTurnRequests,
@@ -102,7 +107,7 @@ fun ReaderSurface(
     if (guided) {
         val spread = posture == ReadingPosture.UnfoldedSpread && !guidedFullScreen
         key(loader, spread) {
-            GuidedReader(loader, spread, pageLook, direction, coverAlone, initialPage, pageTurnRequests, onPageChanged, onGuidedStop, { onTap(TapZone.Center) }, onAmbient)
+            GuidedReader(loader, spread, pageLook, direction, coverAlone, initialPage, pageTurnRequests, onPageChanged, onGuidedStop, onGuidedSettled, { onTap(TapZone.Center) }, onAmbient)
         }
         return
     }

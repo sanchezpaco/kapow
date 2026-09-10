@@ -25,4 +25,5 @@ data class ReadingSessionEntity(
     val pages: Int,
     val mode: String,
     val finished: Boolean,
+    val autoplayed: Boolean = false,
 )
