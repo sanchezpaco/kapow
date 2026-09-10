@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import com.comicify.feature.library.data.LibraryRepository
 import com.comicify.feature.library.domain.LibraryCatalog
 import com.comicify.feature.library.domain.LibraryComic
-import com.comicify.feature.library.domain.LibraryEntry
 import com.comicify.feature.library.domain.LibraryFilter
 import com.comicify.feature.library.domain.LibraryScanError
 import com.comicify.feature.library.domain.LibrarySelection
@@ -92,7 +91,7 @@ class LibraryViewModel @Inject constructor(
                 grouped = isGrouped,
                 comics = filtered,
                 allComics = comics,
-                entries = if (opened == null) LibraryCatalog.grouped(filtered) else filtered.map(LibraryEntry::Single),
+                entries = LibraryCatalog.grouped(filtered),
                 continueReading = LibraryCatalog.continueReading(comics),
                 continueReadingVisible = selectedFilter == LibraryFilter.ALL && searchQuery.isBlank() && opened == null,
                 totalCount = comics.size,
@@ -157,8 +156,8 @@ class LibraryViewModel @Inject constructor(
         openedListId.value = list?.id
     }
 
-    fun onToggleSelection(comic: LibraryComic) {
-        selection.value = LibrarySelection.toggle(selection.value, comic.id)
+    fun onToggleSelection(comics: List<LibraryComic>) {
+        selection.value = LibrarySelection.toggle(selection.value, comics.map { it.id })
     }
 
     fun onSelectRange(ids: Set<Long>) {
@@ -181,7 +180,7 @@ class LibraryViewModel @Inject constructor(
     fun onCreateList(name: String, comics: List<LibraryComic>) {
         viewModelScope.launch {
             val listId = repository.createList(name.trim())
-            comics.forEach { repository.addToList(listId, it.id) }
+            LibraryCatalog.sort(comics).forEach { repository.addToList(listId, it.id) }
         }
     }
 
@@ -199,7 +198,7 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun onToggleInList(list: ReadingList, comics: List<LibraryComic>) {
-        val comicIds = comics.map { it.id }
+        val comicIds = LibraryCatalog.sort(comics).map { it.id }
         viewModelScope.launch {
             if (ReadingListMembership.of(list, comicIds) == ListMembership.ALL) {
                 comicIds.forEach { repository.removeFromList(list.id, it) }
@@ -241,7 +240,6 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun onToggleGrouped() {
-        onClearSelection()
         viewModelScope.launch { repository.setGrouped(!state.value.grouped) }
     }
 

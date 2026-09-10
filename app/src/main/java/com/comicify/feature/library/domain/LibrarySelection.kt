@@ -2,8 +2,9 @@ package com.comicify.feature.library.domain
 
 object LibrarySelection {
 
-    fun toggle(selected: Set<Long>, comicId: Long): Set<Long> =
-        if (comicId in selected) selected - comicId else selected + comicId
+    fun toggle(selected: Set<Long>, comicIds: List<Long>): Set<Long> =
+        if (comicIds.isNotEmpty() && comicIds.all { it in selected }) selected - comicIds
+        else selected + comicIds
 
     fun reconcile(selected: Set<Long>, comics: List<LibraryComic>): Set<Long> {
         if (selected.isEmpty()) return emptySet()

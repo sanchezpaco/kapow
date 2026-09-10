@@ -55,6 +55,10 @@
         <item quantity="one">¿Borrar cómic?</item>
         <item quantity="other">¿Borrar %1$d cómics?</item>
     </plurals>
+    <plurals name="library_selection_delete_series_note">
+        <item quantity="one">Incluye 1 serie completa.</item>
+        <item quantity="other">Incluye %1$d series completas.</item>
+    </plurals>
     <plurals name="library_selection_delete_body">
         <item quantity="one">El cómic seleccionado se borrará permanentemente de tu dispositivo.</item>
         <item quantity="other">Los %1$d cómics seleccionados se borrarán permanentemente de tu dispositivo.</item>

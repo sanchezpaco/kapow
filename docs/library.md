@@ -250,9 +250,16 @@ cannot express. Lists are hand-ordered, never re-sorted.
   trailing slot swaps the Recent sort toggle for the list "⋮" (rename, delete):
   a hand-ordered list has no sort. The grid shows the list in `ordering`, filter
   chips and search still narrow it, "Continue reading" collapses
-  (`continueReadingVisible` also requires `openedList == null`) and grouping is
-  ignored — a crossover is exactly what you do not want folded back into series
-  stacks. The Layers toggle stays enabled and applies again on All comics.
+  (`continueReadingVisible` also requires `openedList == null`) and grouping
+  applies — the Layers toggle is a **view over the list**, never a change to it.
+  A stack inside a list means "the issues of this series *that are in this
+  list*", and opening it shows them in **list order**, not series order, because
+  `LibraryCatalog.grouped` keys a `LinkedHashMap` by series: a group lands at the
+  list position of its first member and keeps its members' order, so a
+  crossover's shape survives grouping for free. Grouping never writes
+  `ordering`; **Move up / Move down are hidden while grouped** (a position in a
+  grouped view is not a position in the list), and "Remove from list" on a stack
+  takes every member out.
 - **Adding** is `Add to list…`, and it always works on a *set* of comics: the
   selection row's first square (one comic or twenty — see "Selection mode"), or
   the series menu, which passes the whole group in its shelf order. The dialog
@@ -455,20 +462,22 @@ one code path: the batch one.
   dialog closes), *Remove from list*, *Delete* and the "⋮" navigations exit the
   mode; **mark read/unread and favourite keep it**, because read-then-favourite
   is a natural chain and both are undoable. Scrolling never clears it. Opening a
-  list, a series, or toggling grouping does — the visible set changes wholesale.
+  list or a series does — the visible set changes wholesale.
+  Toggling grouping no longer does either — the same comics are selectable in
+  both shapes, so the selection simply redraws as stacks or as covers.
   Changing the **filter, sort or search** does *not* wipe it: on every emission
   `LibrarySelection.reconcile` intersects the selection with the shelf, so
   comics the new filter hides simply drop out of it instead of being silently
   batched, and a delete, a rescan that drops a file or a relink can never leave
   a stale id behind.
 - **What "select all" means** is `LibraryCatalog.selectable(entries, comics,
-  grouped)` — exactly the covers the grid is drawing. Grouped, that is the loose
-  covers only, never issues hidden inside a stack; ungrouped, it is every comic
-  on the shelf. Getting this wrong once made the mode enterable but invisible:
-  the shelf renders `state.comics` when grouping is off while `entries` is
-  always the *grouped* structure, so long-pressing an issue of a multi-issue
-  series selected a comic that the row then could not find. Pinned by
-  `LibrarySelectionTest`.
+  grouped)` — every comic the grid is drawing, *including* the issues inside
+  stacks, which is the one change behind selectable stacks, drags that cross
+  them and a select-all that no longer silently omits grouped series. Getting
+  this list wrong once made the mode enterable but invisible: the shelf renders
+  `state.comics` when grouping is off while `entries` is always the *grouped*
+  structure, so long-pressing an issue of a multi-issue series selected a comic
+  the row could not find. Pinned by `LibrarySelectionTest`.
 - **BACK** lives in `LibraryContent`, gated on `state.selection` and registered
   before the series and open-list handlers (which stay gated on `!selecting`) —
   never inside the row it protects, or a row that fails to render takes the
@@ -481,16 +490,33 @@ one code path: the batch one.
   the one confirmation dialog quoting the count
   (`library_selection_delete_title/_body`, plurals; a single comic keeps its old
   by-name wording) is the guard.
-- **Series stacks do not take part.** A stack is a container, not an item: tap
-  opens it, long-press opens the series menu, and *Add series to list…* there
-  adds every issue in the group's order in one gesture — cheaper than ticking
-  twelve covers. While a selection is active, group cards and the whole
-  "Continue reading" shelf go to 40 % and stop responding
+- **A stack is a shortcut for its issues.** The selection is a set of comics,
+  always — ticking a stack ticks its members, and nothing else changes. So the
+  count pill says `✓ 120` (issues, the same plural as ever), every action runs
+  over the member comics, and *ten Spider-Man stacks in one drag* is just a
+  hundred-odd comics. A stack shows the same states as a cover: 2 dp `Accent`
+  and the filled check when every issue is ticked (with the 0.92 scale on the
+  whole stack, so the offset back-card scales too), a **1 dp `Accent` border and
+  a ringed dot** when only some are — the tri-state of the add-to-list dialog in
+  badge form — and the 1 dp `CardLine` hairline when none are. Its `CountBadge`
+  stays at BottomStart and doubles as "this is how many the tick just took".
+  Nothing is displaced: a `GroupCard`'s TopStart and TopEnd were empty already.
+- **Deleting never refuses a mixed selection** — refusing would just make the
+  user do it in two passes. When the selection contains at least one complete
+  stack the confirmation grows a second line naming how many
+  (`library_selection_delete_series_note`, `LibraryCatalog.completeSeries`).
+- **The series menu moved rather than died.** Long-press now means *select* on
+  every card type without exception, so `GroupCard` has no menu; it lives on the
+  series screen's header "⋮" (tap the stack to get there), still including
+  *Añadir la serie a una lista…*, still the cheapest route for one series. When
+  the selection is exactly one whole stack the selection "⋮" also offers
+  *Series settings*, mirroring how the single-comic rows appear there.
+- Only the "Continue reading" shelf is inert while selecting
   (`Modifier.inertWhile`, consuming pointer events at `PointerEventPass.Initial`)
-  — they stay laid out, so nothing jumps, but a stray tap can no longer open the
+  — it stays laid out, so nothing jumps, but a stray tap can no longer open the
   reader and throw away a selection being built. Inside a series screen the
-  header's "⋮" hides for the same reason: "Delete series" must not sit one tap
-  from a three-issue selection.
+  header's "⋮" hides: "Delete series" must not sit one tap from a three-issue
+  selection.
 - **State.** `LibraryUiState.selection` is a `Set<Long>` of comic ids owned by
   `LibraryViewModel`; the UI carries it around as one `SelectionUi` value the
   way reading lists travel as `ReadingListsUi`. `LibrarySelection` and
@@ -518,7 +544,9 @@ with a selection live.
 - **One event per range change.** The frame loop pushes `onSelectRange(ids)`,
   which *replaces* the whole set, and only when the item under the finger
   changes — never per frame, never as N toggles, so a hundred-comic drag costs
-  tens of ViewModel events, not thousands.
+  tens of ViewModel events, not thousands. Lifting the finger flushes the last
+  position once more, so the far end of the range can never be lost to a frame
+  that never came.
 - **The gesture lives on the grid, not on the cards**, because the finger must
   stay tracked after it leaves the card it started on. `ComicCard` therefore has
   no `onLongClick` any more — two handlers racing for one press is a bug
@@ -527,12 +555,13 @@ with a selection live.
   then everything falls through to the grid's own scroll; once it fires the
   detector owns the pointer and consumes, which is also why dragging up into the
   pinned selection row cannot press its buttons.
-- **Hit-testing** walks `layoutInfo.visibleItemsInfo` and decodes the item key:
-  every selectable cover is keyed `comic-<id>`, so group stacks (`group-…`) and
-  the unkeyed header items simply decode to nothing. **Group cards and the hero
-  are gaps the range skips, never walls** — they have no index in `selectable`,
-  so a finger crossing a stack resumes the range on the far side instead of
-  stranding the drag.
+- **Hit-testing** walks `layoutInfo.visibleItemsInfo` and looks the item key up
+  in a span map built from exactly what the grid draws — a cover maps to one
+  index, **a stack maps to the whole span of its issues**, so a finger crossing
+  ten Spider-Man stacks takes all of their issues and the haptic ticks once per
+  stack rather than once per issue. The map and `selectable` are both a walk
+  over `LibraryEntry.members()`, so they cannot drift. Header items and the hero
+  are in no span at all and are simply skipped.
 - **Auto-scroll** runs in the same `withFrameNanos` loop: a linear ramp from
   `DragSelectMinRate` (240 dp/s) at the outer edge of a `DragSelectHotZone`
   (96 dp) to `DragSelectMaxRate` (900 dp/s) at the very edge. 900 dp/s is a
