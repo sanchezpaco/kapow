@@ -5,6 +5,14 @@ All notable user-facing changes to Kapow. The format follows
 `versionName` in `app/build.gradle.kts` and the `v*` git tags. The Play
 "What's new" text lives in `fastlane/metadata/android/*/changelogs/`.
 
+## [1.1.1] - 2026-09-12
+
+### Fixed
+- A reading list no longer reads like a playlist. Reading a comic from a list
+  in vertical scroll ran on into the next comic *of the list* once its own
+  series ended, which could be an unrelated series; the strip and the "Next
+  issue" button now follow the series and stop when it ends.
+
 ## [1.1.0] - 2026-09-10
 
 ### Added

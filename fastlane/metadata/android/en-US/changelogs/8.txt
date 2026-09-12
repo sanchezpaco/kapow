@@ -1,0 +1,2 @@
+• A reading list is a shelf, not a playlist
+• The vertical scroll and "Next issue" now follow the series and stop when it ends, instead of running on into the next comic of the list

@@ -1,0 +1,2 @@
+• Una lista de lectura es una estantería, no una lista de reproducción
+• El scroll vertical y "Siguiente número" siguen la serie y se paran al acabarla, en vez de continuar con el siguiente cómic de la lista
