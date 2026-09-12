@@ -288,11 +288,11 @@ cannot express. Lists are hand-ordered, never re-sorted.
   delete re-creates the list with its id, name, date and members. Deleting needs
   no confirmation dialog — no comic is lost — and the shelf falls back to All
   comics immediately.
-- **The reader follows the list.** `KapowRoot` passes
-  `LibraryCatalog.nextInList(…) ?: LibraryCatalog.nextInSeries(…)`, so a comic
-  opened while a list is on the shelf continues into the next issue *of the
-  list* and otherwise into the next issue of its series. Nothing in the reader
-  changes.
+- **A list is a shelf, not a playlist.** The reader never chains along a list:
+  `KapowRoot` passes `LibraryCatalog.nextInSeries(…)` whatever is on the shelf,
+  so the vertical strip and the "next issue" action both follow the series and
+  stop when it ends. Chaining across a list once existed and was wrong — a comic
+  opened from a folder-like list ran on into an unrelated series.
 - The open list is ViewModel state (`openedList`), like `openedSeries`, so
   returning from settings or the reader lands back in the list. It is **not**
   persisted: the shelf opens on All comics.

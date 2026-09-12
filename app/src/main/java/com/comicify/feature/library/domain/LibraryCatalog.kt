@@ -66,13 +66,6 @@ object LibraryCatalog {
         return list.comicIds.mapNotNull(byId::get)
     }
 
-    fun nextInList(comics: List<LibraryComic>, list: ReadingList, comicId: Long): LibraryComic? {
-        val ordered = inList(comics, list)
-        val index = ordered.indexOfFirst { it.id == comicId }
-        if (index < 0) return null
-        return ordered.getOrNull(index + 1)
-    }
-
     fun continueReading(comics: List<LibraryComic>): List<LibraryComic> =
         comics.filter { it.lastReadAt != null && !it.completed && it.pageIndex > 0 && it.shelved }
             .sortedByDescending { it.lastReadAt }

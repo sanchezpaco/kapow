@@ -408,7 +408,9 @@ Reading position stays the first visible page, so it maps to the same
 
 ### The strip does not stop at the end of an issue
 
-When the comic belongs to a series, the strip keeps going into the next issue.
+When the comic belongs to a series, the strip keeps going into the next issue —
+the next issue of the *series*, whatever shelf or reading list the comic was
+opened from, so a list never reads as a playlist.
 The item list **grows** rather than being replaced (`StripChain.items`, pure and
 unit-tested): pages of issue *n*, a boundary band, pages of issue *n+1*, and so
 on. Appending only at the end means no index ever shifts under the reader, so

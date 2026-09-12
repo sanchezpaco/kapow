@@ -2,7 +2,6 @@ package com.comicify.feature.library.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -85,19 +84,5 @@ class ReadingListTest {
         val members = LibraryCatalog.inList(comics, list(3, 2))
         assertEquals(2, members.size)
         assertEquals(1, members.count { it.completed })
-    }
-
-    @Test
-    fun nextInListFollowsTheHandOrderAcrossSeries() {
-        val comics = listOf(comic(1, series = "Amazing"), comic(2, series = "Venom"), comic(3, series = "Amazing"))
-        assertEquals(2L, LibraryCatalog.nextInList(comics, list(3, 2, 1), 3L)?.id)
-        assertEquals(1L, LibraryCatalog.nextInList(comics, list(3, 2, 1), 2L)?.id)
-    }
-
-    @Test
-    fun nextInListStopsAtTheEndAndIgnoresOutsiders() {
-        val comics = listOf(comic(1), comic(2))
-        assertNull(LibraryCatalog.nextInList(comics, list(1, 2), 2L))
-        assertNull(LibraryCatalog.nextInList(comics, list(1), 2L))
     }
 }

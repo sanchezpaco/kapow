@@ -790,8 +790,9 @@ them in migration order (Room v12 → v19) and verified each on the emulator.
       (`series:`, `writer:`, `publisher:`, `year>`) plus preset queries:
       unread, in progress, highly rated, recently added
 - [x] Reading lists: ordered, user-made, cross-series (a crossover reading
-      order, a re-read plan); "Next issue" follows the list when reading from
-      one. Two Room tables with an `ordering` column
+      order, a re-read plan). Two Room tables with an `ordering` column. A list
+      is a shelf, not a playlist: "Next issue" and the strip follow the series,
+      never the list
 - [x] Custom cover: pick any page of the comic (a `coverPage` index) with a
       reset, for variant covers, ad leaves and blank first pages
 - [x] Rating per comic with a "highly rated" filter, and an `edited` flag on

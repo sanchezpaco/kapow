@@ -196,10 +196,7 @@ fun KapowRoot(initialUri: Uri? = null) {
                                     ?.let { id -> state.allComics.firstOrNull { it.id == id } }
                                     ?.toStripComic(),
                                 nextInSeries = { current ->
-                                    val list = state.openedList
-                                    val next = list?.let { LibraryCatalog.nextInList(state.allComics, it, current.id) }
-                                        ?: LibraryCatalog.nextInSeries(state.allComics, current.id)
-                                    next?.toStripComic()
+                                    LibraryCatalog.nextInSeries(state.allComics, current.id)?.toStripComic()
                                 },
                                 onPageChanged = { comicId, pageIndex, pageCount, autoplayed ->
                                     comicId?.let {
